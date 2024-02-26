@@ -819,6 +819,9 @@ def combine_metrics():
             for key, value in tqdm(metric.items()):
                 combined_metrics[f"{folder}_{key}"] = value
 
+    if not os.path.exists("combined"):
+        os.makedirs("combined")
+
     with open("combined_metrics.pkl", "wb") as o:
         pickle.dump(combined_metrics, o)
 
