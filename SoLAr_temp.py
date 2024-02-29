@@ -785,6 +785,7 @@ def filter_metrics(
     print(f"min_track_length = {min_track_length}")
     print(f"max_track_length = {max_track_length}")
     print(f"max_tracks = {max_tracks}")
+    print(f"min_light = {min_light}")
     print(f"max_light = {max_light}")
 
     filtered_metrics = {}
@@ -1254,6 +1255,7 @@ def plot_track_stats(
     track_score = []
     track_z = []
     dQdx_list = []
+    dq_z_list = []
 
     empty_count = 0
     short_count = 0
@@ -1289,6 +1291,22 @@ def plot_track_stats(
             track_score.append(values["RANSAC_score"])
             track_z.append(values["Fit_line"].point[2])
 
+            # dQdx versus z per point - can be improved
+            length = len(dQ) - 5
+            mid_point = length // 2 + length % 2 - 1
+            steps = np.arange(-mid_point - 3, mid_point + 3, 1) * dx
+            temp_dq_z = []
+            temp_z = []
+            for idx, step in enumerate(steps):
+                if dQ[idx] == 0:
+                    continue
+
+                temp_dq_z.append(dQ[idx] / dx)
+                temp_z.append(values["Fit_line"].to_point(step + dx / 2)[2])
+
+            dq_z_list.append(pd.Series(temp_dq_z, index=temp_z))
+            # ======================================================== #
+
     print(f"Tracks with dead area outside {empty_ratio_lims} interval: {empty_count}")
     print(f"Tracks with less than {min_entries} entries: {short_count}")
 
@@ -1313,6 +1331,10 @@ def plot_track_stats(
     track_z = track_z[mask]
     track_cv_dQdx = track_std_dQdx / track_mean_dQdx
     dQdx_list = [series for i, series in enumerate(dQdx_list) if mask[i]]
+
+    # dQdx versus z per point - can be improved
+    dq_z_list = [series for i, series in enumerate(dq_z_list) if mask[i]]
+    # ======================================================== #
 
     score_mask = (track_score >= min_score).to_numpy()
     score_bool = (1 - score_mask).sum() > 0
@@ -1442,10 +1464,6 @@ def plot_track_stats(
         profile=profile,
     )
 
-    cut_dQdx_series = pd.concat(
-        [series for i, series in enumerate(dQdx_list) if score_mask[i]]
-    )
-    cut_dQdx_series = cut_dQdx_series[cut_dQdx_series > 0].dropna().sort_index()
     dQdx_series = pd.concat(dQdx_list)
     dQdx_series = dQdx_series[dQdx_series > 0].dropna().sort_index()
 
@@ -1468,13 +1486,32 @@ def plot_track_stats(
     fig6 = plt.figure(figsize=(7 + 7 * score_bool, 6))
     ax61 = fig6.add_subplot(111 + 10 * score_bool)
     ax61.set_ylabel(rf"Mean $dQ/dx$ [{q_unit} {dh_unit}$^{{-1}}$]")
-    ax61.set_xlabel(rf"Anode distance [{z_unit}]")
+    ax61.set_xlabel(rf"Mean anode distance [{z_unit}]")
     ax61.set_title(rf"{len(track_z)} tracks")
 
     hist2d(track_z, track_mean_dQdx, ax61, bins, lognorm, fit="Linear", profile=profile)
 
-    axes = [ax11, ax12, ax21, ax22, ax4, ax51, ax61]
-    figs = [fig1, fig2, fig4, fig5, fig6]
+    fig7 = plt.figure(figsize=(7 + 7 * score_bool, 6))
+    ax71 = fig7.add_subplot(111 + 10 * score_bool)
+    ax71.set_ylabel(rf"$dQ/dx$ [{q_unit} {dh_unit}$^{{-1}}$]")
+    ax71.set_xlabel(rf"Anode distance [{z_unit}]")
+    ax71.set_title(rf"{len(track_z)} tracks")
+
+    dq_z_series = pd.concat(dq_z_list)
+    dq_z_series = dq_z_series[dq_z_series > 0].dropna().sort_index()
+
+    hist2d(
+        dq_z_series.index,
+        dq_z_series,
+        ax71,
+        bins,
+        lognorm,
+        fit="Linear",
+        profile=profile,
+    )
+
+    axes = [ax11, ax12, ax21, ax22, ax4, ax51, ax61, ax71]
+    figs = [fig1, fig2, fig4, fig5, fig6, fig7]
 
     if score_bool:
         # 2D histograms after RANSAC score cut
@@ -1521,6 +1558,11 @@ def plot_track_stats(
         )
         fig5.suptitle("dQ/dx vs. Residual range")
 
+        cut_dQdx_series = pd.concat(
+            [series for i, series in enumerate(dQdx_list) if score_mask[i]]
+        )
+        cut_dQdx_series = cut_dQdx_series[cut_dQdx_series > 0].dropna().sort_index()
+
         hist2d(
             cut_dQdx_series.index,
             cut_dQdx_series,
@@ -1550,10 +1592,34 @@ def plot_track_stats(
             profile=profile,
         )
 
+        ax72 = fig7.add_subplot(122)
+        axes.append(ax72)
+        ax72.set_ylabel(rf"$dQ/dx$ [{q_unit} {dh_unit}$^{{-1}}$]")
+        ax72.set_xlabel(rf"Anode distance [{z_unit}]")
+        ax72.set_title(
+            rf"Fit score $\geq {min_score}$ ({round(sum(score_mask)/len(score_mask)*100)}% of tracks)"
+        )
+        fig7.suptitle("dQ/dx vs. Anode distance")
+
+        cut_dq_z_series = pd.concat(
+            [series for i, series in enumerate(dq_z_list) if score_mask[i]]
+        )
+        cut_dq_z_series = cut_dq_z_series[cut_dq_z_series > 0].dropna().sort_index()
+
+        hist2d(
+            cut_dq_z_series.index,
+            cut_dq_z_series,
+            ax72,
+            bins,
+            lognorm,
+            fit="Linear",
+            profile=profile,
+        )
+
     max_track_legth = np.sqrt(detector_x**2 + detector_y**2 + detector_z**2)
     max_track_legth_xy = np.sqrt(detector_x**2 + detector_y**2)
     print("Max possible track length", round(max_track_legth, 2), "mm")
-    print("Max possible track lengt on xy plane", round(max_track_legth_xy, 2), "mm")
+    print("Max possible track length on xy plane", round(max_track_legth_xy, 2), "mm")
     print("Max possible vertical track length", detector_y, "mm")
 
     for ax in axes:
@@ -1562,7 +1628,10 @@ def plot_track_stats(
             ax.set_ylabel("Counts")
         if ax != ax11:
             if not (
-                ax == ax51 or ax == ax61 or (score_bool and (ax == ax52 or ax == ax62))
+                ax == ax51
+                or ax == ax61
+                or ax == ax71
+                or (score_bool and (ax == ax52 or ax == ax62 or ax == ax72))
             ):
                 ax.set_xlabel(f"Track length [{dh_unit}]")
             if max(track_length) > detector_y:
@@ -1613,13 +1682,18 @@ def plot_track_stats(
             dpi=300,
             bbox_inches="tight",
         )
+        fig7.savefig(
+            f"{file_label}/track_stats_dQ_z_{file_label}_{entries}{'_profile' if profile else ''}.png",
+            dpi=300,
+            bbox_inches="tight",
+        )
         if score_bool:
             fig3.savefig(
                 f"{file_label}/track_stats_2D_hist_cut_{file_label}_{entries}{'_profile' if profile else ''}.png",
                 dpi=300,
                 bbox_inches="tight",
             )
-
+            
 
 ### Tracks and light
 
@@ -1848,6 +1922,107 @@ def plot_light_fit_stats(metrics):
     if save_figures:
         fig.savefig(
             f"{file_label}/light_fit_{file_label}_{entries}.png",
+            dpi=300,
+            bbox_inches="tight",
+        )
+
+
+def plot_voxel_data(metrics):
+    z = []
+    q = []
+    l = []
+    for i, metric in metrics.items():
+        # if not metric["SiPM"]:
+        #     continue
+        for key, sipm in metric["SiPM"].items():
+            if isinstance(key, tuple):
+                q.append(sipm["charge_q"])
+                z.append(sipm["charge_z"])
+                l.append(sipm["integral"])
+
+    z = np.array(z)
+    q = np.array(q)
+    l = np.array(l)
+
+    max_light = max_std(
+        l,
+        ax=None,
+        min_count_ratio=0.98,
+        max_std_ratio=0.1,
+    )
+
+    max_charge = np.percentile(q, 99)
+
+    mask = (l < max_light) & (l > 0) & (q < max_charge) & (q > 0) & (z < 400)
+
+    fig1 = plt.figure(figsize=(10, 6))
+    ax1 = fig1.add_subplot(111)
+
+    hist = ax1.hist2d(
+        z[mask],
+        l[mask],
+        bins=100,
+        cmin=1,
+    )
+    cbar1 = plt.colorbar(hist[3])
+    ax1.set_title("Light vs. z distance")
+    cbar1.set_label(rf"Counts")
+
+    def fit_func(x, a, b):
+        return np.exp(-(x - a) / b)
+
+    params, cov = curve_fit(fit_func, z[mask], l[mask])
+
+    print("Exponential fit:", params)
+
+    x = np.linspace(min(z[mask]), max(z[mask]), 1000)
+    ax1.plot(x, fit_func(x, *params), c="r", ls="--", label=f"Exponential fit")
+    ax1.legend()
+
+    fig2, axes2 = plt.subplots(3, 1, figsize=(10, 18))
+
+    figs = [fig1, fig2]
+    axes = [ax1, *axes2]
+
+    hist21 = axes2[0].hist2d(z[mask], q[mask], bins=50, cmin=1)
+    cbar21 = plt.colorbar(hist21[3])
+    axes2[0].set_title(rf"Charge vs. Anode distance")
+    cbar21.set_label(rf"Counts")
+
+    hist22 = axes2[1].hist2d(q[mask], l[mask], bins=50, cmin=1)
+    cbar22 = plt.colorbar(hist22[3])
+    axes2[1].set(
+        title=rf"Light vs. Charge",
+        xlabel=rf"Charge [{q_unit}]",
+    )
+    cbar22.set_label(rf"Counts")
+
+    hist23 = axes2[2].hist2d(z[mask], q[mask], weights=l[mask], bins=50, cmin=1)
+    cbar23 = plt.colorbar(hist23[3])
+    axes2[2].set_title(rf"Charge vs. Anode distance with light weights")
+    cbar23.set_label(rf"Light {light_variable} [{light_unit}]")
+
+    for idx, ax in enumerate(axes):
+        set_common_ax_options(ax)
+        if not idx == 2:
+            ax.set_xlabel(f"Anode distance [{z_unit}]")
+        if idx % 2 == 0:
+            ax.set_ylabel(rf"Light {light_variable} [{light_unit}]")
+        else:
+            ax.set_ylabel(rf"Charge [{q_unit}]")
+
+    for fig in figs:
+        fig.tight_layout()
+
+    if save_figures:
+        events = sum(mask)
+        fig1.savefig(
+            f"{file_label}/voxel_light_vs_z_{file_label}_{events}.png",
+            dpi=300,
+            bbox_inches="tight",
+        )
+        fig2.savefig(
+            f"{file_label}/voxel_charge_vs_z_hist_{file_label}_{events}.png",
             dpi=300,
             bbox_inches="tight",
         )
