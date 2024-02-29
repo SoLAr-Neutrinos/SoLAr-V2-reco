@@ -97,6 +97,8 @@ max_score = 1.0
 min_track_length = 30
 max_track_length = np.inf
 max_tracks = 1
+max_light = 1000
+min_light = 0
 
 # Other
 non_track_keys = 5
@@ -670,7 +672,7 @@ def max_std(array, ax=None, array_max=None, min_count_ratio=0.9, max_std_ratio=0
     max_std = array.std()
     max_count = len(array)
     if array_max is None:
-        array_max = np.percentile(array, min(min_count_ratio * 100 + 1, 100))
+        array_max = np.percentile(array, 99 + (min_count_ratio >= 0.99))
 
     std = []
     count = []
@@ -775,17 +777,24 @@ def filter_metrics(
     min_track_length=160,
     max_track_length=np.inf,
     max_tracks=1,
+    min_light=0,
+    max_light=100,
 ):
     print(f"min_score = {min_score}")
     print(f"max_score = {max_score}")
     print(f"min_track_length = {min_track_length}")
     print(f"max_track_length = {max_track_length}")
     print(f"max_tracks = {max_tracks}")
+    print(f"max_light = {max_light}")
 
     filtered_metrics = {}
 
     for event_idx, metric in metrics.items():
-        if len(metric) <= max_tracks + non_track_keys:
+        if (
+            len(metric) <= max_tracks + non_track_keys
+            and metric["Total_light"] <= max_light
+            and metric["Total_light"] >= min_light
+        ):
             candidate_metric = {
                 track_idx: values
                 for track_idx, values in metric.items()
@@ -1819,7 +1828,7 @@ def plot_light_fit_stats(metrics):
     entries = len(cosine_df)
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(111)
-    for i in range(0, int(cosine_df["threshold"].max()), 10):
+    for i in range(0, min(int(cosine_df["threshold"].max()), 80), 10):
         data = cosine_df[cosine_df["threshold"] > i]
         if len(data) > 0.005 * len(cosine_df):
             data.hist(
