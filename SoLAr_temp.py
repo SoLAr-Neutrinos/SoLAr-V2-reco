@@ -779,6 +779,7 @@ def filter_metrics(
     max_tracks=1,
     min_light=0,
     max_light=100,
+    max_z=300,
 ):
     print(f"min_score = {min_score}")
     print(f"max_score = {max_score}")
@@ -787,6 +788,7 @@ def filter_metrics(
     print(f"max_tracks = {max_tracks}")
     print(f"min_light = {min_light}")
     print(f"max_light = {max_light}")
+    print(f"max_z = {max_z}")
 
     filtered_metrics = {}
 
@@ -806,6 +808,7 @@ def filter_metrics(
                     and values["RANSAC_score"] <= max_score
                     and values["Fit_norm"] >= min_track_length
                     and values["Fit_norm"] <= max_track_length
+                    and values["Fit_line"].point[2] < max_z
                 )
             }
             if (
