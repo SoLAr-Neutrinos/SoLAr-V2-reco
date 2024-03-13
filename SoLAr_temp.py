@@ -817,6 +817,21 @@ def filter_metrics(
             ):
                 filtered_metrics[event_idx] = candidate_metric
 
+    with open(f"{file_label}/filter_parameters_{len(filtered_metrics)}.json", "w+") as f:
+        json.dump(
+            {
+                "min_score": min_score,
+                "max_score": max_score,
+                "min_track_length": min_track_length,
+                "max_track_length": max_track_length,
+                "max_tracks": max_tracks,
+                "min_light": min_light,
+                "max_light": max_light,
+                "max_z": max_z,
+            },
+            f,
+        )
+        
     print(f"{len(filtered_metrics)} metrics remaining")
     return filtered_metrics
 
@@ -1930,7 +1945,7 @@ def plot_light_fit_stats(metrics):
         )
 
 
-def plot_voxel_data(metrics):
+def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False):
     z = []
     q = []
     l = []
@@ -1955,30 +1970,45 @@ def plot_voxel_data(metrics):
     )
 
     max_charge = np.percentile(q, 99)
+    max_z = np.percentile(z, 99)
 
-    mask = (l < max_light) & (l > 0) & (q < max_charge) & (q > 0) & (z < 400)
+    mask = (l < max_light) & (l > 0) & (q < max_charge) & (q > 0) & (z < max_z)
+
+    z = z[mask]
+    q = q[mask]
+    l = l[mask]
+
+    if log[0]:
+        bins_z = np.exp(np.linspace(0, np.log(max(z)), bins))
+    else:
+        bins_z = bins
+    if log[1]:
+        bins_q = np.exp(np.linspace(np.log(min(q)), np.log(max(q)), bins))
+    else:
+        bins_q = bins
+    if log[2]:
+        bins_l = np.exp(np.linspace(np.log(min(l)), np.log(max(l)), bins))
+    else:
+        bins_l = bins
 
     fig1 = plt.figure(figsize=(10, 6))
     ax1 = fig1.add_subplot(111)
 
     hist = ax1.hist2d(
-        z[mask],
-        l[mask],
-        bins=100,
-        cmin=1,
+        z, l, bins=[bins_z, bins_l], cmin=1, norm=LogNorm() if lognorm else None
     )
     cbar1 = plt.colorbar(hist[3])
     ax1.set_title("Light vs. z distance")
-    cbar1.set_label(rf"Counts")
+    cbar1.set_label(rf"Counts - log" if lognorm else rf"Counts")
 
     def fit_func(x, a, b):
         return np.exp(-(x - a) / b)
 
-    params, cov = curve_fit(fit_func, z[mask], l[mask])
+    params, cov = curve_fit(fit_func, z, l)
 
     print("Exponential fit:", params)
 
-    x = np.linspace(min(z[mask]), max(z[mask]), 1000)
+    x = np.linspace(min(z), max(z), 1000)
     ax1.plot(x, fit_func(x, *params), c="r", ls="--", label=f"Exponential fit")
     ax1.legend()
 
@@ -1987,32 +2017,61 @@ def plot_voxel_data(metrics):
     figs = [fig1, fig2]
     axes = [ax1, *axes2]
 
-    hist21 = axes2[0].hist2d(z[mask], q[mask], bins=50, cmin=1)
+    hist21 = axes2[0].hist2d(
+        z, q, bins=[bins_z, bins_q], cmin=1, norm=LogNorm() if lognorm else None
+    )
     cbar21 = plt.colorbar(hist21[3])
     axes2[0].set_title(rf"Charge vs. Anode distance")
-    cbar21.set_label(rf"Counts")
+    cbar21.set_label(rf"Counts - log" if lognorm else rf"Counts")
 
-    hist22 = axes2[1].hist2d(q[mask], l[mask], bins=50, cmin=1)
+    hist22 = axes2[1].hist2d(
+        q, l, bins=[bins_q, bins_l], cmin=1, norm=LogNorm() if lognorm else None
+    )
     cbar22 = plt.colorbar(hist22[3])
     axes2[1].set(
         title=rf"Light vs. Charge",
-        xlabel=rf"Charge [{q_unit}]",
+        xlabel=rf"Charge [{q_unit} - log]" if log[1] else rf"Charge [{q_unit}]",
+        xscale="log" if log[1] else "linear",
     )
-    cbar22.set_label(rf"Counts")
+    cbar22.set_label(rf"Counts - log" if lognorm else rf"Counts")
 
-    hist23 = axes2[2].hist2d(z[mask], q[mask], weights=l[mask], bins=50, cmin=1)
+    hist23 = axes2[2].hist2d(
+        z,
+        q,
+        weights=l,
+        bins=[bins_z, bins_q],
+        cmin=1,
+        norm=LogNorm() if lognorm else None,
+    )
     cbar23 = plt.colorbar(hist23[3])
     axes2[2].set_title(rf"Charge vs. Anode distance with light weights")
-    cbar23.set_label(rf"Light {light_variable} [{light_unit}]")
+    cbar23.set_label(
+        rf"Light {light_variable} [{light_unit} - log]"
+        if lognorm
+        else rf"Light {light_variable} [{light_unit}]"
+    )
 
     for idx, ax in enumerate(axes):
         set_common_ax_options(ax)
         if not idx == 2:
-            ax.set_xlabel(f"Anode distance [{z_unit}]")
+            ax.set_xlabel(
+                f"Anode distance [{z_unit} - log]"
+                if log[0]
+                else f"Anode distance [{z_unit}]"
+            )
+            ax.set_xscale("log" if log[0] else "linear")
         if idx % 2 == 0:
-            ax.set_ylabel(rf"Light {light_variable} [{light_unit}]")
+            ax.set_ylabel(
+                rf"Light {light_variable} [{light_unit} - log]"
+                if log[2]
+                else rf"Light {light_variable} [{light_unit}]"
+            )
+            ax.set_yscale("log" if log[2] else "linear")
         else:
-            ax.set_ylabel(rf"Charge [{q_unit}]")
+            ax.set_ylabel(
+                rf"Charge [{q_unit} - log] " if log[1] else rf"Charge [{q_unit}]"
+            )
+            ax.set_yscale("log" if log[1] else "linear")
 
     for fig in figs:
         fig.tight_layout()
