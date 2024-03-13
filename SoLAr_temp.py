@@ -1361,6 +1361,9 @@ def plot_track_stats(
 
     print(f"Remaining_tracks: {sum(score_mask)}")
 
+    print("dQ/dx stats:")
+    display(track_mean_dQdx.describe())
+
     # 1D histograms
     fig1 = plt.figure(figsize=(14, 6))
 
