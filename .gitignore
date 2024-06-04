@@ -162,4 +162,5 @@ cython_debug/
 # Misc
 .DS_Store
 *.png
+*.pdf
 *.root
