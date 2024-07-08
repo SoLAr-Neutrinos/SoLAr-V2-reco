@@ -2,8 +2,6 @@ import numpy as np
 
 sipm_map_file = "sipm_sn_ch_to_xy.json"
 
-match_dict = {}
-
 # Load options
 reload_files = True
 rematch_events = False
@@ -33,9 +31,18 @@ light_variable = "integral"
 q_unit = "e"  # After applying charge_gain
 xy_unit = "mm"
 z_unit = "mm"
-dh_unit = "?" if z_unit != xy_unit else xy_unit
 time_unit = "ns"
-light_unit = "p.e." if light_variable == "integral" else "p.e./time bin"
+
+
+@property
+def dh_unit():
+    return "?" if z_unit != xy_unit else xy_unit
+
+
+@property
+def light_unit():
+    return "p.e." if light_variable == "integral" else "p.e./time bin"
+
 
 # Conversion factors
 charge_gain = 245  # mV to e
@@ -46,7 +53,12 @@ sipm_size = 6
 pixel_size = 3
 pixel_pitch = 4
 quadrant_size = 32  # One SiPM + LArPix cell
-first_chip = (2, 1) if detector_y == 160 else (1, 1)
+
+
+@property
+def first_chip():
+    return (2, 1) if detector_y == 160 else (1, 1)
+
 
 # DBSCAN parameters for charge clustering
 min_samples = 2
