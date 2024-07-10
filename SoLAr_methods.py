@@ -730,6 +730,14 @@ def light_geometry(track_line, track_norm, sipm_df, light_variable="integral"):
 # ### Helpers
 
 
+def recal_params():
+    sp.dh_unit = sp.xy_unit if sp.xy_unit == sp.z_unit else "?"
+    sp.light_unit = (
+        "p.e." if sp.light_variable == "integral" else f"p.e./{sp.time_unit}"
+    )
+    sp.first_chip = (2, 1) if sp.detector_y == 160 else (1, 1)
+
+
 def max_std(array, ax=None, array_max=None, min_count_ratio=0.9, max_std_ratio=0.5):
     max_std = array.std()
     max_count = len(array)
@@ -882,7 +890,7 @@ def filter_metrics(
     print(f"{len(filtered_metrics)} metrics remaining")
 
     with open(
-        f"{file_label}/filter_parameters_{len(filtered_metrics)}.json", "w+"
+        f"{sp.file_label}/filter_parameters_{len(filtered_metrics)}.json", "w+"
     ) as f:
         json.dump(
             {
@@ -1149,6 +1157,7 @@ def event_display(
     charge_df,
     light_df,
     plot_cyl=False,
+    metrics=None,
 ):
     if len(charge_df) < 2:
         return None
@@ -1193,14 +1202,36 @@ def event_display(
     labels = cluster_hits(charge_df[["x", "y", "z"]].to_numpy())
 
     # Fit clusters
-    metrics = fit_hit_clusters(
-        charge_df[["x", "y", "z"]].to_numpy(),
-        charge_df["q"].to_numpy(),
-        labels,
-        ax2d,
-        ax3d,
-        plot_cyl,
-    )
+    # Fit clusters
+    if metrics is None:
+        metrics = fit_hit_clusters(
+            charge_df[["x", "y", "z"]].to_numpy(),
+            charge_df["q"].to_numpy(),
+            labels,
+            ax2d,
+            ax3d,
+            plot_cyl,
+        )
+    else:
+        for track_idx, values in metrics.items():
+            if isinstance(track_idx, int):
+                track = values["Fit_line"]
+                track_norm = values["Fit_norm"]
+                track.plot_2d(
+                    ax2d,
+                    t_1=-track_norm / 2,
+                    t_2=track_norm / 2,
+                    c="red",
+                    label=f"Track {track_idx}",
+                    zorder=10,
+                )
+                track.plot_3d(
+                    ax3d,
+                    t_1=-track_norm / 2,
+                    t_2=track_norm / 2,
+                    c="red",
+                    label=f"Track {track_idx}",
+                )
 
     # Draw missing SiPMs
     grid_color = plt.rcParams["grid.color"]
@@ -1252,9 +1283,9 @@ def event_display(
     fig.tight_layout()
 
     if sp.save_figures:
-        os.makedirs(f"{file_label}/{event_idx}", exist_ok=True)
+        os.makedirs(f"{sp.file_label}/{event_idx}", exist_ok=True)
         fig.savefig(
-            f"{file_label}/{event_idx}/event_{event_idx}.pdf",
+            f"{sp.file_label}/{event_idx}/event_{event_idx}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
@@ -1346,9 +1377,9 @@ def plot_dQ(dQ_array, event_idx, track_idx, dh, interpolate=False):
 
     fig.tight_layout()
     if sp.save_figures:
-        os.makedirs(f"{file_label}/{event_idx}", exist_ok=True)
+        os.makedirs(f"{sp.file_label}/{event_idx}", exist_ok=True)
         fig.savefig(
-            f"{file_label}/{event_idx}/dQ_E{event_idx}_T{track_idx}_{round(dh,2)}.pdf",
+            f"{sp.file_label}/{event_idx}/dQ_E{event_idx}_T{track_idx}_{round(dh,2)}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
@@ -1765,38 +1796,38 @@ def plot_track_stats(
     if sp.save_figures:
         entries = len(track_dQdx)
         fig1.savefig(
-            f"{file_label}/track_stats_1D_hist_{file_label}_{entries}.pdf",
+            f"{sp.file_label}/track_stats_1D_hist_{sp.file_label}_{entries}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
-            f"{file_label}/track_stats_2D_hist_{file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            f"{sp.file_label}/track_stats_2D_hist_{sp.file_label}_{entries}{'_profile' if profile else ''}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig4.savefig(
-            f"{file_label}/track_stats_score_{file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            f"{sp.file_label}/track_stats_score_{sp.file_label}_{entries}{'_profile' if profile else ''}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig5.savefig(
-            f"{file_label}/track_stats_dQdx_{file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            f"{sp.file_label}/track_stats_dQdx_{sp.file_label}_{entries}{'_profile' if profile else ''}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig6.savefig(
-            f"{file_label}/track_stats_dQdx_z_{file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            f"{sp.file_label}/track_stats_dQdx_z_{sp.file_label}_{entries}{'_profile' if profile else ''}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         # fig7.savefig(
-        #     f"{file_label}/track_stats_dQ_z_{file_label}_{entries}{'_profile' if profile else ''}.pdf",
+        #     f"{sp.file_label}/track_stats_dQ_z_{sp.file_label}_{entries}{'_profile' if profile else ''}.pdf",
         #     dpi=300,
         #     bbox_inches="tight",
         # )
         if score_bool:
             fig3.savefig(
-                f"{file_label}/track_stats_2D_hist_cut_{file_label}_{entries}{'_profile' if profile else ''}.pdf",
+                f"{sp.file_label}/track_stats_2D_hist_cut_{sp.file_label}_{entries}{'_profile' if profile else ''}.pdf",
                 dpi=300,
                 bbox_inches="tight",
             )
@@ -1970,17 +2001,17 @@ def plot_light_geo_stats(
     if sp.save_figures:
         entries = len(sipm_light)
         fig1.savefig(
-            f"{file_label}/light_geo_optimization_{file_label}_{entries}.pdf",
+            f"{sp.file_label}/light_geo_optimization_{sp.file_label}_{entries}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
-            f"{file_label}/light_geo_2D_hist_{file_label}_{entries}.pdf",
+            f"{sp.file_label}/light_geo_2D_hist_{sp.file_label}_{entries}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig3.savefig(
-            f"{file_label}/light_geo_1D_hist_{file_label}_{entries}.pdf",
+            f"{sp.file_label}/light_geo_1D_hist_{sp.file_label}_{entries}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
@@ -2029,7 +2060,7 @@ def plot_light_fit_stats(metrics):
     fig.tight_layout()
     if sp.save_figures:
         fig.savefig(
-            f"{file_label}/light_fit_{file_label}_{entries}.pdf",
+            f"{sp.file_label}/light_fit_{sp.file_label}_{entries}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
@@ -2176,12 +2207,12 @@ def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False):
     if sp.save_figures:
         events = sum(mask)
         fig1.savefig(
-            f"{file_label}/voxel_light_vs_z_{file_label}_{events}.pdf",
+            f"{sp.file_label}/voxel_light_vs_z_{sp.file_label}_{events}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
-            f"{file_label}/voxel_charge_vs_z_hist_{file_label}_{events}.pdf",
+            f"{sp.file_label}/voxel_charge_vs_z_hist_{sp.file_label}_{events}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
@@ -2529,17 +2560,17 @@ def light_vs_charge(
     if sp.save_figures:
         events = len(ratio)
         fig1.savefig(
-            f"{file_label}/light_vs_charge_optmization_{file_label}_{events}.pdf",
+            f"{sp.file_label}/light_vs_charge_optmization_{sp.file_label}_{events}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
-            f"{file_label}/light_vs_charge_2D_hist_{file_label}_{events}.pdf",
+            f"{sp.file_label}/light_vs_charge_2D_hist_{sp.file_label}_{events}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig3.savefig(
-            f"{file_label}/light_vs_charge_ratio_{file_label}_{events}.pdf",
+            f"{sp.file_label}/light_vs_charge_ratio_{sp.file_label}_{events}.pdf",
             dpi=300,
             bbox_inches="tight",
         )

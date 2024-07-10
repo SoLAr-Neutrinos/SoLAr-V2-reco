@@ -7,6 +7,7 @@ reload_files = True
 rematch_events = False
 
 # Save options
+file_label = "draft"
 overwrite_metrics = True
 save_figures = True
 
@@ -22,7 +23,7 @@ title_font_size = 18
 event_list = None
 
 # Noisy Pixels
-channel_disable_list = [(7, (1, 2))]  # (chip, channel)
+channel_disable_list = [(7, (1, 2))]  # (channel, (x coord, y coord))
 
 # Light variable to consider
 light_variable = "integral"
@@ -32,16 +33,8 @@ q_unit = "e"  # After applying charge_gain
 xy_unit = "mm"
 z_unit = "mm"
 time_unit = "ns"
-
-
-@property
-def dh_unit():
-    return "?" if z_unit != xy_unit else xy_unit
-
-
-@property
-def light_unit():
-    return "p.e." if light_variable == "integral" else "p.e./time bin"
+dh_unit = "mm"
+light_unit = "p.e."
 
 
 # Conversion factors
@@ -53,11 +46,7 @@ sipm_size = 6
 pixel_size = 3
 pixel_pitch = 4
 quadrant_size = 32  # One SiPM + LArPix cell
-
-
-@property
-def first_chip():
-    return (2, 1) if detector_y == 160 else (1, 1)
+first_chip = (2, 1)
 
 
 # DBSCAN parameters for charge clustering
