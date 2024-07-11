@@ -25,7 +25,7 @@ from sklearn.linear_model import RANSACRegressor
 from skspatial.objects import Cylinder, Line, Plane, Point, Triangle
 from tqdm.auto import tqdm
 
-import SoLAr_params as sp
+import params as sp
 
 ####### Methods #######
 
@@ -1164,7 +1164,9 @@ def event_display(
 
     # Plot the hits
     fig, axes = create_ed_axes(
-        event_idx, round(sum(charge_df["q"])), round(sum(light_df[sp.light_variable]))
+        event_idx,
+        round(sum(charge_df["q"])),
+        round(sum(light_df[sp.light_variable])),
     )
     ax2d = axes[0]
     ax3d = axes[1]
@@ -1474,7 +1476,8 @@ def plot_track_stats(
     )
 
     ax11.set_xlabel(
-        rf"$dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]", fontsize=sp.label_font_size
+        rf"$dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]",
+        fontsize=sp.label_font_size,
     )
     ax11.set_title(f"{len(track_dQdx)} tracks", fontsize=sp.title_font_size)
     ax12.set_title(f"{len(track_length)} tracks", fontsize=sp.title_font_size)
@@ -1576,7 +1579,8 @@ def plot_track_stats(
     fig5 = plt.figure(figsize=(7 + 7 * score_bool, 6))
     ax51 = fig5.add_subplot(111 + 10 * score_bool)
     ax51.set_ylabel(
-        rf"$dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]", fontsize=sp.label_font_size
+        rf"$dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]",
+        fontsize=sp.label_font_size,
     )
     ax51.set_xlabel(rf"Residual range [{sp.dh_unit}]", fontsize=sp.label_font_size)
     ax51.set_title(rf"{len(track_dQdx)} tracks", fontsize=sp.title_font_size)
@@ -1683,7 +1687,8 @@ def plot_track_stats(
         ax52 = fig5.add_subplot(122)
         axes.append(ax52)
         ax52.set_ylabel(
-            rf"$dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]", fontsize=sp.label_font_size
+            rf"$dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]",
+            fontsize=sp.label_font_size,
         )
         ax52.set_xlabel(rf"Residual range [{sp.dh_unit}]", fontsize=sp.label_font_size)
         ax52.set_title(
@@ -2153,7 +2158,7 @@ def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False):
     cbar22 = plt.colorbar(hist22[3])
     axes2[1].set(
         title=rf"Light vs. Charge",
-        xlabel=rf"Charge [{sp.q_unit} - log]" if log[1] else rf"Charge [{sp.q_unit}]",
+        xlabel=(rf"Charge [{sp.q_unit} - log]" if log[1] else rf"Charge [{sp.q_unit}]"),
         xscale="log" if log[1] else "linear",
     )
     cbar22.set_label(rf"Counts - log" if lognorm else rf"Counts")
