@@ -25,7 +25,7 @@ from sklearn.linear_model import RANSACRegressor
 from skspatial.objects import Cylinder, Line, Plane, Point, Triangle
 from tqdm.auto import tqdm
 
-import params as sp
+import scripts.params as params
 
 ####### Methods #######
 
@@ -36,7 +36,7 @@ match_dict = {}
 def sipm_to_xy(sn, ch):
     global sipm_map
     if sipm_map is None:
-        with open(sp.sipm_map_file, "r") as f:
+        with open(params.sipm_map_file, "r") as f:
             sipm_map = json.load(f)
 
     xy = sipm_map.get(str(sn), {}).get(str(ch), None)
@@ -56,19 +56,19 @@ def get_sipm_mask(sn, ch):
         return False
     else:
         return (
-            xy[0] > -sp.detector_x / 2
-            and xy[0] < sp.detector_x / 2
-            and xy[1] < sp.detector_y / 2
-            and xy[1] > -sp.detector_y / 2
+            xy[0] > -params.detector_x / 2
+            and xy[0] < params.detector_x / 2
+            and xy[1] < params.detector_y / 2
+            and xy[1] > -params.detector_y / 2
         )
 
 
 # Cylinder parameters for dQ/dx
 def get_dh(unit_vector):
-    if sp.force_dh is not None:
-        return sp.force_dh
+    if params.force_dh is not None:
+        return params.force_dh
 
-    dl_vector = np.array([sp.xy_epsilon, sp.xy_epsilon, sp.z_epsilon])
+    dl_vector = np.array([params.xy_epsilon, params.xy_epsilon, params.z_epsilon])
     min_dh = np.linalg.norm(dl_vector) / 4
     max_dh = 2 * np.linalg.norm(dl_vector)
     dl_projection = abs(np.dot(unit_vector, dl_vector))
@@ -78,10 +78,10 @@ def get_dh(unit_vector):
 
 
 def get_dr(rmse):
-    if sp.force_dr is not None:
-        return sp.force_dr
+    if params.force_dr is not None:
+        return params.force_dr
 
-    dl_vector = np.array([sp.xy_epsilon, sp.xy_epsilon, sp.z_epsilon])
+    dl_vector = np.array([params.xy_epsilon, params.xy_epsilon, params.z_epsilon])
     min_dr = np.linalg.norm(dl_vector) / 4
     dr = max(rmse, min_dr)
 
@@ -216,12 +216,12 @@ def generate_dead_area(z_range, buffer=1):
     fake_y = []
     fake_z = []
 
-    border = buffer - sp.pixel_pitch / 2
+    border = buffer - params.pixel_pitch / 2
 
-    for k in range((sp.detector_x // sp.quadrant_size)):
-        for l in range((sp.detector_y // sp.quadrant_size)):
+    for k in range((params.detector_x // params.quadrant_size)):
+        for l in range((params.detector_y // params.quadrant_size)):
             # Dead area on chips 33, 44, 54, 64
-            if (l + sp.first_chip[0], k + sp.first_chip[1]) in [
+            if (l + params.first_chip[0], k + params.first_chip[1]) in [
                 (3, 3),
                 (4, 4),
                 (5, 4),
@@ -231,18 +231,18 @@ def generate_dead_area(z_range, buffer=1):
                 temp_x, temp_y, temp_z = np.meshgrid(
                     np.linspace(
                         border,
-                        sp.quadrant_size - border,
-                        int(sp.quadrant_size / buffer),
+                        params.quadrant_size - border,
+                        int(params.quadrant_size / buffer),
                     )
-                    - sp.detector_x / 2
-                    + sp.quadrant_size * (k),
+                    - params.detector_x / 2
+                    + params.quadrant_size * (k),
                     -np.linspace(
                         border,
-                        sp.quadrant_size - border,
-                        int(sp.quadrant_size / buffer),
+                        params.quadrant_size - border,
+                        int(params.quadrant_size / buffer),
                     )
-                    + sp.detector_y / 2
-                    - sp.quadrant_size * (l),
+                    + params.detector_y / 2
+                    - params.quadrant_size * (l),
                     z_range,
                 )
 
@@ -250,33 +250,33 @@ def generate_dead_area(z_range, buffer=1):
                 fake_y.extend(temp_y.flatten())
                 fake_z.extend(temp_z.flatten())
             # Dead area on chip 42
-            elif k + sp.first_chip[1] == 2 and l + sp.first_chip[0] == 4:
+            elif k + params.first_chip[1] == 2 and l + params.first_chip[0] == 4:
                 temp_x, temp_y, temp_z = np.meshgrid(
                     np.linspace(
                         border,
-                        sp.quadrant_size - border,
-                        int(sp.quadrant_size / buffer),
+                        params.quadrant_size - border,
+                        int(params.quadrant_size / buffer),
                     ),
                     np.linspace(
                         border,
-                        sp.quadrant_size - border,
-                        int(sp.quadrant_size / buffer),
+                        params.quadrant_size - border,
+                        int(params.quadrant_size / buffer),
                     ),
                     z_range,
                 )
 
-                mask1 = (temp_y - sp.quadrant_size / 2) - (
-                    temp_x - sp.quadrant_size / 2
+                mask1 = (temp_y - params.quadrant_size / 2) - (
+                    temp_x - params.quadrant_size / 2
                 ) >= 0
-                mask2 = (temp_y <= sp.quadrant_size / 2 + buffer) & (
-                    temp_y >= sp.quadrant_size / 2 - buffer
+                mask2 = (temp_y <= params.quadrant_size / 2 + buffer) & (
+                    temp_y >= params.quadrant_size / 2 - buffer
                 )
-                mask3 = (temp_x <= sp.quadrant_size / 2 + buffer) & (
-                    temp_x >= sp.quadrant_size / 2 - buffer
+                mask3 = (temp_x <= params.quadrant_size / 2 + buffer) & (
+                    temp_x >= params.quadrant_size / 2 - buffer
                 )
                 mask = mask1 | (mask2 & mask3)
-                temp_x = temp_x[mask] - sp.detector_x / 2 + sp.quadrant_size * (k)
-                temp_y = -temp_y[mask] + sp.detector_y / 2 - sp.quadrant_size * (l)
+                temp_x = temp_x[mask] - params.detector_x / 2 + params.quadrant_size * (k)
+                temp_y = -temp_y[mask] + params.detector_y / 2 - params.quadrant_size * (l)
                 temp_z = temp_z[mask]
 
                 fake_x.extend(temp_x)
@@ -284,46 +284,46 @@ def generate_dead_area(z_range, buffer=1):
                 fake_z.extend(temp_z)
             # Dead area on SiPMs
             else:
-                sipm_points = int((sp.sipm_size + sp.pixel_pitch) / (buffer))
+                sipm_points = int((params.sipm_size + params.pixel_pitch) / (buffer))
                 if sipm_points > 1:
                     x1 = np.linspace(
-                        -(sp.sipm_size + sp.pixel_pitch) / 2 + buffer,
-                        +(sp.sipm_size + sp.pixel_pitch) / 2 - buffer,
+                        -(params.sipm_size + params.pixel_pitch) / 2 + buffer,
+                        +(params.sipm_size + params.pixel_pitch) / 2 - buffer,
                         sipm_points,
                     )
                 else:
                     x1 = np.array([0])
 
-                x1 = sp.quadrant_size / 2 + x1
+                x1 = params.quadrant_size / 2 + x1
 
                 temp_x, temp_y, temp_z = np.meshgrid(
-                    x1 - sp.detector_x / 2 + sp.quadrant_size * k,
-                    -x1 + sp.detector_y / 2 - sp.quadrant_size * l,
+                    x1 - params.detector_x / 2 + params.quadrant_size * k,
+                    -x1 + params.detector_y / 2 - params.quadrant_size * l,
                     z_range,
                 )
 
                 # Removing channel 7
                 disable_x, disable_y, disable_z = [], [], []
 
-                for channel in sp.channel_disable_list:
+                for channel in params.channel_disable_list:
                     coords = channel[1]
                     temp_x2, temp_y2, temp_z2 = np.meshgrid(
                         np.array(
                             [
-                                -sp.detector_x / 2
-                                + (coords[0] * sp.pixel_pitch)
-                                + (sp.pixel_pitch - sp.pixel_size)
+                                -params.detector_x / 2
+                                + (coords[0] * params.pixel_pitch)
+                                + (params.pixel_pitch - params.pixel_size)
                             ]
                         )
-                        + sp.quadrant_size * k,
+                        + params.quadrant_size * k,
                         np.array(
                             [
-                                sp.detector_y / 2
-                                - (coords[1] * sp.pixel_pitch)
-                                - (sp.pixel_pitch - sp.pixel_size)
+                                params.detector_y / 2
+                                - (coords[1] * params.pixel_pitch)
+                                - (params.pixel_pitch - params.pixel_size)
                             ]
                         )
-                        - sp.quadrant_size * l,
+                        - params.quadrant_size * l,
                         z_range,
                     )
                     disable_x.extend(temp_x2)
@@ -338,7 +338,7 @@ def generate_dead_area(z_range, buffer=1):
     fake_y = np.array(fake_y)
     fake_z = np.array(fake_z)
 
-    fake_data = np.c_[np.power(-1, sp.flip_x) * fake_x, fake_y, fake_z]
+    fake_data = np.c_[np.power(-1, params.flip_x) * fake_x, fake_y, fake_z]
 
     return fake_data
 
@@ -347,7 +347,7 @@ def generate_dead_area(z_range, buffer=1):
 def cluster_hits(hitArray):
     # First stage clustering
     z_intervals = []
-    first_stage = DBSCAN(eps=sp.xy_epsilon, min_samples=sp.min_samples).fit(
+    first_stage = DBSCAN(eps=params.xy_epsilon, min_samples=params.min_samples).fit(
         hitArray[:, 0:2]
     )
     for label in first_stage.labels_:
@@ -373,14 +373,14 @@ def cluster_hits(hitArray):
 
         # Check if there is a gap (empty space) between intervals
         if gap_end > gap_start and gap_end < gap_start + 40:
-            empty_space_ranges.append(np.arange(gap_start, gap_end, sp.z_epsilon))
+            empty_space_ranges.append(np.arange(gap_start, gap_end, params.z_epsilon))
 
     if not empty_space_ranges:
         if np.std(hitArray[:, 2]) > 0:
             z_range = np.arange(
                 np.mean(hitArray[:, 2]) - np.std(hitArray[:, 2]),
                 np.mean(hitArray[:, 2]) + np.std(hitArray[:, 2]),
-                sp.z_epsilon,
+                params.z_epsilon,
             )
 
         else:
@@ -390,13 +390,13 @@ def cluster_hits(hitArray):
         z_range = np.concatenate(empty_space_ranges)
 
     # Create a list of holes
-    fake_data = generate_dead_area(z_range, buffer=(sp.xy_epsilon - 1))
+    fake_data = generate_dead_area(z_range, buffer=(params.xy_epsilon - 1))
     fake_data_count = len(fake_data)
 
     # Second stage clustering
     # Combine fake to true data
     second_stage_data = np.concatenate([hitArray, fake_data])
-    second_stage = DBSCAN(eps=sp.xy_epsilon, min_samples=1).fit(
+    second_stage = DBSCAN(eps=params.xy_epsilon, min_samples=1).fit(
         second_stage_data[:, 0:2]
     )
 
@@ -408,7 +408,7 @@ def cluster_hits(hitArray):
 
     third_stage_data = third_stage_z[flag].copy()
     third_stage = DBSCAN(
-        eps=sp.z_epsilon, min_samples=sp.min_samples, metric="chebyshev"
+        eps=params.z_epsilon, min_samples=params.min_samples, metric="chebyshev"
     ).fit(third_stage_data)
 
     # Shift labels by 1 so that negative values are reserved for outliers
@@ -431,7 +431,7 @@ def ransacFit(
     if weightArray is not None:
         estimator = RANSACRegressor(
             min_samples=min_samples,
-            max_trials=sp.ransac_max_trials,
+            max_trials=params.ransac_max_trials,
             residual_threshold=residual_threshold,
         )
         last_column = len(hitArray[0]) - 1
@@ -442,7 +442,7 @@ def ransacFit(
         ).inlier_mask_
 
         # Check it enouth inliers
-        if sum(inliers) > sp.ransac_min_samples:
+        if sum(inliers) > params.ransac_min_samples:
             score = estimator.score(
                 hitArray[:, 0:last_column], hitArray[:, last_column]
             )
@@ -454,11 +454,11 @@ def ransacFit(
             LineModelND,
             min_samples=min_samples,
             residual_threshold=residual_threshold,
-            max_trials=sp.ransac_max_trials,
+            max_trials=params.ransac_max_trials,
         )
 
         # Check it enouth inliers
-        if sum(inliers) > sp.ransac_min_samples:
+        if sum(inliers) > params.ransac_min_samples:
             score = model_robust.residuals(hitArray)
         else:
             score = np.nan
@@ -527,7 +527,7 @@ def fit_hit_clusters(
     while condition():
         label = np.unique(labels)[idx]
         mask = labels == label
-        if label > 0 and mask.sum() > sp.min_samples:
+        if label > 0 and mask.sum() > params.min_samples:
             xyz_c = hitArray[mask]
             q_c = np.array(q)[mask]
 
@@ -537,8 +537,8 @@ def fit_hit_clusters(
             inliers, outliers, score = ransacFit(
                 xyz_c,
                 weightArray=q_c - min(q_c) + 1,
-                min_samples=sp.ransac_min_samples,
-                residual_threshold=sp.ransac_residual_threshold,
+                min_samples=params.ransac_min_samples,
+                residual_threshold=params.ransac_residual_threshold,
             )
 
             # Refit outliers
@@ -546,7 +546,7 @@ def fit_hit_clusters(
             level_2 = np.where(outliers)[0]
             level_3 = level_1[level_2]
 
-            if refit_outliers and sum(outliers) > sp.min_samples:
+            if refit_outliers and sum(outliers) > params.min_samples:
                 outlier_labels = cluster_hits(xyz_c[outliers])
                 last_label = max(labels) + 1
                 # Assign positive labels to clustered outliers and negative labels to unlclustered outliers
@@ -559,7 +559,7 @@ def fit_hit_clusters(
                 for j in level_3:
                     labels[j] = -labels[j]
 
-            if sum(inliers) > sp.min_samples:
+            if sum(inliers) > params.min_samples:
                 line_fit, mse = lineFit(xyz_c[inliers])
 
                 if ax2d is not None:
@@ -632,8 +632,8 @@ def voxelize_hits(
     sipm_voxels_metrics = {}
     xyzl_df = pd.DataFrame()
     for row, sipm in sipm_df.dropna(subset=light_variable).iterrows():
-        voxel_mask = (abs(charge_df["x"] - sipm["x"]) <= sp.quadrant_size / 2) & (
-            abs(charge_df["y"] - sipm["y"]) <= sp.quadrant_size / 2
+        voxel_mask = (abs(charge_df["x"] - sipm["x"]) <= params.quadrant_size / 2) & (
+            abs(charge_df["y"] - sipm["y"]) <= params.quadrant_size / 2
         )
         voxel_charge = charge_df["q"][voxel_mask]
         voxel_z = charge_df["z"][voxel_mask]
@@ -670,7 +670,7 @@ def voxelize_hits(
                     intersection = charge_line.intersect_line(
                         v_line, check_coplanar=False
                     )
-                    if all(abs(projected_point - point)[:2] <= sp.quadrant_size / 2):
+                    if all(abs(projected_point - point)[:2] <= params.quadrant_size / 2):
                         xyzl["z"] = intersection[2]
 
         xyzl_df = pd.concat([xyzl_df, xyzl], axis=1)
@@ -680,7 +680,7 @@ def voxelize_hits(
         xyzl_df = xyzl_df.sort_values(by=light_variable, ascending=False)
         xyzl_df = xyzl_df[xyzl_df[light_variable] > 0]
         if len(xyzl_df) > 3:
-            # dbscan = DBSCAN(eps=sp.quadrant_size, metric="chebyshev", min_samples=2)
+            # dbscan = DBSCAN(eps=params.quadrant_size, metric="chebyshev", min_samples=2)
             # labels = dbscan.fit(xyzl_df[["x", "y"]].values).labels_
             # unique, counts = np.unique(labels[labels>-1],return_counts=True)
             # if len(counts)>0 and max(counts)>3:
@@ -731,11 +731,11 @@ def light_geometry(track_line, track_norm, sipm_df, light_variable="integral"):
 
 
 def recal_params():
-    sp.dh_unit = sp.xy_unit if sp.xy_unit == sp.z_unit else "?"
-    sp.light_unit = (
-        "p.e." if sp.light_variable == "integral" else f"p.e./{sp.time_unit}"
+    params.dh_unit = params.xy_unit if params.xy_unit == params.z_unit else "?"
+    params.light_unit = (
+        "p.e." if params.light_variable == "integral" else f"p.e./{params.time_unit}"
     )
-    sp.first_chip = (2, 1) if sp.detector_y == 160 else (1, 1)
+    params.first_chip = (2, 1) if params.detector_y == 160 else (1, 1)
 
 
 def max_std(array, ax=None, array_max=None, min_count_ratio=0.9, max_std_ratio=0.5):
@@ -864,7 +864,7 @@ def filter_metrics(
 
     for event_idx, metric in metrics.items():
         if (
-            len(metric) <= max_tracks + sp.non_track_keys
+            len(metric) <= max_tracks + params.non_track_keys
             and metric["Total_light"] <= max_light
             and metric["Total_light"] >= min_light
         ):
@@ -882,15 +882,15 @@ def filter_metrics(
                 )
             }
             if (
-                len(candidate_metric) <= max_tracks + sp.non_track_keys
-                and len(candidate_metric) > sp.non_track_keys
+                len(candidate_metric) <= max_tracks + params.non_track_keys
+                and len(candidate_metric) > params.non_track_keys
             ):
                 filtered_metrics[event_idx] = candidate_metric
 
     print(f"{len(filtered_metrics)} metrics remaining")
 
     with open(
-        f"{sp.file_label}/filter_parameters_{len(filtered_metrics)}.json", "w+"
+        f"{params.file_label}/filter_parameters_{len(filtered_metrics)}.json", "w+"
     ) as f:
         json.dump(
             {
@@ -1032,15 +1032,15 @@ def set_common_ax_options(ax=None, cbar=None):
             which="major",
             top=True,
             right=True,
-            labelsize=sp.tick_font_size,
+            labelsize=params.tick_font_size,
         )
         ax.set_axisbelow(True)
         ax.grid(alpha=0.25)
-        ax.set_title(ax.get_title(), fontsize=sp.title_font_size)
-        ax.set_ylabel(ax.get_ylabel(), fontsize=sp.label_font_size)
-        ax.set_xlabel(ax.get_xlabel(), fontsize=sp.label_font_size)
+        ax.set_title(ax.get_title(), fontsize=params.title_font_size)
+        ax.set_ylabel(ax.get_ylabel(), fontsize=params.label_font_size)
+        ax.set_xlabel(ax.get_xlabel(), fontsize=params.label_font_size)
         if hasattr(ax, "get_zlabel"):
-            ax.set_zlabel(ax.get_zlabel(), fontsize=sp.label_font_size)
+            ax.set_zlabel(ax.get_zlabel(), fontsize=params.label_font_size)
 
         if not ax.get_xscale() == "log":
             ax.xaxis.set_minor_locator(AutoMinorLocator())
@@ -1057,8 +1057,8 @@ def set_common_ax_options(ax=None, cbar=None):
                     ax.yaxis.set_major_formatter(OOMFormatter(3, "%1.1f"))
 
     if cbar is not None:
-        cbar.ax.tick_params(labelsize=sp.tick_font_size)
-        cbar.set_label(cbar.ax.get_ylabel(), fontsize=sp.label_font_size)
+        cbar.ax.tick_params(labelsize=params.tick_font_size)
+        cbar.set_label(cbar.ax.get_ylabel(), fontsize=params.label_font_size)
 
 
 # ### Event display
@@ -1092,28 +1092,28 @@ def create_ed_axes(event_idx, charge, light):
     ax3d = fig.add_subplot(121, projection="3d")
     ax2d = fig.add_subplot(122)
     fig.suptitle(
-        f"Event {event_idx} - Charge = {charge} {sp.q_unit} - Light = {light} {sp.light_unit}"
+        f"Event {event_idx} - Charge = {charge} {params.q_unit} - Light = {light} {params.light_unit}"
     )
     grid_color = plt.rcParams["grid.color"]
 
     # Draw dead areas
     for i, j in [(3, 3), (4, 4), (5, 4), (6, 4), (4, 2)]:
-        x = np.array([0, sp.quadrant_size])
-        y = -np.array([0, sp.quadrant_size])
+        x = np.array([0, params.quadrant_size])
+        y = -np.array([0, params.quadrant_size])
         ax2d.plot(
-            np.power(-1, sp.flip_x)
-            * (x - sp.detector_x / 2 + sp.quadrant_size * (j - sp.first_chip[1])),
-            (y + sp.detector_y / 2 - sp.quadrant_size * (i - sp.first_chip[0])),
+            np.power(-1, params.flip_x)
+            * (x - params.detector_x / 2 + params.quadrant_size * (j - params.first_chip[1])),
+            (y + params.detector_y / 2 - params.quadrant_size * (i - params.first_chip[0])),
             c=grid_color,
             lw=1,
         )
         if i == 4 and j == 2:
-            x = np.array([sp.quadrant_size / 2, 0])
-            y = -np.array([sp.quadrant_size, sp.quadrant_size / 2])
+            x = np.array([params.quadrant_size / 2, 0])
+            y = -np.array([params.quadrant_size, params.quadrant_size / 2])
         ax2d.plot(
-            np.power(-1, sp.flip_x)
-            * (x[::-1] - sp.detector_x / 2 + sp.quadrant_size * (j - sp.first_chip[1])),
-            (y + sp.detector_y / 2 - sp.quadrant_size * (i - sp.first_chip[0])),
+            np.power(-1, params.flip_x)
+            * (x[::-1] - params.detector_x / 2 + params.quadrant_size * (j - params.first_chip[1])),
+            (y + params.detector_y / 2 - params.quadrant_size * (i - params.first_chip[0])),
             c=grid_color,
             lw=1,
         )
@@ -1121,22 +1121,22 @@ def create_ed_axes(event_idx, charge, light):
     # Adjust axes
     for ax in [ax3d, ax2d]:
         ax.set_aspect("equal", adjustable="box")
-        ax.set_xlim([-sp.detector_x / 2, sp.detector_x / 2])
-        ax.set_ylim([-sp.detector_y / 2, sp.detector_y / 2])
-        ax.set_xlabel(f"x [{sp.xy_unit}]")
-        ax.set_ylabel(f"y [{sp.xy_unit}]")
+        ax.set_xlim([-params.detector_x / 2, params.detector_x / 2])
+        ax.set_ylim([-params.detector_y / 2, params.detector_y / 2])
+        ax.set_xlabel(f"x [{params.xy_unit}]")
+        ax.set_ylabel(f"y [{params.xy_unit}]")
         ax.set_xticks(
             np.linspace(
-                -sp.detector_x / 2,
-                sp.detector_x / 2,
-                (sp.detector_x // sp.quadrant_size) + 1,
+                -params.detector_x / 2,
+                params.detector_x / 2,
+                (params.detector_x // params.quadrant_size) + 1,
             )
         )
         ax.set_yticks(
             np.linspace(
-                -sp.detector_y / 2,
-                sp.detector_y / 2,
-                (sp.detector_y // sp.quadrant_size) + 1,
+                -params.detector_y / 2,
+                params.detector_y / 2,
+                (params.detector_y // params.quadrant_size) + 1,
             )
         )
         ax.grid()
@@ -1146,7 +1146,7 @@ def create_ed_axes(event_idx, charge, light):
     ax2d.tick_params(axis="both", which="both", right=True, top=True)
 
     # Adjust z-axis
-    ax3d.set_zlabel(f"z [{sp.z_unit}]")
+    ax3d.set_zlabel(f"z [{params.z_unit}]")
     # ax3d.zaxis.set_major_locator(MaxNLocator(integer=True))
 
     return fig, (ax2d, ax3d)
@@ -1166,7 +1166,7 @@ def event_display(
     fig, axes = create_ed_axes(
         event_idx,
         round(sum(charge_df["q"])),
-        round(sum(light_df[sp.light_variable])),
+        round(sum(light_df[params.light_variable])),
     )
     ax2d = axes[0]
     ax3d = axes[1]
@@ -1198,7 +1198,7 @@ def event_display(
         vmax=q_sum.max(),
     )
     cbar = plt.colorbar(plot2d)
-    cbar.set_label(f"charge [{sp.q_unit}]")
+    cbar.set_label(f"charge [{params.q_unit}]")
 
     # Cluster the hits
     labels = cluster_hits(charge_df[["x", "y", "z"]].to_numpy())
@@ -1242,7 +1242,7 @@ def event_display(
     sipm_plot = ax2d.scatter(
         light_df["x"],
         light_df["y"],
-        c=light_df[sp.light_variable],
+        c=light_df[params.light_variable],
         marker="s",
         s=200,
         linewidths=1.5,
@@ -1267,7 +1267,7 @@ def event_display(
                 Poly3DCollection(
                     square,
                     facecolors=sipm_plot.to_rgba(
-                        light_df[sp.light_variable][light_xy == (col, row)]
+                        light_df[params.light_variable][light_xy == (col, row)]
                     ),
                     linewidths=0.5,
                     edgecolors=grid_color,
@@ -1275,7 +1275,7 @@ def event_display(
             )
 
     sipm_cbar = plt.colorbar(sipm_plot)
-    sipm_cbar.set_label(rf"Light {sp.light_variable} [{sp.light_unit}]")
+    sipm_cbar.set_label(rf"Light {params.light_variable} [{params.light_unit}]")
 
     ax3d.set_zlim([0, ax3d.get_zlim()[1]])
     # ax3d.view_init(160, 110, -85)
@@ -1284,10 +1284,10 @@ def event_display(
     # ax3d.view_init(0, 0, 90)
     fig.tight_layout()
 
-    if sp.save_figures:
-        os.makedirs(f"{sp.file_label}/{event_idx}", exist_ok=True)
+    if params.save_figures:
+        os.makedirs(f"{params.file_label}/{event_idx}", exist_ok=True)
         fig.savefig(
-            f"{sp.file_label}/{event_idx}/event_{event_idx}.pdf",
+            f"{params.file_label}/{event_idx}/event_{event_idx}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
@@ -1304,12 +1304,12 @@ def plot_fake_data(z_range, buffer=1):
     ax = fig.add_subplot(111)
     ax.set_aspect("equal", adjustable="box")
     ax.scatter(fake_x, fake_y, marker="s", s=20)
-    ax.set_xlim([-sp.detector_x / 2, sp.detector_x / 2])
-    ax.set_ylim([-sp.detector_y / 2, sp.detector_y / 2])
-    ax.set_xlabel(f"x [{sp.xy_unit}]")
-    ax.set_ylabel(f"y [{sp.xy_unit}]")
-    ax.set_xticks(np.linspace(-sp.detector_x / 2, sp.detector_x / 2, 5))
-    ax.set_yticks(np.linspace(-sp.detector_y / 2, sp.detector_y / 2, 6))
+    ax.set_xlim([-params.detector_x / 2, params.detector_x / 2])
+    ax.set_ylim([-params.detector_y / 2, params.detector_y / 2])
+    ax.set_xlabel(f"x [{params.xy_unit}]")
+    ax.set_ylabel(f"y [{params.xy_unit}]")
+    ax.set_xticks(np.linspace(-params.detector_x / 2, params.detector_x / 2, 5))
+    ax.set_yticks(np.linspace(-params.detector_y / 2, params.detector_y / 2, 6))
     ax.xaxis.set_minor_locator(AutoMinorLocator(8))
     ax.yaxis.set_minor_locator(AutoMinorLocator(8))
     ax.grid()
@@ -1328,7 +1328,7 @@ def plot_dQ(dQ_array, event_idx, track_idx, dh, interpolate=False):
     ax_twinx = ax.twinx()
 
     fig.suptitle(
-        rf"Event {event_idx} - Track {track_idx} - $dx = {round(dh,2)}$ {sp.dh_unit}"
+        rf"Event {event_idx} - Track {track_idx} - $dx = {round(dh,2)}$ {params.dh_unit}"
     )
 
     mean_dQ = np.mean(dQ_array[dQ_array > 0])
@@ -1357,17 +1357,17 @@ def plot_dQ(dQ_array, event_idx, track_idx, dh, interpolate=False):
         mean_dQ / dh,
         ls="--",
         c="red",
-        label=rf"Mean = ${round(mean_dQ/dh,2)}$ {sp.q_unit} {sp.dh_unit}$^{{-1}}$",
+        label=rf"Mean = ${round(mean_dQ/dh,2)}$ {params.q_unit} {params.dh_unit}$^{{-1}}$",
         lw=1,
     )
     x_range = np.arange(0, len(dQ_array) * dh, dh)[: len(dQ_array)]
 
     ax.step(x_range, dQ_array / dh, where="mid")
-    ax.set_xlabel(rf"$x$ [{sp.dh_unit}]")
-    ax.set_ylabel(rf"$dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]")
+    ax.set_xlabel(rf"$x$ [{params.dh_unit}]")
+    ax.set_ylabel(rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]")
 
     ax_twinx.step(x_range, np.cumsum(dQ_array), color="C1", where="mid")
-    ax_twinx.set_ylabel(f"Q [{sp.q_unit}]")
+    ax_twinx.set_ylabel(f"Q [{params.q_unit}]")
 
     for axes in [ax, ax_twinx]:
         set_common_ax_options(axes)
@@ -1378,10 +1378,10 @@ def plot_dQ(dQ_array, event_idx, track_idx, dh, interpolate=False):
     ax.legend(loc="lower center")
 
     fig.tight_layout()
-    if sp.save_figures:
-        os.makedirs(f"{sp.file_label}/{event_idx}", exist_ok=True)
+    if params.save_figures:
+        os.makedirs(f"{params.file_label}/{event_idx}", exist_ok=True)
         fig.savefig(
-            f"{sp.file_label}/{event_idx}/dQ_E{event_idx}_T{track_idx}_{round(dh,2)}.pdf",
+            f"{params.file_label}/{event_idx}/dQ_E{event_idx}_T{track_idx}_{round(dh,2)}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
@@ -1476,11 +1476,11 @@ def plot_track_stats(
     )
 
     ax11.set_xlabel(
-        rf"$dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]",
-        fontsize=sp.label_font_size,
+        rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
+        fontsize=params.label_font_size,
     )
-    ax11.set_title(f"{len(track_dQdx)} tracks", fontsize=sp.title_font_size)
-    ax12.set_title(f"{len(track_length)} tracks", fontsize=sp.title_font_size)
+    ax11.set_title(f"{len(track_dQdx)} tracks", fontsize=params.title_font_size)
+    ax12.set_title(f"{len(track_length)} tracks", fontsize=params.title_font_size)
 
     # 2D histograms
     def hist2d(x, y, ax, bins, lognorm, fit="Log", profile=False):
@@ -1544,14 +1544,14 @@ def plot_track_stats(
     ax21 = fig2.add_subplot(121)
     ax22 = fig2.add_subplot(122)
 
-    fig2.suptitle(f"{len(track_dQdx)} tracks", fontsize=sp.title_font_size)
+    fig2.suptitle(f"{len(track_dQdx)} tracks", fontsize=params.title_font_size)
     ax21.set_ylabel(
-        rf"Mean $dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]",
-        fontsize=sp.label_font_size,
+        rf"Mean $dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
+        fontsize=params.label_font_size,
     )
-    ax21.set_title("Mean dQ/dx vs. Track length", fontsize=sp.title_font_size)
-    ax22.set_ylabel(rf"$dQ/dx$ CV", fontsize=sp.label_font_size)
-    ax22.set_title("dQ/dx CV vs. Track length", fontsize=sp.title_font_size)
+    ax21.set_title("Mean dQ/dx vs. Track length", fontsize=params.title_font_size)
+    ax22.set_ylabel(rf"$dQ/dx$ CV", fontsize=params.label_font_size)
+    ax22.set_title("dQ/dx CV vs. Track length", fontsize=params.title_font_size)
 
     hist2d21 = hist2d(
         track_length, track_mean_dQdx, ax21, bins, lognorm, fit="Log", profile=profile
@@ -1579,11 +1579,11 @@ def plot_track_stats(
     fig5 = plt.figure(figsize=(7 + 7 * score_bool, 6))
     ax51 = fig5.add_subplot(111 + 10 * score_bool)
     ax51.set_ylabel(
-        rf"$dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]",
-        fontsize=sp.label_font_size,
+        rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
+        fontsize=params.label_font_size,
     )
-    ax51.set_xlabel(rf"Residual range [{sp.dh_unit}]", fontsize=sp.label_font_size)
-    ax51.set_title(rf"{len(track_dQdx)} tracks", fontsize=sp.title_font_size)
+    ax51.set_xlabel(rf"Residual range [{params.dh_unit}]", fontsize=params.label_font_size)
+    ax51.set_title(rf"{len(track_dQdx)} tracks", fontsize=params.title_font_size)
 
     hist2d(
         dQdx_series.index,
@@ -1598,18 +1598,18 @@ def plot_track_stats(
     fig6 = plt.figure(figsize=(7 + 7 * score_bool, 6))
     ax61 = fig6.add_subplot(111 + 10 * score_bool)
     ax61.set_ylabel(
-        rf"Mean $dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]",
-        fontsize=sp.label_font_size,
+        rf"Mean $dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
+        fontsize=params.label_font_size,
     )
-    ax61.set_xlabel(rf"Mean anode distance [{sp.z_unit}]", fontsize=sp.label_font_size)
-    ax61.set_title(rf"{len(track_z)} tracks", fontsize=sp.title_font_size)
+    ax61.set_xlabel(rf"Mean anode distance [{params.z_unit}]", fontsize=params.label_font_size)
+    ax61.set_title(rf"{len(track_z)} tracks", fontsize=params.title_font_size)
 
     hist2d(track_z, track_mean_dQdx, ax61, bins, lognorm, fit="Linear", profile=profile)
 
     # fig7 = plt.figure(figsize=(7 + 7 * score_bool, 6))
     # ax71 = fig7.add_subplot(111 + 10 * score_bool)
-    # ax71.set_ylabel(rf"$dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]", fontsize=label_size)
-    # ax71.set_xlabel(rf"Anode distance [{sp.z_unit}]", fontsize=label_size)
+    # ax71.set_ylabel(rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]", fontsize=label_size)
+    # ax71.set_xlabel(rf"Anode distance [{params.z_unit}]", fontsize=label_size)
     # ax71.set_title(rf"{len(track_z)} tracks", fontsize=title_size)
 
     # dq_z_series = pd.concat(dq_z_list)
@@ -1652,13 +1652,13 @@ def plot_track_stats(
         fig3 = plt.figure(figsize=(14, 6))
         ax31 = fig3.add_subplot(121)
         ax32 = fig3.add_subplot(122)
-        ax31.set_ylabel(rf"Mean $dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]")
+        ax31.set_ylabel(rf"Mean $dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]")
         ax31.set_title(rf"Mean dQ/dx vs. Track length")
         ax32.set_ylabel(rf"$dQ/dx$ CV")
         ax32.set_title(rf"dQ/dx CV vs. Track length")
         fig3.suptitle(
             rf"Fit score $\geq {min_score}$ ({round(sum(score_mask)/len(score_mask)*100)}% of tracks)",
-            fontsize=sp.title_font_size,
+            fontsize=params.title_font_size,
         )
 
         figs.append(fig3)
@@ -1687,15 +1687,15 @@ def plot_track_stats(
         ax52 = fig5.add_subplot(122)
         axes.append(ax52)
         ax52.set_ylabel(
-            rf"$dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]",
-            fontsize=sp.label_font_size,
+            rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
+            fontsize=params.label_font_size,
         )
-        ax52.set_xlabel(rf"Residual range [{sp.dh_unit}]", fontsize=sp.label_font_size)
+        ax52.set_xlabel(rf"Residual range [{params.dh_unit}]", fontsize=params.label_font_size)
         ax52.set_title(
             rf"Fit score $\geq {min_score}$ ({round(sum(score_mask)/len(score_mask)*100)}% of tracks)",
-            fontsize=sp.title_font_size,
+            fontsize=params.title_font_size,
         )
-        fig5.suptitle("dQ/dx vs. Residual range", fontsize=sp.title_font_size)
+        fig5.suptitle("dQ/dx vs. Residual range", fontsize=params.title_font_size)
 
         hist2d(
             cut_dQdx_series.index,
@@ -1710,17 +1710,17 @@ def plot_track_stats(
         ax62 = fig6.add_subplot(122)
         axes.append(ax62)
         ax62.set_ylabel(
-            rf"Mean $dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]",
-            fontsize=sp.label_font_size,
+            rf"Mean $dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
+            fontsize=params.label_font_size,
         )
         ax62.set_xlabel(
-            rf"Mean anode distance [{sp.z_unit}]", fontsize=sp.label_font_size
+            rf"Mean anode distance [{params.z_unit}]", fontsize=params.label_font_size
         )
         ax62.set_title(
             rf"Fit score $\geq {min_score}$ ({round(sum(score_mask)/len(score_mask)*100)}% of tracks)",
-            fontsize=sp.title_font_size,
+            fontsize=params.title_font_size,
         )
-        fig6.suptitle("Mean dQ/dx vs. Mean anode distance", fontsize=sp.title_font_size)
+        fig6.suptitle("Mean dQ/dx vs. Mean anode distance", fontsize=params.title_font_size)
 
         hist2d(
             track_z[score_mask],
@@ -1734,8 +1734,8 @@ def plot_track_stats(
 
         # ax72 = fig7.add_subplot(122)
         # axes.append(ax72)
-        # ax72.set_ylabel(rf"$dQ/dx$ [{sp.q_unit} {sp.dh_unit}$^{{-1}}$]", fontsize=label_size)
-        # ax72.set_xlabel(rf"Anode distance [{sp.z_unit}]", fontsize=label_size)
+        # ax72.set_ylabel(rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]", fontsize=label_size)
+        # ax72.set_xlabel(rf"Anode distance [{params.z_unit}]", fontsize=label_size)
         # ax72.set_title(
         #     rf"Fit score $\geq {min_score}$ ({round(sum(score_mask)/len(score_mask)*100)}% of tracks)", fontsize=title_size
         # )
@@ -1756,11 +1756,11 @@ def plot_track_stats(
         #     profile=profile,
         # )
 
-    max_track_legth = np.sqrt(sp.detector_x**2 + sp.detector_y**2 + sp.detector_z**2)
-    max_track_legth_xy = np.sqrt(sp.detector_x**2 + sp.detector_y**2)
+    max_track_legth = np.sqrt(params.detector_x**2 + params.detector_y**2 + params.detector_z**2)
+    max_track_legth_xy = np.sqrt(params.detector_x**2 + params.detector_y**2)
     print("Max possible track length", round(max_track_legth, 2), "mm")
     print("Max possible track length on xy plane", round(max_track_legth_xy, 2), "mm")
-    print("Max possible vertical track length", sp.detector_y, "mm")
+    print("Max possible vertical track length", params.detector_y, "mm")
 
     for ax in axes:
         if ax == ax11 or ax == ax12:
@@ -1772,9 +1772,9 @@ def plot_track_stats(
                 # or ax == ax71
                 or (score_bool and (ax == ax52 or ax == ax62))  # or ax == ax72))
             ):
-                ax.set_xlabel(f"Track length [{sp.dh_unit}]")
-            if max(track_length) > sp.detector_y:
-                ax.axvline(sp.detector_y, c="g", ls="--", label="Max vertical length")
+                ax.set_xlabel(f"Track length [{params.dh_unit}]")
+            if max(track_length) > params.detector_y:
+                ax.axvline(params.detector_y, c="g", ls="--", label="Max vertical length")
             if max(track_length) > max_track_legth_xy:
                 ax.axvline(
                     max_track_legth_xy, c="orange", ls="--", label=r"Max length in $xy$"
@@ -1798,41 +1798,41 @@ def plot_track_stats(
     for fig in figs:
         fig.tight_layout()
 
-    if sp.save_figures:
+    if params.save_figures:
         entries = len(track_dQdx)
         fig1.savefig(
-            f"{sp.file_label}/track_stats_1D_hist_{sp.file_label}_{entries}.pdf",
+            f"{params.file_label}/track_stats_1D_hist_{params.file_label}_{entries}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
-            f"{sp.file_label}/track_stats_2D_hist_{sp.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            f"{params.file_label}/track_stats_2D_hist_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig4.savefig(
-            f"{sp.file_label}/track_stats_score_{sp.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            f"{params.file_label}/track_stats_score_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig5.savefig(
-            f"{sp.file_label}/track_stats_dQdx_{sp.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            f"{params.file_label}/track_stats_dQdx_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig6.savefig(
-            f"{sp.file_label}/track_stats_dQdx_z_{sp.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            f"{params.file_label}/track_stats_dQdx_z_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         # fig7.savefig(
-        #     f"{sp.file_label}/track_stats_dQ_z_{sp.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+        #     f"{params.file_label}/track_stats_dQ_z_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
         #     dpi=300,
         #     bbox_inches="tight",
         # )
         if score_bool:
             fig3.savefig(
-                f"{sp.file_label}/track_stats_2D_hist_cut_{sp.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+                f"{params.file_label}/track_stats_2D_hist_cut_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
                 dpi=300,
                 bbox_inches="tight",
             )
@@ -1856,7 +1856,7 @@ def plot_light_geo_stats(
     sipm_light = []
 
     for metric in metrics.values():
-        if single_track and len(metric.keys()) > 1 + sp.non_track_keys:
+        if single_track and len(metric.keys()) > 1 + params.non_track_keys:
             continue
         for track_idx, values in metric.items():
             if not isinstance(track_idx, str) and track_idx > 0:
@@ -1864,15 +1864,15 @@ def plot_light_geo_stats(
                 for light in sipms.values():
                     sipm_distance.append(light["distance"])
                     sipm_angle.append(light["angle"])
-                    sipm_light.append(light[sp.light_variable])
+                    sipm_light.append(light[params.light_variable])
 
     sipm_distance = np.array(sipm_distance)
     sipm_angle = np.array(sipm_angle)
     sipm_light = np.array(sipm_light)
 
-    max_distance = np.sqrt(sp.detector_x**2 + sp.detector_y**2 + sp.detector_z**2)
+    max_distance = np.sqrt(params.detector_x**2 + params.detector_y**2 + params.detector_z**2)
     print("Max possible distance to track", round(max_distance, 2), "mm")
-    print("Drift distance", sp.detector_z, "mm")
+    print("Drift distance", params.detector_z, "mm")
 
     sipm_distance = sipm_distance[~np.isnan(sipm_light) & (sipm_light > 0)]
     sipm_angle = sipm_angle[~np.isnan(sipm_light) & (sipm_light > 0)]
@@ -1953,11 +1953,11 @@ def plot_light_geo_stats(
             triangle_calc(x2, *parameters),
             ls="-",
             c=salmon_cmap(cluster_label),
-            label=rf"Fit: {parameters[0]:.0f}{sp.dh_unit} track length",
+            label=rf"Fit: {parameters[0]:.0f}{params.dh_unit} track length",
         )
     ax2.set_ylabel(f"SiPM opening angle to track centre [deg]")
     cbar2 = plt.colorbar(image2)
-    cbar2.set_label(rf"Light {sp.light_variable} [{sp.light_unit} - log]")
+    cbar2.set_label(rf"Light {params.light_variable} [{params.light_unit} - log]")
 
     fig2.suptitle(f"SiPM level light distribution - {len(sipm_light)} entries")
 
@@ -1971,7 +1971,7 @@ def plot_light_geo_stats(
         cmin=1,
         norm=LogNorm() if lognorm else None,
     )
-    axes3[0].set_ylabel(f"Light_{sp.light_variable} [{sp.light_unit}]")
+    axes3[0].set_ylabel(f"Light_{params.light_variable} [{params.light_unit}]")
     cbar30 = plt.colorbar(hist30[3])
     cbar30.set_label(rf"Counts [Log]")
 
@@ -1979,7 +1979,7 @@ def plot_light_geo_stats(
         sipm_angle, sipm_light, bins=bins, cmin=1, norm=LogNorm() if lognorm else None
     )
     axes3[1].set_xlabel(f"SiPM opening angle to track [deg]")
-    axes3[1].set_ylabel(f"Light {sp.light_variable} [{sp.light_unit}]")
+    axes3[1].set_ylabel(f"Light {params.light_variable} [{params.light_unit}]")
     cbar31 = plt.colorbar(hist31[3])
     cbar31.set_label(rf"Counts [Log]")
 
@@ -1991,32 +1991,32 @@ def plot_light_geo_stats(
             if limit_xrange:
                 xlim = ax.get_xlim()
                 ax.set_xlim(xlim[0], min(max_distance + 10, xlim[1]))
-            if max(sipm_distance) > sp.detector_z:
-                ax.axvline(sp.detector_z, c="orange", ls="--", label="Drift distance")
+            if max(sipm_distance) > params.detector_z:
+                ax.axvline(params.detector_z, c="orange", ls="--", label="Drift distance")
             if max(sipm_distance) > max_distance:
                 ax.axvline(max_distance, c="r", ls="--", label="Max distance")
 
-            ax.set_xlabel(f"Distance from track centre [{sp.dh_unit}]")
+            ax.set_xlabel(f"Distance from track centre [{params.dh_unit}]")
 
             ax.legend()
 
     for fig in [fig1, fig2, fig3]:
         fig.tight_layout()
 
-    if sp.save_figures:
+    if params.save_figures:
         entries = len(sipm_light)
         fig1.savefig(
-            f"{sp.file_label}/light_geo_optimization_{sp.file_label}_{entries}.pdf",
+            f"{params.file_label}/light_geo_optimization_{params.file_label}_{entries}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
-            f"{sp.file_label}/light_geo_2D_hist_{sp.file_label}_{entries}.pdf",
+            f"{params.file_label}/light_geo_2D_hist_{params.file_label}_{entries}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig3.savefig(
-            f"{sp.file_label}/light_geo_1D_hist_{sp.file_label}_{entries}.pdf",
+            f"{params.file_label}/light_geo_1D_hist_{params.file_label}_{entries}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
@@ -2028,7 +2028,7 @@ def plot_light_fit_stats(metrics):
         if "Fit_line" not in metric["SiPM"]:
             continue
         light_track = metric["SiPM"]["Fit_line"]
-        if len(metric.keys()) == sp.non_track_keys + 1:
+        if len(metric.keys()) == params.non_track_keys + 1:
             for idx, track in metric.items():
                 if isinstance(idx, str):
                     continue
@@ -2053,7 +2053,7 @@ def plot_light_fit_stats(metrics):
                 "cosine",
                 ax=ax,
                 bins=np.linspace(0, 1, 11),
-                label=f"Threshold: {i} {sp.light_unit} - {len(cosine_df[cosine_df['threshold']>i])} entries",
+                label=f"Threshold: {i} {params.light_unit} - {len(cosine_df[cosine_df['threshold']>i])} entries",
             )
     ax.set(
         title="Cosine similarity between charge and light tracks",
@@ -2063,9 +2063,9 @@ def plot_light_fit_stats(metrics):
     set_common_ax_options(ax)
     ax.legend()
     fig.tight_layout()
-    if sp.save_figures:
+    if params.save_figures:
         fig.savefig(
-            f"{sp.file_label}/light_fit_{sp.file_label}_{entries}.pdf",
+            f"{params.file_label}/light_fit_{params.file_label}_{entries}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
@@ -2158,7 +2158,7 @@ def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False):
     cbar22 = plt.colorbar(hist22[3])
     axes2[1].set(
         title=rf"Light vs. Charge",
-        xlabel=(rf"Charge [{sp.q_unit} - log]" if log[1] else rf"Charge [{sp.q_unit}]"),
+        xlabel=(rf"Charge [{params.q_unit} - log]" if log[1] else rf"Charge [{params.q_unit}]"),
         xscale="log" if log[1] else "linear",
     )
     cbar22.set_label(rf"Counts - log" if lognorm else rf"Counts")
@@ -2176,9 +2176,9 @@ def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False):
     axes2[2].set_title(rf"Charge vs. Anode distance with light weights")
     cbar23.set_label(
         (
-            rf"Light {sp.light_variable} [{sp.light_unit} - log]"
+            rf"Light {params.light_variable} [{params.light_unit} - log]"
             if lognorm
-            else rf"Light {sp.light_variable} [{sp.light_unit}]"
+            else rf"Light {params.light_variable} [{params.light_unit}]"
         )
     )
     set_common_ax_options(cbar=cbar23)
@@ -2186,21 +2186,21 @@ def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False):
     for idx, ax in enumerate(axes):
         if not idx == 2:
             ax.set_xlabel(
-                f"Anode distance [{sp.z_unit} - log]"
+                f"Anode distance [{params.z_unit} - log]"
                 if log[0]
-                else f"Anode distance [{sp.z_unit}]"
+                else f"Anode distance [{params.z_unit}]"
             )
             ax.set_xscale("log" if log[0] else "linear")
         if idx % 2 == 0:
             ax.set_ylabel(
-                rf"Light {sp.light_variable} [{sp.light_unit} - log]"
+                rf"Light {params.light_variable} [{params.light_unit} - log]"
                 if log[2]
-                else rf"Light {sp.light_variable} [{sp.light_unit}]"
+                else rf"Light {params.light_variable} [{params.light_unit}]"
             )
             ax.set_yscale("log" if log[2] else "linear")
         else:
             ax.set_ylabel(
-                rf"Charge [{sp.q_unit} - log] " if log[1] else rf"Charge [{sp.q_unit}]"
+                rf"Charge [{params.q_unit} - log] " if log[1] else rf"Charge [{params.q_unit}]"
             )
             ax.set_yscale("log" if log[1] else "linear")
 
@@ -2209,15 +2209,15 @@ def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False):
     for fig in figs:
         fig.tight_layout()
 
-    if sp.save_figures:
+    if params.save_figures:
         events = sum(mask)
         fig1.savefig(
-            f"{sp.file_label}/voxel_light_vs_z_{sp.file_label}_{events}.pdf",
+            f"{params.file_label}/voxel_light_vs_z_{params.file_label}_{events}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
-            f"{sp.file_label}/voxel_charge_vs_z_hist_{sp.file_label}_{events}.pdf",
+            f"{params.file_label}/voxel_charge_vs_z_hist_{params.file_label}_{events}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
@@ -2382,9 +2382,9 @@ def light_vs_charge(
         except:
             print("Fit failed\n")
 
-        ax.set_xlabel(f"Total charge [{sp.q_unit}{' - Log' if log else ''}]")
+        ax.set_xlabel(f"Total charge [{params.q_unit}{' - Log' if log else ''}]")
         ax.set_ylabel(
-            f"Total Light {sp.light_variable} [{sp.light_unit}{' - Log' if log else ''}]"
+            f"Total Light {params.light_variable} [{params.light_unit}{' - Log' if log else ''}]"
         )
         cbar = plt.colorbar(image)
         cbar.set_label(rf"Counts")
@@ -2492,17 +2492,17 @@ def light_vs_charge(
     ratio = charge_array / light_array
     hist1d(ratio, ax3, bin_density, log[1], p0)
     ax3.set_xlabel(
-        f"Event total charge / Light [{sp.q_unit}/{sp.light_unit}{' - Log' if log[1] else ''}]"
+        f"Event total charge / Light [{params.q_unit}/{params.light_unit}{' - Log' if log[1] else ''}]"
     )
     fig3.suptitle(f"Event level Charge vs. Light - {len(charge_array)} events")
 
     fig4, axes4 = plt.subplots(1, 2, figsize=(14, 6))
 
     hist1d(charge_array, axes4[0], bin_density, log[1], p0)
-    axes4[0].set_xlabel(f"Event total charge [{sp.q_unit}{' - Log' if log[1] else ''}]")
+    axes4[0].set_xlabel(f"Event total charge [{params.q_unit}{' - Log' if log[1] else ''}]")
     hist1d(light_array, axes4[1], bin_density, log[1], p0)
     axes4[1].set_xlabel(
-        f"Event total Light [{sp.light_unit}{' - Log' if log[1] else ''}]"
+        f"Event total Light [{params.light_unit}{' - Log' if log[1] else ''}]"
     )
     fig4.suptitle(f"Event level Charge and Light - {len(charge_array)} events")
 
@@ -2555,27 +2555,27 @@ def light_vs_charge(
             ratio = charge_array[labels == label] / light_array[labels == label]
             hist1d(ratio, axes32[idx], bin_density, log[1], p0)
             axes32[idx].set_xlabel(
-                f"Event total charge / Light [{sp.q_unit}/{sp.light_unit}{' - Log' if log[1] else ''}]"
+                f"Event total charge / Light [{params.q_unit}/{params.light_unit}{' - Log' if log[1] else ''}]"
             )
             axes32[idx].set_title(f"Population {label} - {sum(labels == label)} events")
 
     for fig in figs:
         fig.tight_layout()
 
-    if sp.save_figures:
+    if params.save_figures:
         events = len(ratio)
         fig1.savefig(
-            f"{sp.file_label}/light_vs_charge_optmization_{sp.file_label}_{events}.pdf",
+            f"{params.file_label}/light_vs_charge_optmization_{params.file_label}_{events}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
-            f"{sp.file_label}/light_vs_charge_2D_hist_{sp.file_label}_{events}.pdf",
+            f"{params.file_label}/light_vs_charge_2D_hist_{params.file_label}_{events}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
         fig3.savefig(
-            f"{sp.file_label}/light_vs_charge_ratio_{sp.file_label}_{events}.pdf",
+            f"{params.file_label}/light_vs_charge_ratio_{params.file_label}_{events}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
