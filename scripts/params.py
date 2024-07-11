@@ -1,3 +1,5 @@
+# This file contains the default parameters used by the methods.py file and the notebooks.
+# Change parameters on your own script by calling params.PARAMETER
 import numpy as np
 
 sipm_map_file = "sipm_sn_ch_to_xy.json"

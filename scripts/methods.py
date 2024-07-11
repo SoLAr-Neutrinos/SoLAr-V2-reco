@@ -1,3 +1,7 @@
+# This file contains all the methods used by the notebooks.
+# Import all by using from scripts import *
+# Change parameters on your own script by calling params.PARAMETER
+
 ######### Imports #########
 
 import glob
@@ -842,14 +846,14 @@ def integrate_peaks(waveform, buffer_size=10, height=0.1, prominence=0.05):
 
 def filter_metrics(
     metrics,
-    min_score=0.5,
-    max_score=np.inf,
-    min_track_length=160,
-    max_track_length=np.inf,
-    max_tracks=1,
-    min_light=0,
-    max_light=100,
-    max_z=300,
+    min_score=params.min_score,
+    max_score=params.max_score,
+    min_track_length=params.min_track_length,
+    max_track_length=params.max_track_length,
+    max_tracks=params.max_tracks,
+    min_light=params.min_light,
+    max_light=params.max_light,
+    max_z=params.max_z,
 ):
     print(f"min_score = {min_score}")
     print(f"max_score = {max_score}")
@@ -1315,7 +1319,7 @@ def plot_fake_data(z_range, buffer=1):
     ax.grid()
     ax.tick_params(axis="both", which="both", top=True, right=True)
     fig.tight_layout()
-    fig.savefig(f"{path_prefix}/fake_data_map.pdf", dpi=300, bbox_inches="tight")
+    fig.savefig(f"{params.file_label}/fake_data_map.pdf", dpi=300, bbox_inches="tight")
 
 
 # ### Tracks
@@ -1421,7 +1425,8 @@ def plot_track_stats(
     cut_dQdx_series = cut_dQdx_series[cut_dQdx_series > 0].dropna().sort_index()
 
     print("dQ/dx stats:")
-    display(dQdx_series.describe())
+    # TODO if ipython
+    # display(dQdx_series.describe())
 
     # 1D histograms
     fig1 = plt.figure(figsize=(14, 6))
