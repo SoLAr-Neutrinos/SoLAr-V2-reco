@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import uproot
 import numpy as np
 import awkward as ak

@@ -29,7 +29,7 @@ from sklearn.linear_model import RANSACRegressor
 from skspatial.objects import Cylinder, Line, Plane, Point, Triangle
 from tqdm.auto import tqdm
 
-import scripts.params as params
+from . import params
 
 ####### Methods #######
 
@@ -279,8 +279,12 @@ def generate_dead_area(z_range, buffer=1):
                     temp_x >= params.quadrant_size / 2 - buffer
                 )
                 mask = mask1 | (mask2 & mask3)
-                temp_x = temp_x[mask] - params.detector_x / 2 + params.quadrant_size * (k)
-                temp_y = -temp_y[mask] + params.detector_y / 2 - params.quadrant_size * (l)
+                temp_x = (
+                    temp_x[mask] - params.detector_x / 2 + params.quadrant_size * (k)
+                )
+                temp_y = (
+                    -temp_y[mask] + params.detector_y / 2 - params.quadrant_size * (l)
+                )
                 temp_z = temp_z[mask]
 
                 fake_x.extend(temp_x)
@@ -674,7 +678,9 @@ def voxelize_hits(
                     intersection = charge_line.intersect_line(
                         v_line, check_coplanar=False
                     )
-                    if all(abs(projected_point - point)[:2] <= params.quadrant_size / 2):
+                    if all(
+                        abs(projected_point - point)[:2] <= params.quadrant_size / 2
+                    ):
                         xyzl["z"] = intersection[2]
 
         xyzl_df = pd.concat([xyzl_df, xyzl], axis=1)
@@ -1011,6 +1017,50 @@ def load_light(file_name, deco=True, events=None, mask=True, keep_rwf=False):
 
 
 # ## Plotting
+def prepare_event(charge_df, light_df, match_dict, event):
+    if event not in charge_df.index:
+        print(f"Event {event} not found in {params.file_label}")
+        return None, None
+
+    light_indices = light_df["event"].copy()
+
+    if event in match_dict:
+        light_event = match_dict.get(event)[0]
+        light_matches = light_indices[light_indices == light_event].index
+    else:
+        print(f"No light event found for event {event} in {params.file_label}")
+        light_matches = slice(None)
+
+    charge_event = pd.DataFrame(
+        charge_df.loc[
+            event,
+            [
+                "event_hits_channelid",
+                "event_hits_x",
+                "event_hits_y",
+                "event_hits_z",
+                "event_hits_ts",
+                "event_hits_q",
+            ],
+        ].to_list(),
+        index=["ch", "x", "y", "z", "t", "q"],
+    ).T
+
+    non_zero_mask = (charge_event["ch"] != 0) * (
+        charge_event["y"] != 0
+    )  # Remove (0,0) entries
+    noisy_channels_mask = ~charge_event["ch"].isin(
+        [ch[0] for ch in params.channel_disable_list]
+    )  # Disable channel 7
+    mask = non_zero_mask * noisy_channels_mask  # Full hits mask
+
+    # Apply boolean indexing to x, y, and z arrays
+    charge_event = charge_event[mask]
+    charge_event["q"] = charge_event["q"] * params.charge_gain  # Convert mV to ke
+
+    light_event = light_df.loc[light_matches].dropna(subset=params.light_variable)
+
+    return charge_event, light_event, mask
 
 
 class OOMFormatter(ScalarFormatter):
@@ -1106,8 +1156,16 @@ def create_ed_axes(event_idx, charge, light):
         y = -np.array([0, params.quadrant_size])
         ax2d.plot(
             np.power(-1, params.flip_x)
-            * (x - params.detector_x / 2 + params.quadrant_size * (j - params.first_chip[1])),
-            (y + params.detector_y / 2 - params.quadrant_size * (i - params.first_chip[0])),
+            * (
+                x
+                - params.detector_x / 2
+                + params.quadrant_size * (j - params.first_chip[1])
+            ),
+            (
+                y
+                + params.detector_y / 2
+                - params.quadrant_size * (i - params.first_chip[0])
+            ),
             c=grid_color,
             lw=1,
         )
@@ -1116,8 +1174,16 @@ def create_ed_axes(event_idx, charge, light):
             y = -np.array([params.quadrant_size, params.quadrant_size / 2])
         ax2d.plot(
             np.power(-1, params.flip_x)
-            * (x[::-1] - params.detector_x / 2 + params.quadrant_size * (j - params.first_chip[1])),
-            (y + params.detector_y / 2 - params.quadrant_size * (i - params.first_chip[0])),
+            * (
+                x[::-1]
+                - params.detector_x / 2
+                + params.quadrant_size * (j - params.first_chip[1])
+            ),
+            (
+                y
+                + params.detector_y / 2
+                - params.quadrant_size * (i - params.first_chip[0])
+            ),
             c=grid_color,
             lw=1,
         )
@@ -1220,7 +1286,7 @@ def event_display(
         )
     else:
         for track_idx, values in metrics.items():
-            if isinstance(track_idx, int):
+            if isinstance(track_idx, np.int64):
                 track = values["Fit_line"]
                 track_norm = values["Fit_norm"]
                 track.plot_2d(
@@ -1587,7 +1653,9 @@ def plot_track_stats(
         rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
         fontsize=params.label_font_size,
     )
-    ax51.set_xlabel(rf"Residual range [{params.dh_unit}]", fontsize=params.label_font_size)
+    ax51.set_xlabel(
+        rf"Residual range [{params.dh_unit}]", fontsize=params.label_font_size
+    )
     ax51.set_title(rf"{len(track_dQdx)} tracks", fontsize=params.title_font_size)
 
     hist2d(
@@ -1606,7 +1674,9 @@ def plot_track_stats(
         rf"Mean $dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
         fontsize=params.label_font_size,
     )
-    ax61.set_xlabel(rf"Mean anode distance [{params.z_unit}]", fontsize=params.label_font_size)
+    ax61.set_xlabel(
+        rf"Mean anode distance [{params.z_unit}]", fontsize=params.label_font_size
+    )
     ax61.set_title(rf"{len(track_z)} tracks", fontsize=params.title_font_size)
 
     hist2d(track_z, track_mean_dQdx, ax61, bins, lognorm, fit="Linear", profile=profile)
@@ -1695,7 +1765,9 @@ def plot_track_stats(
             rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
             fontsize=params.label_font_size,
         )
-        ax52.set_xlabel(rf"Residual range [{params.dh_unit}]", fontsize=params.label_font_size)
+        ax52.set_xlabel(
+            rf"Residual range [{params.dh_unit}]", fontsize=params.label_font_size
+        )
         ax52.set_title(
             rf"Fit score $\geq {min_score}$ ({round(sum(score_mask)/len(score_mask)*100)}% of tracks)",
             fontsize=params.title_font_size,
@@ -1725,7 +1797,9 @@ def plot_track_stats(
             rf"Fit score $\geq {min_score}$ ({round(sum(score_mask)/len(score_mask)*100)}% of tracks)",
             fontsize=params.title_font_size,
         )
-        fig6.suptitle("Mean dQ/dx vs. Mean anode distance", fontsize=params.title_font_size)
+        fig6.suptitle(
+            "Mean dQ/dx vs. Mean anode distance", fontsize=params.title_font_size
+        )
 
         hist2d(
             track_z[score_mask],
@@ -1761,7 +1835,9 @@ def plot_track_stats(
         #     profile=profile,
         # )
 
-    max_track_legth = np.sqrt(params.detector_x**2 + params.detector_y**2 + params.detector_z**2)
+    max_track_legth = np.sqrt(
+        params.detector_x**2 + params.detector_y**2 + params.detector_z**2
+    )
     max_track_legth_xy = np.sqrt(params.detector_x**2 + params.detector_y**2)
     print("Max possible track length", round(max_track_legth, 2), "mm")
     print("Max possible track length on xy plane", round(max_track_legth_xy, 2), "mm")
@@ -1779,7 +1855,9 @@ def plot_track_stats(
             ):
                 ax.set_xlabel(f"Track length [{params.dh_unit}]")
             if max(track_length) > params.detector_y:
-                ax.axvline(params.detector_y, c="g", ls="--", label="Max vertical length")
+                ax.axvline(
+                    params.detector_y, c="g", ls="--", label="Max vertical length"
+                )
             if max(track_length) > max_track_legth_xy:
                 ax.axvline(
                     max_track_legth_xy, c="orange", ls="--", label=r"Max length in $xy$"
@@ -1875,7 +1953,9 @@ def plot_light_geo_stats(
     sipm_angle = np.array(sipm_angle)
     sipm_light = np.array(sipm_light)
 
-    max_distance = np.sqrt(params.detector_x**2 + params.detector_y**2 + params.detector_z**2)
+    max_distance = np.sqrt(
+        params.detector_x**2 + params.detector_y**2 + params.detector_z**2
+    )
     print("Max possible distance to track", round(max_distance, 2), "mm")
     print("Drift distance", params.detector_z, "mm")
 
@@ -1997,7 +2077,9 @@ def plot_light_geo_stats(
                 xlim = ax.get_xlim()
                 ax.set_xlim(xlim[0], min(max_distance + 10, xlim[1]))
             if max(sipm_distance) > params.detector_z:
-                ax.axvline(params.detector_z, c="orange", ls="--", label="Drift distance")
+                ax.axvline(
+                    params.detector_z, c="orange", ls="--", label="Drift distance"
+                )
             if max(sipm_distance) > max_distance:
                 ax.axvline(max_distance, c="r", ls="--", label="Max distance")
 
@@ -2163,7 +2245,11 @@ def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False):
     cbar22 = plt.colorbar(hist22[3])
     axes2[1].set(
         title=rf"Light vs. Charge",
-        xlabel=(rf"Charge [{params.q_unit} - log]" if log[1] else rf"Charge [{params.q_unit}]"),
+        xlabel=(
+            rf"Charge [{params.q_unit} - log]"
+            if log[1]
+            else rf"Charge [{params.q_unit}]"
+        ),
         xscale="log" if log[1] else "linear",
     )
     cbar22.set_label(rf"Counts - log" if lognorm else rf"Counts")
@@ -2205,7 +2291,9 @@ def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False):
             ax.set_yscale("log" if log[2] else "linear")
         else:
             ax.set_ylabel(
-                rf"Charge [{params.q_unit} - log] " if log[1] else rf"Charge [{params.q_unit}]"
+                rf"Charge [{params.q_unit} - log] "
+                if log[1]
+                else rf"Charge [{params.q_unit}]"
             )
             ax.set_yscale("log" if log[1] else "linear")
 
@@ -2504,7 +2592,9 @@ def light_vs_charge(
     fig4, axes4 = plt.subplots(1, 2, figsize=(14, 6))
 
     hist1d(charge_array, axes4[0], bin_density, log[1], p0)
-    axes4[0].set_xlabel(f"Event total charge [{params.q_unit}{' - Log' if log[1] else ''}]")
+    axes4[0].set_xlabel(
+        f"Event total charge [{params.q_unit}{' - Log' if log[1] else ''}]"
+    )
     hist1d(light_array, axes4[1], bin_density, log[1], p0)
     axes4[1].set_xlabel(
         f"Event total Light [{params.light_unit}{' - Log' if log[1] else ''}]"
