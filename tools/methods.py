@@ -933,7 +933,7 @@ def combine_metrics():
     if not os.path.exists("combined"):
         os.makedirs("combined")
 
-    with open("combined/metrics.pkl", "wb") as o:
+    with open("combined/metrics_combined.pkl", "wb") as o:
         pickle.dump(combined_metrics, o)
 
     print("Done")
@@ -1927,7 +1927,7 @@ def plot_track_stats(
 
 def plot_light_geo_stats(
     metrics,
-    limit_xrange=False,
+    limit_xrange=True,
     light_max=None,
     min_count_ratio=0.99,
     max_std_ratio=0.2,

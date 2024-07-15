@@ -71,7 +71,7 @@ light_variable = "integral"
 # Filters for post processing if not using filter parameters file
 min_score = -1.0
 max_score = 1.0
-min_track_length = 160
+min_track_length = 32
 max_track_length = np.inf
 max_tracks = 1
 max_light = np.inf
