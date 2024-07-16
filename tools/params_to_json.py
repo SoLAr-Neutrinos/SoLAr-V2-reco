@@ -4,7 +4,7 @@ import json
 
 
 def params_to_json(json_file):
-    with open(f"{json_file}.json", "w") as f:
+    with open(json_file, "w") as f:
         variables = {
             key: value if not isinstance(value, params.np.ndarray) else value.tolist()
             for key, value in params.__dict__.items()
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     parser.add_argument("json_file", help="Path to JSON file (no extension needed)")
     args = parser.parse_args()
 
-    params_to_json(args.json_file.split(".")[0])
+    params_to_json(args.json_file.split(".")[0] + ".json")
 
 else:
     from . import params
