@@ -1,21 +1,5 @@
 #!/usr/bin/env python
 
-from argparse import ArgumentParser
-
-from .methods import (
-    cluster_hits,
-    fit_hit_clusters,
-    json,
-    light_geometry,
-    literal_eval,
-    params,
-    pd,
-    pickle,
-    prepare_event,
-    recal_params,
-    voxelize_hits,
-)
-
 
 def fit_events(charge_df, light_df, match_dict):
     metrics = {}
@@ -66,6 +50,21 @@ def fit_events(charge_df, light_df, match_dict):
 
 
 if __name__ == "__main__":
+    from argparse import ArgumentParser
+    from methods import (
+        cluster_hits,
+        fit_hit_clusters,
+        json,
+        light_geometry,
+        literal_eval,
+        params,
+        pd,
+        pickle,
+        prepare_event,
+        recal_params,
+        voxelize_hits,
+    )
+
     parser = ArgumentParser()
     parser.add_argument("file", help="Folder name for folder containing data files")
     parser.add_argument(
@@ -98,3 +97,19 @@ if __name__ == "__main__":
 
     with open(f"{params.file_label}/metrics_{params.file_label}.pkl", "wb") as f:
         pickle.dump(metrics, f)
+
+
+else:
+    from .methods import (
+        cluster_hits,
+        fit_hit_clusters,
+        json,
+        light_geometry,
+        literal_eval,
+        params,
+        pd,
+        pickle,
+        prepare_event,
+        recal_params,
+        voxelize_hits,
+    )

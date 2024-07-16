@@ -14,11 +14,9 @@ if __name__ == "__main__":
     input_light = args.light
     params.file_label = "_".join(input_light.split("_")[-2:]).split(".")[0]
 
-    charge_df, light_df, match_dict = process_root.process_root(
-        input_charge, input_light
-    )
+    charge_df, light_df, match_dict = process_root(input_charge, input_light)
 
-    metrics = fit_events.fit_events(charge_df, light_df, match_dict)
+    metrics = fit_events(charge_df, light_df, match_dict)
 
     with open(f"{params.file_label}/metrics_{params.file_label}.pkl", "wb") as f:
         pickle.dump(metrics, f)

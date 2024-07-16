@@ -1,18 +1,5 @@
 #!/usr/bin/env python
 
-from argparse import ArgumentParser
-
-from .methods import (
-    ak,
-    json,
-    load_charge,
-    load_light,
-    match_events,
-    np,
-    os,
-    params,
-)
-
 
 def process_root(input_charge, input_light):
     params.file_label = "_".join(input_light.split("_")[-2:]).split(".")[0]
@@ -53,6 +40,19 @@ def process_root(input_charge, input_light):
 
 
 if __name__ == "__main__":
+    from argparse import ArgumentParser
+
+    from methods import (
+        ak,
+        json,
+        load_charge,
+        load_light,
+        match_events,
+        np,
+        os,
+        params,
+    )
+
     parser = ArgumentParser()
     parser.add_argument("light", help="Path to light file")
     parser.add_argument("charge", help="Path to charge file")
@@ -63,3 +63,15 @@ if __name__ == "__main__":
     input_light = args.light
 
     _, _, _ = process_root(input_charge, input_light)
+
+else:
+    from .methods import (
+        ak,
+        json,
+        load_charge,
+        load_light,
+        match_events,
+        np,
+        os,
+        params,
+    )

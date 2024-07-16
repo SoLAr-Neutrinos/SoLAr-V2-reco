@@ -29,7 +29,10 @@ from sklearn.linear_model import RANSACRegressor
 from skspatial.objects import Cylinder, Line, Plane, Point, Triangle
 from tqdm.auto import tqdm
 
-from . import params
+if __package__:
+    from . import params
+else:
+    import params
 
 ####### Methods #######
 
@@ -1524,7 +1527,7 @@ def plot_track_stats(
 
     bin_centers_all11 = (bins_all11[1:] + bins_all11[:-1]) / 2
     p0 = (
-        np.median(cut_dQdx_series),
+        np.median(cut_dQdx_series[cut_dQdx_series > 2000]),
         np.std(bin_centers_all11),
         np.std(bin_centers_all11),
         sum(n_all11),
