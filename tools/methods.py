@@ -76,9 +76,9 @@ def get_dh(unit_vector):
         return params.force_dh
 
     dl_vector = np.array([params.xy_epsilon, params.xy_epsilon, params.z_epsilon])
-    min_dh = np.linalg.norm(dl_vector) / 4
-    max_dh = 2 * np.linalg.norm(dl_vector)
-    dl_projection = abs(np.dot(unit_vector, dl_vector))
+    min_dh = params.pixel_pitch * 2
+    max_dh = params.quadrant_size
+    dl_projection = np.dot(abs(unit_vector), dl_vector)
     dh = min(max(dl_projection, min_dh), max_dh)
 
     return dh
