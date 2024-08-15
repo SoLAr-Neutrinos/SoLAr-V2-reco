@@ -853,17 +853,16 @@ def integrate_peaks(waveform, buffer_size=10, height=0.1, prominence=0.05):
     return integration_result, properties
 
 
-def filter_metrics(
-    metrics,
-    min_score=params.min_score,
-    max_score=params.max_score,
-    min_track_length=params.min_track_length,
-    max_track_length=params.max_track_length,
-    max_tracks=params.max_tracks,
-    min_light=params.min_light,
-    max_light=params.max_light,
-    max_z=params.max_z,
-):
+def filter_metrics(metrics, **kwargs):
+    min_score = kwargs.get('min_score', params.min_score)
+    max_score = kwargs.get('max_score', params.max_score)
+    min_track_length = kwargs.get('min_track_length', params.min_track_length)
+    max_track_length = kwargs.get('max_track_length', params.max_track_length)
+    max_tracks = kwargs.get('max_tracks', params.max_tracks)
+    min_light = kwargs.get('min_light', params.min_light)
+    max_light = kwargs.get('max_light', params.max_light)
+    max_z = kwargs.get('max_z', params.max_z)
+    
     print(f"min_score = {min_score}")
     print(f"max_score = {max_score}")
     print(f"min_track_length = {min_track_length}")
