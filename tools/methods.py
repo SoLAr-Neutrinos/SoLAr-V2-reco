@@ -1527,9 +1527,9 @@ def plot_track_stats(
 
     bin_centers_all11 = (bins_all11[1:] + bins_all11[:-1]) / 2
     p0 = (
-        np.median(cut_dQdx_series[cut_dQdx_series > 2000]),
-        np.std(bin_centers_all11),
-        np.std(bin_centers_all11),
+        np.median(cut_dQdx_series),
+        np.std(bin_centers_all11)/1,
+        np.std(bin_centers_all11)/20,
         sum(n_all11),
     )
 
