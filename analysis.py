@@ -112,7 +112,7 @@ if __name__ == "__main__":
         "-p",
         "--parameters",
         action="append",
-        help="Key=value pairs for aditional parameters",
+        help="Key=value pairs for aditional parameters or json file containing parameters",
         required=False,
     )
 
