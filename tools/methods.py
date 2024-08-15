@@ -1527,19 +1527,22 @@ def plot_track_stats(
 
     bin_centers_all11 = (bins_all11[1:] + bins_all11[:-1]) / 2
     p0 = (
-        np.median(cut_dQdx_series),
-        np.std(bin_centers_all11)/1,
-        np.std(bin_centers_all11)/20,
-        sum(n_all11),
+        bin_centers_all11[n_all11.argmax()],
+        np.std(bin_centers_all11) / 100,
+        np.std(bin_centers_all11) / 2,
+        max(n_all11),
     )
 
     popt, pcov = curve_fit(
         pylandau.langau,
-        bin_centers_all11,
-        n_all11,
+        bin_centers_all11[bin_centers_all11 > 3000],
+        n_all11[bin_centers_all11 > 3000],
         absolute_sigma=True,
         p0=p0,
-        bounds=(0, np.inf),
+        bounds=(
+            (bin_centers_all11[n_all11.argmax() - 3], 0, 0, 0),
+            (bin_centers_all11[n_all11.argmax() + 3], np.inf, np.inf, np.inf),
+        ),
     )
 
     ax11.plot(
