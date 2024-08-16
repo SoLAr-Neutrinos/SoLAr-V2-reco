@@ -10,8 +10,8 @@ def process_root(input_charge, input_light):
 
     match_file = f"{params.file_label}/match_dict_{params.file_label}.json"
 
-    charge_df = load_charge(input_light)
-    light_df = load_light(input_charge)
+    charge_df = load_charge(input_charge)
+    light_df = load_light(input_light)
     match_dict = match_events(charge_df, light_df)
 
     # Remove light events without charge event match

@@ -748,7 +748,17 @@ def recal_params():
     params.light_unit = (
         "p.e." if params.light_variable == "integral" else f"p.e./{params.time_unit}"
     )
+    if params.simulate_dead_area:
+        params.detector_x = params.quadrant_size * 4
+        params.detector_y = params.quadrant_size * 5
+
     params.first_chip = (2, 1) if params.detector_y == 160 else (1, 1)
+
+    print(f"dh_unit set to {params.dh_unit}")
+    print(f"light_unit set to {params.light_unit}")
+    print(f"detector_x set to {params.detector_x}")
+    print(f"detector_y set to {params.detector_y}")
+    print(f"first_chip set to {params.first_chip}")
 
 
 def max_std(array, ax=None, array_max=None, min_count_ratio=0.9, max_std_ratio=0.5):
@@ -853,17 +863,17 @@ def integrate_peaks(waveform, buffer_size=10, height=0.1, prominence=0.05):
     return integration_result, properties
 
 
-def filter_metrics(
-    metrics,
-    min_score=params.min_score,
-    max_score=params.max_score,
-    min_track_length=params.min_track_length,
-    max_track_length=params.max_track_length,
-    max_tracks=params.max_tracks,
-    min_light=params.min_light,
-    max_light=params.max_light,
-    max_z=params.max_z,
-):
+def filter_metrics(metrics, **kwargs):
+    # Extract parameters with fallback to defaults in params
+    min_score = kwargs.get("min_score", params.min_score)
+    max_score = kwargs.get("max_score", params.max_score)
+    min_track_length = kwargs.get("min_track_length", params.min_track_length)
+    max_track_length = kwargs.get("max_track_length", params.max_track_length)
+    max_tracks = kwargs.get("max_tracks", params.max_tracks)
+    min_light = kwargs.get("min_light", params.min_light)
+    max_light = kwargs.get("max_light", params.max_light)
+    max_z = kwargs.get("max_z", params.max_z)
+
     print(f"min_score = {min_score}")
     print(f"max_score = {max_score}")
     print(f"min_track_length = {min_track_length}")
@@ -876,32 +886,40 @@ def filter_metrics(
     filtered_metrics = {}
 
     for event_idx, metric in metrics.items():
-        if (
-            len(metric) <= max_tracks + params.non_track_keys
-            and metric["Total_light"] <= max_light
-            and metric["Total_light"] >= min_light
-        ):
-            candidate_metric = {
-                track_idx: values
-                for track_idx, values in metric.items()
-                if isinstance(track_idx, str)
-                or (
-                    track_idx > 0
-                    and values["RANSAC_score"] >= min_score
-                    and values["RANSAC_score"] <= max_score
-                    and values["Fit_norm"] >= min_track_length
-                    and values["Fit_norm"] <= max_track_length
-                    and values["Fit_line"].point[2] < max_z
-                )
-            }
+        # Calculate non_track_keys programmatically
+        non_track_keys = sum(1 for key in metric if isinstance(key, str))
+
+        # Filter based on the number of tracks and light metrics, if applicable
+        if len(metric) <= max_tracks + non_track_keys:
             if (
-                len(candidate_metric) <= max_tracks + params.non_track_keys
-                and len(candidate_metric) > params.non_track_keys
-            ):
-                filtered_metrics[event_idx] = candidate_metric
+                "Total_light" in metric
+                and min_light <= metric["Total_light"] <= max_light
+            ) or "Total_light" not in metric:
+                candidate_metric = {
+                    track_idx: values
+                    for track_idx, values in metric.items()
+                    if isinstance(track_idx, str)
+                    or (
+                        track_idx > 0
+                        and values["RANSAC_score"] >= min_score
+                        and values["RANSAC_score"] <= max_score
+                        and values["Fit_norm"] >= min_track_length
+                        and values["Fit_norm"] <= max_track_length
+                        and values["Fit_line"].point[2] < max_z
+                    )
+                }
+
+                # Check if the filtered candidate metrics meet the criteria
+                if (
+                    non_track_keys
+                    < len(candidate_metric)
+                    <= max_tracks + non_track_keys
+                ):
+                    filtered_metrics[event_idx] = candidate_metric
 
     print(f"{len(filtered_metrics)} metrics remaining")
 
+    # Save the filtering parameters to a JSON file
     with open(
         f"{params.file_label}/filter_parameters_{len(filtered_metrics)}.json", "w+"
     ) as f:
@@ -950,7 +968,13 @@ def combine_metrics():
 # Uproot
 def load_charge(file_name, events=None):
     with uproot.open(file_name) as f:
-        charge_df = f["events"].arrays(library="pd").set_index("eventID")
+        if "events" in f:
+            charge_df = f["events"].arrays(library="pd")
+        elif "HitTree" in f:
+            charge_df = f["HitTree"].arrays(library="pd")
+            charge_df.rename({"eid": "event", "iev": "eventID"}, axis=1, inplace=True)
+
+        charge_df.set_index("eventID", inplace=True)
         if events is not None:
             charge_df = charge_df.loc[events]
 
@@ -1020,48 +1044,67 @@ def load_light(file_name, deco=True, events=None, mask=True, keep_rwf=False):
 
 
 # ## Plotting
-def prepare_event(charge_df, light_df, match_dict, event):
+def prepare_event(event, charge_df, light_df=None, match_dict=None):
     if event not in charge_df.index:
         print(f"Event {event} not found in {params.file_label}")
         return None, None
 
-    light_indices = light_df["event"].copy()
+    light_event = None
+    if light_df is not None:
+        light_indices = light_df["event"].copy()
 
-    if event in match_dict:
-        light_event = match_dict.get(event)[0]
-        light_matches = light_indices[light_indices == light_event].index
-    else:
-        print(f"No light event found for event {event} in {params.file_label}")
-        light_matches = slice(None)
+        if event in match_dict:
+            light_event = match_dict.get(event)[0]
+            light_matches = light_indices[light_indices == light_event].index
+            light_event = light_df.loc[light_matches].dropna(
+                subset=params.light_variable
+            )
+        else:
+            print(f"No light event found for event {event} in {params.file_label}")
 
     charge_event = pd.DataFrame(
-        charge_df.loc[
+        charge_df.rename(
+            {
+                "hit_x": "event_hits_x",
+                "hit_y": "event_hits_y",
+                "hit_z": "event_hits_z",
+                "hit_q": "event_hits_q",
+            },
+            axis=1,
+        )
+        .loc[
             event,
             [
-                "event_hits_channelid",
                 "event_hits_x",
                 "event_hits_y",
                 "event_hits_z",
-                "event_hits_ts",
                 "event_hits_q",
             ],
-        ].to_list(),
-        index=["ch", "x", "y", "z", "t", "q"],
+        ]
+        .to_list(),
+        index=["x", "y", "z", "q"],
     ).T
+    if "event_hits_channelid" in charge_df:
+        channel_ids = charge_df.loc[
+            event,
+            "event_hits_channelid",
+        ]
+        non_zero_mask = (charge_event["ch"] != 0) * (
+            charge_event["y"] != 0
+        )  # Remove (0,0) entries
 
-    non_zero_mask = (charge_event["ch"] != 0) * (
-        charge_event["y"] != 0
-    )  # Remove (0,0) entries
-    noisy_channels_mask = ~charge_event["ch"].isin(
-        [ch[0] for ch in params.channel_disable_list]
-    )  # Disable channel 7
-    mask = non_zero_mask * noisy_channels_mask  # Full hits mask
+        noisy_channels_mask = ~charge_event["ch"].isin(
+            [ch[0] for ch in params.channel_disable_list]
+        )  # Disable channel 7
 
-    # Apply boolean indexing to x, y, and z arrays
-    charge_event = charge_event[mask]
+        mask = non_zero_mask * noisy_channels_mask  # Full hits mask
+
+        # Apply boolean indexing to x, y, and z arrays
+        charge_event = charge_event[mask]
+    else:
+        mask = np.full(len(charge_event["q"]), True)
+
     charge_event["q"] = charge_event["q"] * params.charge_gain  # Convert mV to ke
-
-    light_event = light_df.loc[light_matches].dropna(subset=params.light_variable)
 
     return charge_event, light_event, mask
 
@@ -1228,12 +1271,14 @@ def create_ed_axes(event_idx, charge, light):
 def event_display(
     event_idx,
     charge_df,
-    light_df,
+    light_df=None,
     plot_cyl=False,
     metrics=None,
 ):
     if len(charge_df) < 2:
         return None
+    if light_df is None:
+        light_df = pd.DataFrame(columns=["x", "y", params.light_variable])
 
     # Plot the hits
     fig, axes = create_ed_axes(
@@ -1257,7 +1302,7 @@ def event_display(
         charge_df["z"],
         c=charge_df["q"],
         marker="s",
-        s=30,
+        s=round((30**4) / (params.detector_x * params.detector_y)),
         vmin=q_sum.min(),
         vmax=q_sum.max(),
     )
@@ -1266,7 +1311,7 @@ def event_display(
         unique_points[:, 1],
         c=q_sum,
         marker="s",
-        s=40,
+        s=round((30**4) / (params.detector_x * params.detector_y)),
         vmin=q_sum.min(),
         vmax=q_sum.max(),
     )
@@ -1328,9 +1373,19 @@ def event_display(
     vertices_x = np.array([1, 1, -1, -1, 1]) * side_size / 2
     vertices_y = np.array([1, -1, -1, 1, 1]) * side_size / 2
     light_xy = light_df[["x", "y"]].apply(tuple, axis=1)
-    for missing_index in range(20):
-        col = -48 + (missing_index % 4) * 32
-        row = 64 - (missing_index // 4) * 32
+    for missing_index in range(
+        params.detector_x * params.detector_y // (params.quadrant_size**2)
+    ):
+        col = (
+            -params.detector_x / 2
+            + params.quadrant_size / 2
+            + (missing_index % (params.detector_x // params.quadrant_size)) * 32
+        )
+        row = (
+            params.detector_y / 2
+            - params.quadrant_size / 2
+            - (missing_index // (params.detector_x // params.quadrant_size)) * 32
+        )
         square = create_square((col, row), side_size)
         if not light_xy.isin([(col, row)]).any():
             ax2d.fill(col + vertices_x, vertices_y + row, c=grid_color, zorder=5)
@@ -1540,8 +1595,18 @@ def plot_track_stats(
         absolute_sigma=True,
         p0=p0,
         bounds=(
-            (bin_centers_all11[n_all11.argmax() - 3], 0, 0, 0),
-            (bin_centers_all11[n_all11.argmax() + 3], np.inf, np.inf, np.inf),
+            (
+                bin_centers_all11[max(n_all11.argmax() - 3, 0)],
+                0,
+                0,
+                0,
+            ),
+            (
+                bin_centers_all11[min(n_all11.argmax() + 3, len(bin_centers_all11)-1)],
+                np.inf,
+                np.inf,
+                np.inf,
+            ),
         ),
     )
 
@@ -1945,7 +2010,9 @@ def plot_light_geo_stats(
     sipm_light = []
 
     for metric in metrics.values():
-        if single_track and len(metric.keys()) > 1 + params.non_track_keys:
+        if single_track and len(metric.keys()) > (
+            1 + sum(1 for key in metric if isinstance(key, str))
+        ):
             continue
         for track_idx, values in metric.items():
             if not isinstance(track_idx, str) and track_idx > 0:
@@ -2121,7 +2188,7 @@ def plot_light_fit_stats(metrics):
         if "Fit_line" not in metric["SiPM"]:
             continue
         light_track = metric["SiPM"]["Fit_line"]
-        if len(metric.keys()) == params.non_track_keys + 1:
+        if len(metric.keys()) == (sum(1 for key in metric if isinstance(key, str)) + 1):
             for idx, track in metric.items():
                 if isinstance(idx, str):
                     continue

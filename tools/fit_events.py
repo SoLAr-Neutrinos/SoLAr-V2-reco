@@ -3,9 +3,9 @@
 
 def fit_events(charge_df, light_df, match_dict):
     metrics = {}
-    for event in charge_df.index:
+    for event in tqdm(charge_df.index):
         charge_event, light_event, mask = prepare_event(
-            charge_df, light_df, match_dict, event
+            event, charge_df, light_df, match_dict
         )
 
         if charge_event is None and light_event is None:
@@ -63,13 +63,14 @@ if __name__ == "__main__":
         prepare_event,
         recal_params,
         voxelize_hits,
+        tqdm,
     )
 
     parser = ArgumentParser()
     parser.add_argument("file", help="Folder name for folder containing data files")
-    parser.add_argument(
-        "--no-display", "-n", help="Don't display images", action="store_false"
-    )
+    # parser.add_argument(
+    #     "--no-display", "-n", help="Don't display images", action="store_false"
+    # )
 
     args = parser.parse_args()
 

@@ -12,10 +12,6 @@ def main(metrics, **kwargs):
     methods = [
         plot_track_stats,
         plot_dQ,
-        plot_light_geo_stats,
-        light_vs_charge,
-        plot_voxel_data,
-        plot_light_fit_stats,
     ]
     method_kwargs = {}
     for method in methods:
@@ -54,50 +50,11 @@ def main(metrics, **kwargs):
                     else:
                         plt.close("all")
 
-    # 3 - Light geometrical properties to charge tracks statistics
-    print("\nPlotting light geometrical properties to charge tracks statistics\n")
-    plot_light_geo_stats(metrics, **method_kwargs["plot_light_geo_stats"])
-
-    if params.show_figures:
-        plt.show()
-    else:
-        plt.close("all")
-
-    # 4 - Event level light vs charge statistics
-    print("\nPlotting event level light vs charge statistics\n")
-    light_vs_charge(metrics, **method_kwargs["light_vs_charge"])
-
-    if params.show_figures:
-        plt.show()
-    else:
-        plt.close("all")
-
-    # 5 - Voxelized charge and light data
-    print("\nPlotting voxelized charge and light data\n")
-    plot_voxel_data(metrics, **method_kwargs["plot_voxel_data"])
-
-    if params.show_figures:
-        plt.show()
-    else:
-        plt.close("all")
-
-    # 6 - Light fit statistics
-    print("\nPlotting light fit statistics\n")
-    plot_light_fit_stats(metrics, **method_kwargs["plot_light_fit_stats"])
-
-    if params.show_figures:
-        plt.show()
-    else:
-        plt.close("all")
-
-    warnings.filterwarnings("default", category=Warning)
-
 
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
-        "--folder",
-        "-f",
+        "folder",
         help="Folder name for specific metrics file",
         default="combined",
     )
@@ -106,7 +63,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("--save", "-s", help="Save images", action="store_true")
     parser.add_argument(
-        "--display", "-d", help="Display images (not recomended)", action="store_true"
+        "--display", help="Display images (not recomended)", action="store_true"
+    )
+    parser.add_argument(
+        "--dead-areas", "-d", help="Simulate dead areas", action="store_true"
     )
     parser.add_argument(
         "-p",
@@ -122,6 +82,7 @@ if __name__ == "__main__":
     filter_tag = args.filter
     params.show_figures = args.display
     params.save_figures = args.save
+    params.simulate_dead_area = params.simulate_dead_area
 
     kwargs = {}
     if args.parameters is not None:
