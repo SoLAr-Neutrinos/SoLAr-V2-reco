@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 from argparse import ArgumentParser
-from tools import params, pickle, load_charge, recal_params, fit_events, os
-import montecarlo
+from tools import params, pickle, load_charge, recal_params, fit_events, os, montecarlo
 
 if __name__ == "__main__":
     parser = ArgumentParser()
