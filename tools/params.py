@@ -6,6 +6,7 @@ sipm_map_file = "sipm_sn_ch_to_xy.json"
 
 # Load options
 reload_files = True
+simulate_dead_area = False
 rematch_events = False
 
 # Save options
@@ -77,6 +78,3 @@ max_tracks = 1
 max_light = np.inf
 min_light = 0
 max_z = np.inf
-
-# Other
-non_track_keys = 5
