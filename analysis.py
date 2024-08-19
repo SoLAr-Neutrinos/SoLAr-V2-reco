@@ -113,9 +113,23 @@ if __name__ == "__main__":
         # Now process the parameters in a single for loop
         for key, value in param.items():
             if key in params.__dict__:
-                params.__dict__[key] = literal_eval(value)
+                try:
+                    params.__dict__[key] = (
+                        literal_eval(value)
+                        if not isinstance(params.__dict__[key, str])
+                        else value
+                    )
+                except ValueError:
+                    params.__dict__[key] = value
             else:
-                kwargs[key] = literal_eval(value)
+                try:
+                    kwargs[key] = (
+                        literal_eval(value)
+                        if not isinstance(params.__dict__[key], str)
+                        else value
+                    )
+                except ValueError:
+                    kwargs[key] = value
 
     if filter_tag is not None:
         filter_file = f"{params.file_label}/filter_parameters_{filter_tag}.json"

@@ -56,9 +56,19 @@ if __name__ == "__main__":
         # Now process the parameters in a single for loop
         for key, value in param.items():
             if key in params.__dict__:
-                params.__dict__[key] = literal_eval(value)
+                try:
+                    params.__dict__[key] = (
+                        literal_eval(value)
+                        if not isinstance(params.__dict__[key], str)
+                        else value
+                    )
+                except ValueError:
+                    params.__dict__[key] = value
             # else:
-            #     kwargs[key] = value
+            #     try:
+            #         kwargs[key] = literal_eval(value)
+            #     except ValueError:
+            #         kwargs[key] = value
 
     charge_df = load_charge(input_charge)
     charge_df = montecarlo.rotate_coordinates(charge_df)
