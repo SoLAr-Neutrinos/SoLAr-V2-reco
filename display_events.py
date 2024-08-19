@@ -54,18 +54,21 @@ if __name__ == "__main__":
     params.file_label = args.file
     params.save_figures = args.save
     params.simulate_dead_area = args.dead_areas
+
     if not params.simulate_dead_area:
         params.detector_x = params.quadrant_size * 8
         params.detector_y = params.quadrant_size * 8
         print(
-            f"Not simulating dead areas. Detector x and y dimensions set to {params.quadrant_size * 8}"
+            f"Not simulating dead areas. Detector x and y dimensions reset to {params.quadrant_size * 8}"
         )
+    elif params.simulate_dead_area and "DA" not in params.file_label:
+        params.file_label += "_DA"
+
     recal_params()
 
     # Load charge file
-    charge_df = pd.read_csv(
-        f"{params.file_label}/charge_df_{params.file_label}.bz2", index_col="eventID"
-    )
+    charge_input = f"{params.file_label}/charge_df_{params.file_label}.bz2"
+    charge_df = pd.read_csv(charge_input, index_col="eventID")
     charge_df[charge_df.columns] = charge_df[charge_df.columns].map(
         lambda x: (
             literal_eval(x)
@@ -88,8 +91,9 @@ if __name__ == "__main__":
         match_dict = {int(key): value for key, value in match_dict.items()}
 
     # Load metrics file
-    if os.path.isfile(f"{params.file_label}/metrics_{params.file_label}.pkl"):
-        with open(f"{params.file_label}/metrics_{params.file_label}.pkl", "rb") as f:
+    input_metrics = f"{params.file_label}/metrics_{params.file_label}.pkl"
+    if os.path.isfile(input_metrics):
+        with open(input_metrics, "rb") as f:
             metrics = pickle.load(f)
     else:
         metrics = None

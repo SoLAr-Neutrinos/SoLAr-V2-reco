@@ -1,7 +1,17 @@
 #!/usr/bin/env python
 
 from argparse import ArgumentParser
-from tools import params, pickle, load_charge, recal_params, fit_events, os, montecarlo
+from tools import (
+    params,
+    pickle,
+    load_charge,
+    recal_params,
+    fit_events,
+    os,
+    montecarlo,
+    json,
+    literal_eval,
+)
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -9,12 +19,46 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dead-areas", "-d", help="Simulate dead areas", action="store_true"
     )
+    parser.add_argument(
+        "-p",
+        "--parameters",
+        action="append",
+        help="Key=value pairs for aditional parameters or json file containing parameters",
+        required=False,
+    )
 
     args = parser.parse_args()
 
     input_charge = args.charge
-    params.file_label = input_charge.split("_")[-1].split(".")[0]
     params.simulate_dead_area = args.dead_areas
+    params.file_label = input_charge.split("_")[-1].split(".")[0]
+    if params.simulate_dead_area:
+        params.file_label += "_DA"
+
+    kwargs = {}
+    if args.parameters is not None:
+        # Check if parameters are provided in a JSON file
+        if (
+            len(args.parameters) == 1
+            and args.parameters[0].endswith(".json")
+            and os.path.isfile(args.parameters[0])
+        ):
+            with open(args.parameters[0], "r") as f:
+                param = json.load(f)
+        else:
+            # Convert command line parameters to dictionary
+            param = {
+                key: value
+                for param in args.parameters
+                for key, value in [param.split("=") if "=" in param else (param, None)]
+            }
+
+        # Now process the parameters in a single for loop
+        for key, value in param.items():
+            if key in params.__dict__:
+                params.__dict__[key] = literal_eval(value)
+            # else:
+            #     kwargs[key] = value
 
     charge_df = load_charge(input_charge)
     charge_df = montecarlo.rotate_coordinates(charge_df)
@@ -23,7 +67,7 @@ if __name__ == "__main__":
         params.detector_x = params.quadrant_size * 8
         params.detector_y = params.quadrant_size * 8
         print(
-            f"Not simulating dead areas. Detector x and y dimensions set to {params.quadrant_size * 8}"
+            f"Not simulating dead areas. Detector x and y dimensions reset to {params.quadrant_size * 8}"
         )
     else:
         # Cut SiPMs from the anode
@@ -39,12 +83,14 @@ if __name__ == "__main__":
 
     charge_df = montecarlo.cut_volume(charge_df)
 
-    # Save files
-    os.makedirs(params.file_label, exist_ok=True)
-    output_charge = f"{params.file_label}/charge_df_{params.file_label}.bz2"
-    charge_df.to_csv(output_charge)
-
     metrics = montecarlo.fit_events(charge_df)
 
-    with open(f"{params.file_label}/metrics_{params.file_label}.pkl", "wb") as f:
+    output_charge = f"{params.file_label}/charge_df_{params.file_label}.bz2"
+    metrics_file = f"{params.file_label}/metrics_{params.file_label}.pkl"
+
+    # Save files
+    os.makedirs(params.file_label, exist_ok=True)
+    charge_df.to_csv(output_charge)
+
+    with open(metrics_file, "wb") as f:
         pickle.dump(metrics, f)

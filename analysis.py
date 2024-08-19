@@ -82,7 +82,15 @@ if __name__ == "__main__":
     filter_tag = args.filter
     params.show_figures = args.display
     params.save_figures = args.save
-    params.simulate_dead_area = params.simulate_dead_area
+    params.simulate_dead_area = args.dead_areas
+    if params.simulate_dead_area and "DA" not in params.file_label:
+        params.file_label += "_DA"
+    elif not params.simulate_dead_area:
+        params.detector_x = params.quadrant_size * 8
+        params.detector_y = params.quadrant_size * 8
+        print(
+            f"Not simulating dead areas. Detector x and y dimensions reset to {params.quadrant_size * 8}"
+        )
 
     kwargs = {}
     if args.parameters is not None:
@@ -105,9 +113,9 @@ if __name__ == "__main__":
         # Now process the parameters in a single for loop
         for key, value in param.items():
             if key in params.__dict__:
-                params.__dict__[key] = value
+                params.__dict__[key] = literal_eval(value)
             else:
-                kwargs[key] = value
+                kwargs[key] = literal_eval(value)
 
     if filter_tag is not None:
         filter_file = f"{params.file_label}/filter_parameters_{filter_tag}.json"
