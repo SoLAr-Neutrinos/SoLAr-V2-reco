@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from argparse import ArgumentParser
-from tools import params, pickle, process_root, fit_events
+from tools import params, pickle, process_root, fit_events, literal_eval, json, os
 
 if __name__ == "__main__":
     parser = ArgumentParser()

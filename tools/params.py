@@ -1,8 +1,10 @@
 # This file contains the default parameters used by the methods.py file and the notebooks.
 # Change parameters on your own script by calling params.PARAMETER
+import os
+
 import numpy as np
 
-sipm_map_file = "sipm_sn_ch_to_xy.json"
+sipm_map_file = f"{os.path.dirname(os.path.abspath(__file__))}/sipm_sn_ch_to_xy.json"
 
 # Load options
 reload_files = True
@@ -65,9 +67,6 @@ ransac_min_samples = 2  # 2 ideal for charge, 3 ideal for light
 # Force parameters for cylinder
 force_dh = None
 force_dr = None
-
-# Light variable to consider
-light_variable = "integral"
 
 # Filters for post processing if not using filter parameters file
 min_score = -1.0
