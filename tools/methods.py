@@ -125,9 +125,8 @@ def match_events(charge_df, light_df, window=10):
 
 
 # ### Charge
-
-
 def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
+    track_Qx = []
     track_dQdx = []
     track_length = []
     track_score = []
@@ -159,6 +158,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
                 continue
 
             dQdx = dQ[non_zero_mask[0] : non_zero_mask[-1] + 1] / dx
+            Qx = sum(dQ[non_zero_mask]) / (sum(non_zero_mask) * dx)
             x_range = np.arange(0, len(dQdx) * dx, dx)[: len(dQdx)]
             position = [
                 values["Fit_line"].to_point(t=-(len(dQ) / 2) * dx + t * dx + dx / 2)
@@ -166,6 +166,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
             ]
             position = position[non_zero_mask[0] : non_zero_mask[-1] + 1]
 
+            track_Qx.append(Qx)
             track_dQdx.append(pd.Series(dQdx, index=x_range, name="dQdx"))
             track_points.append(pd.Series(position, index=x_range, name="position"))
             track_length.append(values["Fit_norm"])
@@ -176,6 +177,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
     print(f"Tracks with dead area outside {empty_ratio_lims} interval: {empty_count}")
     print(f"Tracks with less than {min_entries} entries: {short_count}")
 
+    track_Qx = pd.Series(track_Qx)
     track_dQdx = pd.Series(track_dQdx)
     track_points = pd.Series(track_points)
     track_length = pd.Series(track_length)
@@ -192,6 +194,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
     print(f"Remaining tracks: {sum(mask)}")
 
+    track_Qx = track_Qx[mask]
     track_dQdx = track_dQdx[mask]
     track_points = track_points[mask]
     track_length = track_length[mask]
@@ -200,8 +203,9 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
     events = events[mask]
 
     df = pd.DataFrame(
-        [track_dQdx, track_points, track_length, track_score, track_z, events],
+        [trackQx, track_dQdx, track_points, track_length, track_score, track_z, events],
         index=[
+            "track_Qx",
             "track_dQdx",
             "track_points",
             "track_length",
