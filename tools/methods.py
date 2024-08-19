@@ -71,15 +71,13 @@ def get_sipm_mask(sn, ch):
 
 
 # Cylinder parameters for dQ/dx
-def get_dh(unit_vector):
+def get_dh(unit_vector, length):
     if params.force_dh is not None:
         return params.force_dh
 
-    dl_vector = np.array([params.xy_epsilon, params.xy_epsilon, params.z_epsilon])
-    min_dh = params.pixel_pitch * 2
-    max_dh = params.quadrant_size
+    dl_vector = np.array([params.xy_epsilon, params.xy_epsilon, params.z_epsilon]) * 2
     dl_projection = np.dot(abs(unit_vector), dl_vector)
-    dh = min(max(dl_projection, min_dh), max_dh)
+    dh = min(dl_projection, length)
 
     return dh
 
@@ -594,7 +592,7 @@ def fit_hit_clusters(
                     )
 
                 # Calculate dQ/dx
-                dh = get_dh(line_fit.direction)
+                dh = get_dh(line_fit.direction, norm)
                 dr = get_dr(np.sqrt(mse))
 
                 dq_i = dqdx(
@@ -1602,7 +1600,9 @@ def plot_track_stats(
                 0,
             ),
             (
-                bin_centers_all11[min(n_all11.argmax() + 3, len(bin_centers_all11)-1)],
+                bin_centers_all11[
+                    min(n_all11.argmax() + 3, len(bin_centers_all11) - 1)
+                ],
                 np.inf,
                 np.inf,
                 np.inf,
