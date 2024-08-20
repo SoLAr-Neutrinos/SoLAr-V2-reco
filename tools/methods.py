@@ -192,7 +192,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
         * track_z.notna()
     )
 
-    print(f"Remaining tracks: {sum(mask)}")
+    print(f"\nRemaining tracks: {sum(mask)}\n")
 
     track_Qx = track_Qx[mask]
     track_dQdx = track_dQdx[mask]
@@ -203,7 +203,15 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
     events = events[mask]
 
     df = pd.DataFrame(
-        [trackQx, track_dQdx, track_points, track_length, track_score, track_z, events],
+        [
+            track_Qx,
+            track_dQdx,
+            track_points,
+            track_length,
+            track_score,
+            track_z,
+            events,
+        ],
         index=[
             "track_Qx",
             "track_dQdx",
@@ -756,11 +764,13 @@ def recal_params():
 
     params.first_chip = (2, 1) if params.detector_y == 160 else (1, 1)
 
-    print(f"dh_unit set to {params.dh_unit}")
-    print(f"light_unit set to {params.light_unit}")
-    print(f"detector_x set to {params.detector_x}")
-    print(f"detector_y set to {params.detector_y}")
-    print(f"first_chip set to {params.first_chip}")
+    print(
+        f"\n dh_unit set to {params.dh_unit}\n",
+        f"light_unit set to {params.light_unit}\n",
+        f"detector_x set to {params.detector_x}\n",
+        f"detector_y set to {params.detector_y}\n",
+        f"first_chip set to {params.first_chip}\n",
+    )
 
 
 def max_std(array, ax=None, array_max=None, min_count_ratio=0.9, max_std_ratio=0.5):
@@ -876,14 +886,16 @@ def filter_metrics(metrics, **kwargs):
     max_light = kwargs.get("max_light", params.max_light)
     max_z = kwargs.get("max_z", params.max_z)
 
-    print(f"min_score = {min_score}")
-    print(f"max_score = {max_score}")
-    print(f"min_track_length = {min_track_length}")
-    print(f"max_track_length = {max_track_length}")
-    print(f"max_tracks = {max_tracks}")
-    print(f"min_light = {min_light}")
-    print(f"max_light = {max_light}")
-    print(f"max_z = {max_z}")
+    print(
+        f"\n min_score = {min_score}\n",
+        f"max_score = {max_score}\n",
+        f"min_track_length = {min_track_length}\n",
+        f"max_track_length = {max_track_length}\n",
+        f"max_tracks = {max_tracks}\n",
+        f"min_light = {min_light}\n",
+        f"max_light = {max_light}\n",
+        f"max_z = {max_z}\n",
+    )
 
     filtered_metrics = {}
 
@@ -1550,7 +1562,7 @@ def plot_track_stats(
     cut_dQdx_series = pd.concat(track_dQdx[score_mask].to_list())
     cut_dQdx_series = cut_dQdx_series[cut_dQdx_series > 0].dropna().sort_index()
 
-    print("dQ/dx stats:")
+    # print("\ndQ/dx stats:")
     # TODO if ipython
     # display(dQdx_series.describe())
 
