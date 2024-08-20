@@ -205,7 +205,15 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
     events = events[mask]
 
     df = pd.DataFrame(
-        [trackQx, track_dQdx, track_points, track_length, track_score, track_z, events],
+        [
+            track_Qx,
+            track_dQdx,
+            track_points,
+            track_length,
+            track_score,
+            track_z,
+            events,
+        ],
         index=[
             "track_Qx",
             "track_dQdx",
