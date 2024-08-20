@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 
 from argparse import ArgumentParser
+
 from tools import (
-    params,
-    pickle,
-    load_charge,
-    recal_params,
-    fit_events,
-    os,
-    montecarlo,
     json,
     literal_eval,
+    load_charge,
+    montecarlo,
+    os,
+    params,
+    pickle,
+    recal_params,
 )
 
 if __name__ == "__main__":
@@ -32,8 +32,6 @@ if __name__ == "__main__":
     input_charge = args.charge
     params.simulate_dead_area = args.dead_areas
     params.file_label = input_charge.split("_")[-1].split(".")[0]
-    if params.simulate_dead_area:
-        params.file_label += "_DA"
 
     kwargs = {}
     if args.parameters is not None:
@@ -80,6 +78,9 @@ if __name__ == "__main__":
             f"Not simulating dead areas. Detector x and y dimensions reset to {params.quadrant_size * 8}"
         )
     else:
+        if not params.file_label.endswith("DA"):
+            params.file_label += "_DA"
+
         # Cut SiPMs from the anode
         charge_df = montecarlo.cut_sipms(charge_df)
         # Cut dead chips from anode

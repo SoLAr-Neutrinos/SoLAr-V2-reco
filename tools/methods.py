@@ -1061,7 +1061,7 @@ def load_light(file_name, deco=True, events=None, mask=True, keep_rwf=False):
 def prepare_event(event, charge_df, light_df=None, match_dict=None):
     if event not in charge_df.index:
         print(f"Event {event} not found in {params.file_label}")
-        return None, None
+        return None, None, None
 
     light_event = None
     if light_df is not None:

@@ -39,7 +39,7 @@ def display_events(events, charge_df, light_df=None, match_dict=None, metrics=No
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("file", help="Folder name for specific data file")
-    parser.add_argument("events", help="Event number", type=int, nargs="+")
+    parser.add_argument("-e", "--events", help="Event number", type=int, nargs="+")
     parser.add_argument("--save", "-s", help="Save images", action="store_true")
     parser.add_argument(
         "--no-display", "-n", help="Don't display images", action="store_false"
@@ -54,6 +54,8 @@ if __name__ == "__main__":
     params.file_label = args.file
     params.save_figures = args.save
     params.simulate_dead_area = args.dead_areas
+    if args.events:
+        params.individual_plots = args.events
 
     if not params.simulate_dead_area:
         params.detector_x = params.quadrant_size * 8
@@ -98,4 +100,4 @@ if __name__ == "__main__":
     else:
         metrics = None
 
-    display_events(args.events, charge_df, light_df, match_dict, metrics)
+    display_events(params.individual_plots, charge_df, light_df, match_dict, metrics)
