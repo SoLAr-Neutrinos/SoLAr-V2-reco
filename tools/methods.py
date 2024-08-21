@@ -518,8 +518,6 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
     dh_i = np.zeros(len(steps), dtype=float)
 
     # Initialize variables to store the minimum and maximum points
-    min_point = None
-    max_point = None
     min_distance = np.inf
     max_distance = -np.inf
     for step_idx, step in enumerate(steps):
@@ -543,17 +541,12 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
                 # Update the minimum and maximum points
                 if point_distance < min_distance:
                     min_distance = point_distance
-                    min_point = point
                 if point_distance > max_distance:
                     max_distance = point_distance
-                    max_point = point
 
         # Calculate dh_i based on the distance between min_point and max_point
-        if min_point is not None and max_point is not None:
-            step_length = Point(max_point).distance_point(min_point)
-            # Small correction
-            direction = Vector.from_points(max_point, min_point)
-            step_length = line_fit.direction.scalar_projection(direction) * step_length
+        if min_distance < max_distance:
+            step_length = max_distance - min_distance
         else:
             step_length = 0
 
