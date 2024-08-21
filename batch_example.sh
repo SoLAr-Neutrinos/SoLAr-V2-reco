@@ -1,4 +1,4 @@
-# Loop through all files matching the pattern in the specified directory
+# Full analysis
 for light_file in ../../data/SoLAr_v2/Light/root/46v_12db_th950_deco/*
 do
   # Print the current file name
@@ -14,10 +14,25 @@ do
   echo Charge file: "$charge_file"
   
   # Run the reconstruction script again without simulating dead areas
-  ./reconstruction.py "$light_file" "$charge_file"
+  ./reconstruction.py -c "$charge_file" -l "$light_file" 
 
   ./display_events.py "$label" -s -n
   
   # Run the analysis script again on the output folder
   ./analysis.py "$label" -s
 done
+
+# # Reconstruction after root files have been processed
+# for folder in ./202307*
+# do
+#   # Print the current file name
+#   echo Folder: "$folder"
+  
+#   # Run the reconstruction script again without simulating dead areas
+#   ./reconstruction.py -f "$folder"
+
+#   ./display_events.py "$label" -s -n
+  
+#   # Run the analysis script again on the output folder
+#   ./analysis.py "$label" -s
+# done

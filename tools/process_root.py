@@ -6,12 +6,23 @@ def process_root(input_charge, input_light):
 
     output_charge = f"{params.file_label}/charge_df_{params.file_label}.bz2"
 
-    inpur_light = f"{params.file_label}/light_df_{params.file_label}.bz2"
+    output_light = f"{params.file_label}/light_df_{params.file_label}.bz2"
 
-    match_file = f"{params.file_label}/match_dict_{params.file_label}.json"
+    output_match = f"{params.file_label}/match_dict_{params.file_label}.json"
 
+    print("\nLoading charge file...")
     charge_df = load_charge(input_charge)
+
+    # Remove events with no charge hits or triggers
+    charge_mask = (
+        charge_df["event_hits_q"].apply(tuple).explode().groupby("eventID").min() > 0
+    ) * (charge_df["trigID"].apply(len) > 0)
+    charge_df = charge_df[charge_mask]
+
+    print("\nLoading light file...")
     light_df = load_light(input_light)
+
+    print("\nMatching events...")
     match_dict = match_events(charge_df, light_df)
 
     # Remove light events without charge event match
@@ -30,11 +41,11 @@ def process_root(input_charge, input_light):
     # Save files
     os.makedirs(params.file_label, exist_ok=True)
     charge_df.to_csv(output_charge)
-    light_df.to_csv(inpur_light)
-    with open(match_file, "w") as f:
+    light_df.to_csv(output_light)
+    with open(output_match, "w") as f:
         json.dump(match_dict, f)
 
-    print("Processing completed.")
+    print("Root processing completed.")
 
     return charge_df, light_df, match_dict
 

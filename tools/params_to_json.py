@@ -14,8 +14,9 @@ def params_to_json(json_file):
 
 
 if __name__ == "__main__":
-    import params
     import argparse
+
+    import params
 
     parser = argparse.ArgumentParser()
     parser.add_argument("json_file", help="Path to JSON file (no extension needed)")

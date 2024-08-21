@@ -96,8 +96,7 @@ def main(metrics, **kwargs):
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
-        "--folder",
-        "-f",
+        "folder",
         help="Folder name for specific metrics file",
         default="combined",
     )
@@ -117,6 +116,8 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    print("\nAnalysis started...")
 
     params.file_label = args.folder
     filter_tag = args.filter
