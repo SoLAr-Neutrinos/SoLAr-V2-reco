@@ -1060,7 +1060,7 @@ def load_light(file_name, deco=True, events=None, mask=True, keep_rwf=False):
 # ## Plotting
 def prepare_event(event, charge_df, light_df=None, match_dict=None):
     if event not in charge_df.index:
-        print(f"Event {event} not found in {params.file_label}")
+        tqdm.write(f"Event {event} not found in {params.file_label}")
         return None, None, None
 
     light_event = None
@@ -1554,8 +1554,7 @@ def plot_track_stats(
     score_bool = (1 - score_mask).sum() > 0
 
     print(f"Tracks with score < {min_score}: {len(track_dQdx)-sum(score_mask)}")
-
-    print(f"Remaining tracks: {sum(score_mask)}")
+    # print(f"\nRemaining tracks: {sum(score_mask)}\n")
 
     dQdx_series = pd.concat(track_dQdx.to_list())
     dQdx_series = dQdx_series[dQdx_series > 0].dropna().sort_index()

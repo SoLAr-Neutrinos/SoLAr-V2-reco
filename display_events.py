@@ -13,11 +13,12 @@ from tools import (
     recal_params,
     params,
     prepare_event,
+    tqdm,
 )
 
 
 def display_events(events, charge_df, light_df=None, match_dict=None, metrics=None):
-    for event in events:
+    for event in tqdm(events):
         charge_event, light_event, _ = prepare_event(
             event, charge_df, light_df, match_dict
         )
@@ -34,6 +35,8 @@ def display_events(events, charge_df, light_df=None, match_dict=None, metrics=No
 
         if params.show_figures:
             plt.show()
+        else:
+            plt.close("all")
 
 
 if __name__ == "__main__":
@@ -63,7 +66,7 @@ if __name__ == "__main__":
         print(
             f"Not simulating dead areas. Detector x and y dimensions reset to {params.quadrant_size * 8}"
         )
-    elif params.simulate_dead_area and "DA" not in params.file_label:
+    elif not params.file_label.endswith("DA"):
         params.file_label += "_DA"
 
     recal_params()

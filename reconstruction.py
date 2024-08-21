@@ -29,6 +29,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    print("\nReconstruction started...")
+
     input_charge = args.charge
     params.simulate_dead_area = args.dead_areas
     params.file_label = input_charge.split("_")[-1].split(".")[0]

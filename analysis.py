@@ -34,8 +34,8 @@ def main(metrics, **kwargs):
         plt.close("all")
 
     # 2 - Individual dQ/dx plots
-    print("\nPlotting individual dQ/dx plots\n")
-    for event_idx in tqdm(params.individual_plots, leave=False):
+    print("\nPlotting individual dQ/dx plots")
+    for event_idx in tqdm(params.individual_plots):
         if event_idx in metrics:
             for track_idx, values in metrics[event_idx].items():
                 if not isinstance(track_idx, str) and track_idx > 0:
@@ -78,12 +78,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    print("\nAnalysis started...")
+
     params.file_label = args.folder
     filter_tag = args.filter
     params.show_figures = args.display
     params.save_figures = args.save
     params.simulate_dead_area = args.dead_areas
-    if params.simulate_dead_area and "DA" not in params.file_label:
+    if params.simulate_dead_area and not params.file_label.endswith("DA"):
         params.file_label += "_DA"
     elif not params.simulate_dead_area:
         params.detector_x = params.quadrant_size * 8
