@@ -78,7 +78,7 @@ def get_dh(unit_vector, length):
     dl_vector = np.array([params.xy_epsilon, params.xy_epsilon, params.z_epsilon]) * 2
     dl_projection = np.dot(abs(unit_vector), dl_vector)
     ratio = round(length / dl_projection)
-    dh = length/max(round(ratio),1)
+    dh = length / max(round(ratio), 1)
 
     return dh
 
@@ -159,16 +159,21 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
                 empty_count += 1
                 continue
 
-            dQdx = dQ/dx
-            dQdx = dQdx[non_zero_mask[0] : non_zero_mask[-1] + 1] 
-            x_range = np.cumsum(np.append(dx[non_zero_mask[0]]/2,dx[non_zero_mask[0] : non_zero_mask[-1]]))
+            dQdx = dQ / dx
+            dQdx = dQdx[non_zero_mask[0] : non_zero_mask[-1] + 1]
+            x_range = np.cumsum(
+                np.append(
+                    dx[non_zero_mask[0]] / 2, dx[non_zero_mask[0] : non_zero_mask[-1]]
+                )
+            )
             position = [
-                values["Fit_line"].to_point(t=-(len(dQ) / 2) * target_dx + t * target_dx + target_dx / 2)
+                values["Fit_line"].to_point(
+                    t=-(len(dQ) / 2) * target_dx + t * target_dx + target_dx / 2
+                )
                 for t in range(len(dQ))
             ]
             position = position[non_zero_mask[0] : non_zero_mask[-1] + 1]
 
-            track_Qx.append(Qx)
             track_dQdx.append(pd.Series(dQdx, index=x_range, name="dQdx"))
             track_points.append(pd.Series(position, index=x_range, name="position"))
             track_length.append(values["Fit_norm"])
@@ -179,7 +184,6 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
     print(f"Tracks with dead area outside {empty_ratio_lims} interval: {empty_count}")
     print(f"Tracks with less than {min_entries} entries: {short_count}")
 
-    track_Qx = pd.Series(track_Qx)
     track_dQdx = pd.Series(track_dQdx)
     track_points = pd.Series(track_points)
     track_length = pd.Series(track_length)
@@ -196,7 +200,6 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
     print(f"\nRemaining tracks: {sum(mask)}\n")
 
-    track_Qx = track_Qx[mask]
     track_dQdx = track_dQdx[mask]
     track_points = track_points[mask]
     track_length = track_length[mask]
@@ -214,7 +217,6 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
             events,
         ],
         index=[
-            "track_Qx",
             "track_dQdx",
             "track_points",
             "track_length",
@@ -515,7 +517,7 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
     # Array of dQ values for each step
     dq_i = np.zeros(len(steps), dtype=float)
     dh_i = np.zeros(len(steps), dtype=float)
-    
+
     # Initialize variables to store the minimum and maximum points
     min_point = None
     max_point = None
@@ -549,8 +551,8 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
 
         # Calculate dh_i based on the distance between min_point and max_point
         if min_point is not None and max_point is not None:
-            step_length = max_point.distance_point(min_point)
-            # Small correction
+            step_length = Point(max_point).distance_point(min_point)
+            # TODO: Small correction
             # direction = Vector.from_points(max_point, min_point)
             # step_length = line_fit.direction.scalar_projection(direction) * step_length
         else:
@@ -641,7 +643,7 @@ def fit_hit_clusters(
                     xyz_c[inliers],
                     q_c[inliers],
                     line_fit,
-                    dh=target_dh,
+                    target_dh=target_dh,
                     dr=dr,
                     h=norm,
                     ax=ax3d if ax3d is not None and plot_cyl else None,
