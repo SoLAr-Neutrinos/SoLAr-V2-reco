@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-import uproot
-import numpy as np
-import awkward as ak
 import pickle
+
+import awkward as ak
+import numpy as np
+import uproot
 
 
 def metrics_to_root(metrics, output_file):

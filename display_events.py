@@ -3,17 +3,13 @@
 from argparse import ArgumentParser
 
 from tools import (
-    os,
-    pickle,
-    pd,
     event_display,
-    json,
-    literal_eval,
     plt,
     recal_params,
     params,
     prepare_event,
     tqdm,
+    load_data,
 )
 
 
@@ -69,38 +65,13 @@ if __name__ == "__main__":
     elif not params.file_label.endswith("DA"):
         params.file_label += "_DA"
 
+    if args.events:
+        params.individual_plots = args.events
+
     recal_params()
 
-    # Load charge file
-    charge_input = f"{params.file_label}/charge_df_{params.file_label}.bz2"
-    charge_df = pd.read_csv(charge_input, index_col="eventID")
-    charge_df[charge_df.columns] = charge_df[charge_df.columns].map(
-        lambda x: (
-            literal_eval(x)
-            if isinstance(x, str) and (x[0] == "[" or x[0] == "(")
-            else x
-        )
+    charge_df, light_df, match_dict, metrics = load_data(
+        params.file_label, return_metrics=True
     )
-
-    # Load light file
-    light_input = f"{params.file_label}/light_df_{params.file_label}.bz2"
-    light_df = None
-    match_dict = None
-    if os.path.isfile(light_input):
-        light_df = pd.read_csv()
-
-        # Load match dictionary
-        match_dict = json.load(
-            open(f"{params.file_label}/match_dict_{params.file_label}.json")
-        )
-        match_dict = {int(key): value for key, value in match_dict.items()}
-
-    # Load metrics file
-    input_metrics = f"{params.file_label}/metrics_{params.file_label}.pkl"
-    if os.path.isfile(input_metrics):
-        with open(input_metrics, "rb") as f:
-            metrics = pickle.load(f)
-    else:
-        metrics = None
 
     display_events(params.individual_plots, charge_df, light_df, match_dict, metrics)
