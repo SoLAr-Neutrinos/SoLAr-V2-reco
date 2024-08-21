@@ -160,7 +160,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
             dQdx = dQ/dx
             dQdx = dQdx[non_zero_mask[0] : non_zero_mask[-1] + 1] 
-            x_range = np.cumsum(np.append(0,dx[non_zero_mask[0] : non_zero_mask[-1]]))
+            x_range = np.cumsum(np.append(dx[non_zero_mask[0]/2,dx[non_zero_mask[0] : non_zero_mask[-1]]))
             position = [
                 values["Fit_line"].to_point(t=-(len(dQ) / 2) * target_dx + t * target_dx + target_dx / 2)
                 for t in range(len(dQ))
