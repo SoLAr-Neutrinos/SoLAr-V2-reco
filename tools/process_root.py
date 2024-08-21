@@ -30,7 +30,7 @@ def process_root(input_charge, input_light):
     light_df = light_df[light_df["event"].isin(light_events)]
 
     # Remove charge events without associated light event
-    charge_df = charge_df.loc[int(match_dict.keys())]
+    charge_df = charge_df.loc[list(match_dict.keys())]
 
     # Flip x axis
     charge_df["event_hits_x"] = charge_df["event_hits_x"].apply(

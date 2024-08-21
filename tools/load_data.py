@@ -30,7 +30,7 @@ def load_data(folder, return_metrics=False):
 
         match_dict = {int(key): value for key, value in match_dict.items()}
         # Remove charge events without associated light event
-        charge_df = charge_df.loc[int(match_dict.keys())]
+        charge_df = charge_df.loc[list(match_dict.keys())]
         # Remove light events without charge event match
         light_events = np.unique(ak.flatten(match_dict.values()))
         light_df = light_df[light_df["event"].isin(light_events)]

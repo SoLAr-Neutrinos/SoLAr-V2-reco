@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 
 from argparse import ArgumentParser
+
 from tools import (
+    fit_events,
+    json,
+    literal_eval,
+    load_data,
+    os,
     params,
     pickle,
     process_root,
-    fit_events,
-    literal_eval,
-    json,
-    os,
-    load_data,
 )
 
 if __name__ == "__main__":
