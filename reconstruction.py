@@ -7,7 +7,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("light", help="Path to light file")
     parser.add_argument("charge", help="Path to charge file")
-    parser.parser.add_argument(
+    parser.add_argument(
         "-p",
         "--parameters",
         action="append",
