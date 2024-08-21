@@ -26,7 +26,7 @@ from scipy.optimize import curve_fit
 from skimage.measure import LineModelND, ransac
 from sklearn.cluster import DBSCAN, KMeans
 from sklearn.linear_model import RANSACRegressor
-from skspatial.objects import Cylinder, Line, Plane, Point, Triangle
+from skspatial.objects import Cylinder, Line, Plane, Point, Triangle, Vector
 from tqdm.auto import tqdm
 
 if __package__:
@@ -77,7 +77,8 @@ def get_dh(unit_vector, length):
 
     dl_vector = np.array([params.xy_epsilon, params.xy_epsilon, params.z_epsilon]) * 2
     dl_projection = np.dot(abs(unit_vector), dl_vector)
-    dh = min(dl_projection, length)
+    ratio = round(length / dl_projection)
+    dh = length/max(round(ratio),1)
 
     return dh
 
@@ -126,7 +127,6 @@ def match_events(charge_df, light_df, window=10):
 
 # ### Charge
 def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
-    track_Qx = []
     track_dQdx = []
     track_length = []
     track_score = []
@@ -143,6 +143,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
             dQ = values["dQ"]
             dx = values["dx"]
+            target_dx = values["target_dx"]
             non_zero_mask = np.where(dQ > 0)[0]
 
             if len(dQ[non_zero_mask]) < min_entries:
@@ -157,16 +158,15 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
                 empty_count += 1
                 continue
 
-            dQdx = dQ[non_zero_mask[0] : non_zero_mask[-1] + 1] / dx
-            Qx = sum(dQ[non_zero_mask]) / (sum(non_zero_mask) * dx)
-            x_range = np.arange(0, len(dQdx) * dx, dx)[: len(dQdx)]
+            dQdx = dQ/dx
+            dQdx = dQdx[non_zero_mask[0] : non_zero_mask[-1] + 1] 
+            x_range = np.cumsum(np.append(0,dx[non_zero_mask[0] : non_zero_mask[-1]]))
             position = [
-                values["Fit_line"].to_point(t=-(len(dQ) / 2) * dx + t * dx + dx / 2)
+                values["Fit_line"].to_point(t=-(len(dQ) / 2) * target_dx + t * target_dx + target_dx / 2)
                 for t in range(len(dQ))
             ]
             position = position[non_zero_mask[0] : non_zero_mask[-1] + 1]
 
-            track_Qx.append(Qx)
             track_dQdx.append(pd.Series(dQdx, index=x_range, name="dQdx"))
             track_points.append(pd.Series(position, index=x_range, name="position"))
             track_length.append(values["Fit_norm"])
@@ -177,7 +177,6 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
     print(f"Tracks with dead area outside {empty_ratio_lims} interval: {empty_count}")
     print(f"Tracks with less than {min_entries} entries: {short_count}")
 
-    track_Qx = pd.Series(track_Qx)
     track_dQdx = pd.Series(track_dQdx)
     track_points = pd.Series(track_points)
     track_length = pd.Series(track_length)
@@ -194,7 +193,6 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
     print(f"\nRemaining tracks: {sum(mask)}\n")
 
-    track_Qx = track_Qx[mask]
     track_dQdx = track_dQdx[mask]
     track_points = track_points[mask]
     track_length = track_length[mask]
@@ -204,7 +202,6 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
     df = pd.DataFrame(
         [
-            track_Qx,
             track_dQdx,
             track_points,
             track_length,
@@ -213,7 +210,6 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
             events,
         ],
         index=[
-            "track_Qx",
             "track_dQdx",
             "track_points",
             "track_length",
@@ -504,20 +500,28 @@ def lineFit(hitArray):
 
 
 # Calculate dQ/dx from a line fit
-def dqdx(hitArray, q, line_fit, dh, dr, h, ax=None):
+def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
     # Cylinder steps for dQ/dx
-    steps = np.arange(-3 * dh, h + 3 * dh, dh)
+    steps = np.arange(-2 * target_dh, h + 2 * target_dh, target_dh)
 
     # Mask of points that have been accounted for
     counted = np.zeros(len(q), dtype=bool)
 
     # Array of dQ values for each step
     dq_i = np.zeros(len(steps), dtype=float)
-
+    dh_i = np.zeros(len(steps), dtype=float)
+    
+    # Initialize variables to store the minimum and maximum points
+    min_point = None
+    max_point = None
+    min_distance = np.inf
+    max_distance = -np.inf
     for step_idx, step in enumerate(steps):
+        cyl_origin = line_fit.to_point(step - h / 2)
+        cyl_height = line_fit.direction.unit() * target_dh
         cylinder_fit = Cylinder(
-            line_fit.to_point(step - h / 2),
-            line_fit.direction.unit() * dh,
+            cyl_origin,
+            cyl_height,
             dr,
         )
         if ax is not None:
@@ -528,7 +532,28 @@ def dqdx(hitArray, q, line_fit, dh, dr, h, ax=None):
                 counted[point_idx] = True
                 dq_i[step_idx] += q[point_idx]
 
-    return dq_i
+                point_projection = line_fit.project_point(point)
+                point_distance = cyl_origin.distance_point(point_projection)
+                # Update the minimum and maximum points
+                if point_distance < min_distance:
+                    min_distance = point_distance
+                    min_point = point
+                if point_distance > max_distance:
+                    max_distance = point_distance
+                    max_point = point
+
+        # Calculate dh_i based on the distance between min_point and max_point
+        if min_point is not None and max_point is not None:
+            step_length = max_point.distance_point(min_point)
+            # Small correction
+            # direction = Vector.from_points(max_point, min_point)
+            # step_length = line_fit.direction.scalar_projection(direction) * step_length
+        else:
+            step_length = 0
+
+        dh_i[step_idx] = step_length + params.pixel_pitch
+
+    return dq_i, dh_i
 
 
 # Fit clusters with Ransac method
@@ -604,14 +629,14 @@ def fit_hit_clusters(
                     )
 
                 # Calculate dQ/dx
-                dh = get_dh(line_fit.direction, norm)
+                target_dh = get_dh(line_fit.direction, norm)
                 dr = get_dr(np.sqrt(mse))
 
-                dq_i = dqdx(
+                dq_i, dh_i = dqdx(
                     xyz_c[inliers],
                     q_c[inliers],
                     line_fit,
-                    dh=dh,
+                    dh=target_dh,
                     dr=dr,
                     h=norm,
                     ax=ax3d if ax3d is not None and plot_cyl else None,
@@ -620,8 +645,10 @@ def fit_hit_clusters(
                 q_eff = dq_i.sum() / q_c[inliers].sum()
                 if dq_i.sum() != 0:
                     dq = dq_i
+                    dh = dh_i
                 else:
                     dq = 0
+                    dh = 0
 
                 metrics[label] = {
                     "Fit_line": line_fit,
@@ -631,6 +658,7 @@ def fit_hit_clusters(
                     "q_eff": q_eff,
                     "dQ": dq,
                     "dx": dh,
+                    "target_dx": target_dh,
                 }
 
         idx = np.unique(labels).tolist().index(label) + 1
