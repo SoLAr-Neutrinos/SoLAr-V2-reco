@@ -4,11 +4,12 @@
 def process_root(input_charge, input_light):
     params.file_label = "_".join(input_light.split("_")[-2:]).split(".")[0]
 
-    output_charge = f"{params.file_label}/charge_df_{params.file_label}.bz2"
+    output_path = os.path.join(params.work_path, f"{params.file_label}")
+    output_charge = os.path.join(output_path, f"charge_df_{params.file_label}.bz2")
 
-    output_light = f"{params.file_label}/light_df_{params.file_label}.bz2"
+    output_light = os.path.join(output_path, f"light_df_{params.file_label}.bz2")
 
-    output_match = f"{params.file_label}/match_dict_{params.file_label}.json"
+    output_match = os.path.join(output_path, f"match_dict_{params.file_label}.json")
 
     print("\nLoading charge file...")
     charge_df = load_charge(input_charge)
@@ -39,7 +40,7 @@ def process_root(input_charge, input_light):
     light_df["x"] = light_df["x"].apply(lambda x: np.power(-1, params.flip_x) * x)
 
     # Save files
-    os.makedirs(params.file_label, exist_ok=True)
+    os.makedirs(output_path, exist_ok=True)
     charge_df.to_csv(output_charge)
     light_df.to_csv(output_light)
     with open(output_match, "w") as f:
@@ -67,11 +68,14 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("light", help="Path to light file")
     parser.add_argument("charge", help="Path to charge file")
+    parser.add_argument("-o", "--output", help="Output folder", default=None)
 
     args = parser.parse_args()
 
     input_charge = args.charge
     input_light = args.light
+    if args.output is not None:
+        params.work_path = args.output
 
     _, _, _ = process_root(input_charge, input_light)
 
