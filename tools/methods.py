@@ -127,7 +127,6 @@ def match_events(charge_df, light_df, window=10):
 
 # ### Charge
 def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
-    track_Qx = []
     track_dQdx = []
     track_length = []
     track_score = []
@@ -144,7 +143,6 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
             dQ = values["dQ"]
             dx = values["dx"]
-            target_dx = values["target_dx"]
             non_zero_mask = np.where(dQ > 0)[0]
 
             if len(dQ[non_zero_mask]) < min_entries:
@@ -159,23 +157,17 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
                 empty_count += 1
                 continue
 
-            dQdx = dQ / dx
+            dQdx = (dQ / dx).rename("dQdx")
             dQdx = dQdx[non_zero_mask[0] : non_zero_mask[-1] + 1]
-            x_range = np.cumsum(
-                np.append(
-                    dx[non_zero_mask[0]] / 2, dx[non_zero_mask[0] : non_zero_mask[-1]]
-                )
-            )
+            x_range = dQdx.index
             position = [
-                values["Fit_line"].to_point(
-                    t=-(len(dQ) / 2) * target_dx + t * target_dx + target_dx / 2
-                )
-                for t in range(len(dQ))
+                values["Fit_line"].to_point(t=-values["Fit_norm"] / 2 + t)
+                for t in dQ.index
             ]
             position = position[non_zero_mask[0] : non_zero_mask[-1] + 1]
 
-            track_dQdx.append(pd.Series(dQdx, index=x_range, name="dQdx"))
-            track_points.append(pd.Series(position, index=x_range, name="position"))
+            track_dQdx.append(dQdx)
+            track_points.append(pd.Series(position, index=dQdx.index, name="position"))
             track_length.append(values["Fit_norm"])
             track_score.append(values["RANSAC_score"])
             track_z.append(values["Fit_line"].point[2])
@@ -515,12 +507,10 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
     counted = np.zeros(len(q), dtype=bool)
 
     # Array of dQ values for each step
-    dq_i = np.zeros(len(steps), dtype=float)
-    dh_i = np.zeros(len(steps), dtype=float)
+    dq_i = pd.Series(np.zeros(len(steps), dtype=float), index=steps)
+    dh_i = pd.Series(np.zeros(len(steps), dtype=float), index=steps)
 
     # Initialize variables to store the minimum and maximum points
-    min_point = None
-    max_point = None
     min_distance = np.inf
     max_distance = -np.inf
     for step_idx, step in enumerate(steps):
@@ -537,28 +527,23 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
         for point_idx, point in enumerate(hitArray):
             if not counted[point_idx] and cylinder_fit.is_point_within(point):
                 counted[point_idx] = True
-                dq_i[step_idx] += q[point_idx]
+                dq_i.loc[step] += q[point_idx]
 
                 point_projection = line_fit.project_point(point)
                 point_distance = cyl_origin.distance_point(point_projection)
                 # Update the minimum and maximum points
                 if point_distance < min_distance:
                     min_distance = point_distance
-                    min_point = point
                 if point_distance > max_distance:
                     max_distance = point_distance
-                    max_point = point
 
         # Calculate dh_i based on the distance between min_point and max_point
-        if min_point is not None and max_point is not None:
-            step_length = Point(max_point).distance_point(min_point)
-            # TODO: Small correction
-            # direction = Vector.from_points(max_point, min_point)
-            # step_length = line_fit.direction.scalar_projection(direction) * step_length
+        if min_distance < max_distance:
+            step_length = max_distance - min_distance
         else:
             step_length = 0
 
-        dh_i[step_idx] = step_length + params.pixel_pitch
+        dh_i.loc[step] = step_length + params.pixel_pitch
 
     return dq_i, dh_i
 
@@ -665,7 +650,7 @@ def fit_hit_clusters(
                     "q_eff": q_eff,
                     "dQ": dq,
                     "dx": dh,
-                    "target_dx": target_dh,
+                    # "target_dx": target_dh,
                 }
 
         idx = np.unique(labels).tolist().index(label) + 1
@@ -1499,17 +1484,21 @@ def plot_fake_data(z_range, buffer=1):
 
 
 # Plot dQ versus X
-def plot_dQ(dQ_array, event_idx, track_idx, dh, interpolate=False):
+def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax_twinx = ax.twinx()
 
+    target_dx = dx_series.index.diff()[0]
+
     fig.suptitle(
-        rf"Event {event_idx} - Track {track_idx} - $dx = {round(dh,2)}$ {params.dh_unit}"
+        rf"Event {event_idx} - Track {track_idx} - $dx = {round(target_dx,2)}$ {params.dh_unit}"
     )
 
-    mean_dQ = np.mean(dQ_array[dQ_array > 0])
-    non_zero_indices = np.where(dQ_array > 0)[0]
+    non_zero_indices = np.where(dQ_series > 0)[0]
+    mean_dQ = np.mean(dQ_series[non_zero_indices])
+    mean_dx = np.mean(dx_series[non_zero_indices])
+    mean_dQdx = (dQ_series / dx_series)[non_zero_indices]
 
     # Check if there are non-zero values in dQ_array
     if non_zero_indices.size > 0:
@@ -1517,33 +1506,39 @@ def plot_dQ(dQ_array, event_idx, track_idx, dh, interpolate=False):
         first_index = max(non_zero_indices[0] - 2, 0)
 
         # Find the last non-zero index and add 2 indices after it
-        last_index = min(non_zero_indices[-1] + 2, len(dQ_array))
+        last_index = min(non_zero_indices[-1] + 2, len(dQ_series))
 
-        new_dQ_array = dQ_array.copy()[first_index:last_index]
+        new_dQ_series = dQ_series.copy()[first_index:last_index]
+        new_dx_series = dx_series.copy()[first_index:last_index]
 
         if interpolate:
-            new_dQ_array[1:-1] = np.where(
-                new_dQ_array[1:-1] == 0,
+            new_dQ_series[1:-1] = np.where(
+                new_dQ_series[1:-1] == 0,
                 mean_dQ,
-                new_dQ_array[1:-1],
+                new_dQ_series[1:-1],
+            )
+            new_dx_series[1:-1] = np.where(
+                new_dx_series[1:-1] == 0,
+                mean_dx,
+                new_dx_series[1:-1],
             )
 
-        dQ_array = new_dQ_array
+        dQ_series = new_dQ_series
+        dx_series = new_dx_series
 
     ax.axhline(
-        mean_dQ / dh,
+        mean_dQdx,
         ls="--",
         c="red",
-        label=rf"Mean = ${round(mean_dQ/dh,2)}$ {params.q_unit} {params.dh_unit}$^{{-1}}$",
+        label=rf"Mean = ${round(mean_dQdx,2)}$ {params.q_unit} {params.dh_unit}$^{{-1}}$",
         lw=1,
     )
-    x_range = np.arange(0, len(dQ_array) * dh, dh)[: len(dQ_array)]
 
-    ax.step(x_range, dQ_array / dh, where="mid")
+    ax.step(dQ_series.index, dQ_series / dx_series, where="mid")
     ax.set_xlabel(rf"$x$ [{params.dh_unit}]")
     ax.set_ylabel(rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]")
 
-    ax_twinx.step(x_range, np.cumsum(dQ_array), color="C1", where="mid")
+    ax_twinx.step(dQ_series.index, np.cumsum(dQ_series), color="C1", where="mid")
     ax_twinx.set_ylabel(f"Q [{params.q_unit}]")
 
     for axes in [ax, ax_twinx]:
@@ -1558,7 +1553,7 @@ def plot_dQ(dQ_array, event_idx, track_idx, dh, interpolate=False):
     if params.save_figures:
         os.makedirs(f"{params.file_label}/{event_idx}", exist_ok=True)
         fig.savefig(
-            f"{params.file_label}/{event_idx}/dQ_E{event_idx}_T{track_idx}_{round(dh,2)}.pdf",
+            f"{params.file_label}/{event_idx}/dQ_E{event_idx}_T{track_idx}_{round(target_dx,2)}.pdf",
             dpi=300,
             bbox_inches="tight",
         )
