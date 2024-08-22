@@ -145,20 +145,20 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
             dx = values["dx"]
             non_zero_mask = np.where(dQ > 0)[0]
 
-            if len(dQ[non_zero_mask]) < min_entries:
+            if len(non_zero_mask) < min_entries:
                 short_count += 1
                 continue
 
-            empty_ratio = sum(dQ[non_zero_mask[0] : non_zero_mask[-1] + 1] == 0) / (
-                non_zero_mask[-1] - non_zero_mask[0] + 1
-            )
+            empty_ratio = sum(
+                dQ.iloc[non_zero_mask[0] : non_zero_mask[-1] + 1] == 0
+            ) / (non_zero_mask[-1] - non_zero_mask[0] + 1)
 
             if empty_ratio > empty_ratio_lims[1] or empty_ratio < empty_ratio_lims[0]:
                 empty_count += 1
                 continue
 
             dQdx = (dQ / dx).rename("dQdx")
-            dQdx = dQdx[non_zero_mask[0] : non_zero_mask[-1] + 1]
+            dQdx = dQdx.iloc[non_zero_mask[0] : non_zero_mask[-1] + 1]
             x_range = dQdx.index
             position = [
                 values["Fit_line"].to_point(t=-values["Fit_norm"] / 2 + t)
@@ -501,7 +501,9 @@ def lineFit(hitArray):
 # Calculate dQ/dx from a line fit
 def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
     # Cylinder steps for dQ/dx
-    steps = np.arange(-2 * target_dh, h + 2 * target_dh, target_dh)
+    steps = (
+        np.arange(-2 * target_dh, h + 2 * target_dh, target_dh) + target_dh / 2
+    )  # centering the steps in the middle of the cylinder
 
     # Mask of points that have been accounted for
     counted = np.zeros(len(q), dtype=bool)
@@ -510,11 +512,10 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
     dq_i = pd.Series(np.zeros(len(steps), dtype=float), index=steps)
     dh_i = pd.Series(np.zeros(len(steps), dtype=float), index=steps)
 
-    # Initialize variables to store the minimum and maximum points
-    min_distance = np.inf
-    max_distance = -np.inf
     for step_idx, step in enumerate(steps):
-        cyl_origin = line_fit.to_point(step - h / 2)
+        cyl_origin = line_fit.to_point(
+            step - target_dh / 2 - h / 2
+        )  # centering the step in the base of the cylinder
         cyl_height = line_fit.direction.unit() * target_dh
         cylinder_fit = Cylinder(
             cyl_origin,
@@ -524,6 +525,9 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
         if ax is not None:
             cylinder_fit.plot_3d(ax)
 
+        # Initialize variables to store the minimum and maximum points
+        min_distance = np.inf
+        max_distance = -np.inf
         for point_idx, point in enumerate(hitArray):
             if not counted[point_idx] and cylinder_fit.is_point_within(point):
                 counted[point_idx] = True
@@ -537,13 +541,13 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
                 if point_distance > max_distance:
                     max_distance = point_distance
 
-        # Calculate dh_i based on the distance between min_point and max_point
-        if min_distance < max_distance:
-            step_length = max_distance - min_distance
-        else:
-            step_length = 0
-
-        dh_i.loc[step] = step_length + params.pixel_pitch
+                # Calculate dh_i based on the distance between min_point and max_point
+        step_length = (
+            max(max_distance - min_distance + params.pixel_pitch, 0)
+            if min_distance < max_distance
+            else params.pixel_pitch if dq_i.loc[step] > 0 else 0
+        )
+        dh_i.loc[step] = min(step_length, target_dh)
 
     return dq_i, dh_i
 
@@ -1451,7 +1455,7 @@ def event_display(
     fig.tight_layout()
 
     if params.save_figures:
-        output_path = os.path.join(params.work_path, params.file_label, event_idx)
+        output_path = os.path.join(params.work_path, params.file_label, str(event_idx))
         os.makedirs(output_path, exist_ok=True)
         fig.savefig(
             os.path.join(output_path, f"event_{event_idx}.pdf"),
@@ -1499,27 +1503,26 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False):
     ax = fig.add_subplot(111)
     ax_twinx = ax.twinx()
 
-    target_dx = dx_series.index.diff()[0]
-
+    target_dx = dx_series.index.diff()[-1]
     fig.suptitle(
         rf"Event {event_idx} - Track {track_idx} - $dx = {round(target_dx,2)}$ {params.dh_unit}"
     )
 
     non_zero_indices = np.where(dQ_series > 0)[0]
-    mean_dQ = np.mean(dQ_series[non_zero_indices])
-    mean_dx = np.mean(dx_series[non_zero_indices])
-    mean_dQdx = (dQ_series / dx_series)[non_zero_indices]
+    mean_dQ = np.mean(dQ_series.iloc[non_zero_indices])
+    mean_dx = np.mean(dx_series.iloc[non_zero_indices])
+    mean_dQdx = (dQ_series / dx_series).iloc[non_zero_indices].mean()
 
     # Check if there are non-zero values in dQ_array
     if non_zero_indices.size > 0:
-        # Find the first non-zero index and add 2 indices before it
-        first_index = max(non_zero_indices[0] - 2, 0)
+        # Find the first non-zero index and get 1 index before it
+        first_index = max(non_zero_indices[0] - 1, 0)
 
-        # Find the last non-zero index and add 2 indices after it
+        # Find the last non-zero index and get 2 indices after it
         last_index = min(non_zero_indices[-1] + 2, len(dQ_series))
 
-        new_dQ_series = dQ_series.copy()[first_index:last_index]
-        new_dx_series = dx_series.copy()[first_index:last_index]
+        new_dQ_series = dQ_series.iloc[first_index:last_index].copy()
+        new_dx_series = dx_series.iloc[first_index:last_index].copy()
 
         if interpolate:
             new_dQ_series[1:-1] = np.where(
@@ -1545,6 +1548,7 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False):
     )
 
     ax.step(dQ_series.index, dQ_series / dx_series, where="mid")
+    # ax.scatter(dQ_series.index, dQ_series / dx_series)
     ax.set_xlabel(rf"$x$ [{params.dh_unit}]")
     ax.set_ylabel(rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]")
 
@@ -1561,7 +1565,7 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False):
 
     fig.tight_layout()
     if params.save_figures:
-        output_path = os.path.join(params.work_path, params.file_label, event_idx)
+        output_path = os.path.join(params.work_path, params.file_label, str(event_idx))
         os.makedirs(output_path, exist_ok=True)
         fig.savefig(
             os.path.join(
@@ -2825,7 +2829,7 @@ def light_vs_charge(
         fig.tight_layout()
 
     if params.save_figures:
-        output_path = os.path.join(params.work_path, params.file_label, event_idx)
+        output_path = os.path.join(params.work_path, params.file_label)
         os.makedirs(output_path, exist_ok=True)
         events = len(ratio)
         fig1.savefig(
