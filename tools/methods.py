@@ -784,6 +784,7 @@ def recal_params():
 
     params.first_chip = (2, 1) if params.detector_y == 160 else (1, 1)
 
+    print("\nRecalculating parameters:")
     print(
         f"\n dh_unit set to {params.dh_unit}\n",
         f"light_unit set to {params.light_unit}\n",
@@ -954,8 +955,11 @@ def filter_metrics(metrics, **kwargs):
     print(f"{len(filtered_metrics)} metrics remaining")
 
     # Save the filtering parameters to a JSON file
+    output_path = os.path.join(params.work_path, params.file_label)
+    os.makedirs(output_path, exist_ok=True)
     with open(
-        f"{params.file_label}/filter_parameters_{len(filtered_metrics)}.json", "w+"
+        os.path.join(output_path, f"filter_parameters_{len(filtered_metrics)}.json"),
+        "w+",
     ) as f:
         json.dump(
             {
@@ -977,7 +981,7 @@ def filter_metrics(metrics, **kwargs):
 def combine_metrics():
     combined_metrics = {}
 
-    for file in tqdm(glob.glob("**/*metrics*.pkl"), leave=True):
+    for file in tqdm(glob.glob(f"{params.work_path}/**/*metrics*.pkl"), leave=True):
         folder = file.split("/")[0]
         tqdm.write(folder)
         with open(file, "rb") as f:
@@ -985,10 +989,10 @@ def combine_metrics():
             for key, value in tqdm(metric.items(), leave=False):
                 combined_metrics[f"{folder}_{key}"] = value
 
-    if not os.path.exists("combined"):
-        os.makedirs("combined")
+    output_path = os.path.join(params.work_path, "combined")
+    os.makedirs(output_path, exist_ok=True)
 
-    with open("combined/metrics_combined.pkl", "wb") as o:
+    with open(os.path.join(output_path, "metrics_combined.pkl"), "wb") as o:
         pickle.dump(combined_metrics, o)
 
     print("Done")
@@ -1447,9 +1451,10 @@ def event_display(
     fig.tight_layout()
 
     if params.save_figures:
-        os.makedirs(f"{params.file_label}/{event_idx}", exist_ok=True)
+        output_path = os.path.join(params.work_path, params.file_label, event_idx)
+        os.makedirs(output_path, exist_ok=True)
         fig.savefig(
-            f"{params.file_label}/{event_idx}/event_{event_idx}.pdf",
+            os.path.join(output_path, f"event_{event_idx}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
@@ -1477,7 +1482,12 @@ def plot_fake_data(z_range, buffer=1):
     ax.grid()
     ax.tick_params(axis="both", which="both", top=True, right=True)
     fig.tight_layout()
-    fig.savefig(f"{params.file_label}/fake_data_map.pdf", dpi=300, bbox_inches="tight")
+
+    output_path = os.path.join(params.work_path, params.file_label)
+    os.makedirs(output_path, exist_ok=True)
+    fig.savefig(
+        os.path.join(output_path, "fake_data_map.pdf"), dpi=300, bbox_inches="tight"
+    )
 
 
 # ### Tracks
@@ -1551,9 +1561,12 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False):
 
     fig.tight_layout()
     if params.save_figures:
-        os.makedirs(f"{params.file_label}/{event_idx}", exist_ok=True)
+        output_path = os.path.join(params.work_path, params.file_label, event_idx)
+        os.makedirs(output_path, exist_ok=True)
         fig.savefig(
-            f"{params.file_label}/{event_idx}/dQ_E{event_idx}_T{track_idx}_{round(target_dx,2)}.pdf",
+            os.path.join(
+                output_path, f"dQ_E{event_idx}_T{track_idx}_{round(target_dx,2)}.pdf"
+            ),
             dpi=300,
             bbox_inches="tight",
         )
@@ -1999,39 +2012,59 @@ def plot_track_stats(
 
     if params.save_figures:
         entries = len(track_dQdx)
+        output_path = os.path.join(params.work_path, params.file_label)
+        os.makedirs(output_path, exist_ok=True)
+
         fig1.savefig(
-            f"{params.file_label}/track_stats_1D_hist_{params.file_label}_{entries}.pdf",
+            os.path.join(
+                output_path, f"track_stats_1D_hist_{params.file_label}_{entries}.pdf"
+            ),
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
-            f"{params.file_label}/track_stats_2D_hist_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            os.path.join(
+                output_path,
+                f"track_stats_2D_hist_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            ),
             dpi=300,
             bbox_inches="tight",
         )
         fig4.savefig(
-            f"{params.file_label}/track_stats_score_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            os.path.join(
+                output_path,
+                f"track_stats_score_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            ),
             dpi=300,
             bbox_inches="tight",
         )
         fig5.savefig(
-            f"{params.file_label}/track_stats_dQdx_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            os.path.join(
+                output_path,
+                f"track_stats_dQdx_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            ),
             dpi=300,
             bbox_inches="tight",
         )
         fig6.savefig(
-            f"{params.file_label}/track_stats_dQdx_z_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            os.path.join(
+                output_path,
+                f"track_stats_dQdx_z_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+            ),
             dpi=300,
             bbox_inches="tight",
         )
         # fig7.savefig(
-        #     f"{params.file_label}/track_stats_dQ_z_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+        #     os.path.join(output_path, f"track_stats_dQ_z_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf"),
         #     dpi=300,
         #     bbox_inches="tight",
         # )
         if score_bool:
             fig3.savefig(
-                f"{params.file_label}/track_stats_2D_hist_cut_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+                os.path.join(
+                    output_path,
+                    f"track_stats_2D_hist_cut_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+                ),
                 dpi=300,
                 bbox_inches="tight",
             )
@@ -2209,19 +2242,27 @@ def plot_light_geo_stats(
         fig.tight_layout()
 
     if params.save_figures:
+        output_path = os.path.join(params.work_path, params.file_label)
+        os.makedirs(output_path, exist_ok=True)
         entries = len(sipm_light)
         fig1.savefig(
-            f"{params.file_label}/light_geo_optimization_{params.file_label}_{entries}.pdf",
+            os.path.join(
+                output_path, f"light_geo_optimization_{params.file_label}_{entries}.pdf"
+            ),
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
-            f"{params.file_label}/light_geo_2D_hist_{params.file_label}_{entries}.pdf",
+            os.path.join(
+                output_path, f"light_geo_2D_hist_{params.file_label}_{entries}.pdf"
+            ),
             dpi=300,
             bbox_inches="tight",
         )
         fig3.savefig(
-            f"{params.file_label}/light_geo_1D_hist_{params.file_label}_{entries}.pdf",
+            os.path.join(
+                output_path, f"light_geo_1D_hist_{params.file_label}_{entries}.pdf"
+            ),
             dpi=300,
             bbox_inches="tight",
         )
@@ -2269,8 +2310,10 @@ def plot_light_fit_stats(metrics):
     ax.legend()
     fig.tight_layout()
     if params.save_figures:
+        output_path = os.path.join(params.work_path, params.file_label)
+        os.makedirs(output_path, exist_ok=True)
         fig.savefig(
-            f"{params.file_label}/light_fit_{params.file_label}_{entries}.pdf",
+            os.path.join(output_path, f"light_fit_{params.file_label}_{entries}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
@@ -2421,14 +2464,20 @@ def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False):
         fig.tight_layout()
 
     if params.save_figures:
+        output_path = os.path.join(params.work_path, params.file_label)
+        os.makedirs(output_path, exist_ok=True)
         events = sum(mask)
         fig1.savefig(
-            f"{params.file_label}/voxel_light_vs_z_{params.file_label}_{events}.pdf",
+            os.path.join(
+                output_path, f"voxel_light_vs_z_{params.file_label}_{events}.pdf"
+            ),
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
-            f"{params.file_label}/voxel_charge_vs_z_hist_{params.file_label}_{events}.pdf",
+            os.path.join(
+                output_path, f"voxel_charge_vs_z_hist_{params.file_label}_{events}.pdf"
+            ),
             dpi=300,
             bbox_inches="tight",
         )
@@ -2776,19 +2825,28 @@ def light_vs_charge(
         fig.tight_layout()
 
     if params.save_figures:
+        output_path = os.path.join(params.work_path, params.file_label, event_idx)
+        os.makedirs(output_path, exist_ok=True)
         events = len(ratio)
         fig1.savefig(
-            f"{params.file_label}/light_vs_charge_optmization_{params.file_label}_{events}.pdf",
+            os.path.join(
+                output_path,
+                f"light_vs_charge_optmization_{params.file_label}_{events}.pdf",
+            ),
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
-            f"{params.file_label}/light_vs_charge_2D_hist_{params.file_label}_{events}.pdf",
+            os.path.join(
+                output_path, f"light_vs_charge_2D_hist_{params.file_label}_{events}.pdf"
+            ),
             dpi=300,
             bbox_inches="tight",
         )
         fig3.savefig(
-            f"{params.file_label}/light_vs_charge_ratio_{params.file_label}_{events}.pdf",
+            os.path.join(
+                output_path, f"light_vs_charge_ratio_{params.file_label}_{events}.pdf"
+            ),
             dpi=300,
             bbox_inches="tight",
         )

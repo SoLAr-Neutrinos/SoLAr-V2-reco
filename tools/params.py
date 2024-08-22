@@ -4,7 +4,9 @@ import os
 
 import numpy as np
 
-sipm_map_file = f"{os.path.dirname(os.path.abspath(__file__))}/sipm_sn_ch_to_xy.json"
+sipm_map_file = os.path.abspath(
+    os.path.join(__file__, os.pardir, "sipm_sn_ch_to_xy.json")
+)
 
 # Load options
 reload_files = True
@@ -12,6 +14,7 @@ simulate_dead_area = False
 rematch_events = False
 
 # Save options
+work_path = os.getcwd()
 file_label = "draft"
 overwrite_metrics = True
 save_figures = True

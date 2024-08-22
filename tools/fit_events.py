@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+import json
+import os
+import pickle
+
 
 def fit_events(charge_df, light_df, match_dict):
     metrics = {}
@@ -51,19 +55,18 @@ def fit_events(charge_df, light_df, match_dict):
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
+
     from methods import (
         cluster_hits,
         fit_hit_clusters,
-        json,
         light_geometry,
         literal_eval,
         params,
         pd,
-        pickle,
         prepare_event,
         recal_params,
-        voxelize_hits,
         tqdm,
+        voxelize_hits,
     )
 
     parser = ArgumentParser()
@@ -79,24 +82,43 @@ if __name__ == "__main__":
 
     # Load charge file
     charge_df = pd.read_csv(
-        f"{params.file_label}/charge_df_{params.file_label}.bz2", index_col="eventID"
+        os.path.join(
+            params.work_path, params.file_label, "charge_df_{params.file_label}.bz2"
+        ),
+        index_col="eventID",
     )
     charge_df[charge_df.columns[9:]] = charge_df[charge_df.columns[9:]].map(
         lambda x: literal_eval(x) if isinstance(x, str) else x
     )
 
     # Load light file
-    light_df = pd.read_csv(f"{params.file_label}/light_df_{params.file_label}.bz2")
+    light_df = pd.read_csv(
+        os.path.join(
+            params.work_path, params.file_label, f"light_df_{params.file_label}.bz2"
+        ),
+        index_col=0,
+    )
 
     # Load match dictionary
     match_dict = json.load(
-        open(f"{params.file_label}/match_dict_{params.file_label}.json")
+        open(
+            os.path.join(
+                params.work_path,
+                params.file_label,
+                f"match_dict_{params.file_label}.json",
+            )
+        )
     )
     match_dict = {int(key): value for key, value in match_dict.items()}
 
     metrics = fit_events(charge_df, light_df, match_dict)
 
-    with open(f"{params.file_label}/metrics_{params.file_label}.pkl", "wb") as f:
+    with open(
+        os.path.join(
+            params.work_path, params.file_label, f"metrics_{params.file_label}.pkl"
+        ),
+        "wb",
+    ) as f:
         pickle.dump(metrics, f)
 
 
@@ -104,12 +126,10 @@ else:
     from .methods import (
         cluster_hits,
         fit_hit_clusters,
-        json,
         light_geometry,
         literal_eval,
         params,
         pd,
-        pickle,
         prepare_event,
         recal_params,
         voxelize_hits,
