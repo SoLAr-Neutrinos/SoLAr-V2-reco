@@ -10,7 +10,7 @@ do
   # Transform the label to the charge file timestamp format
   formatted_date=$(echo $label | sed 's/\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)_\([0-9]\{2\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)/\1_\2_\3_\4_\5/')
 
-  charge_file="../../data/SoLAr_v2/Charge/cosmics/root/evd_self_trigger-packets-${formatted_date}_CEST_validated.root"
+  charge_file="/eos/experiment/dune/solar/data/SoLAr_v2/Charge/cosmics/root/evd_self_trigger-packets-${formatted_date}_CEST_validated.root"
   echo Charge file: "$charge_file"
   
   # Run the reconstruction script again without simulating dead areas

@@ -89,6 +89,9 @@ if __name__ == "__main__":
         charge_df, light_df, match_dict = load_data(args.folder, return_metrics=False)
 
     metrics = fit_events(charge_df, light_df, match_dict)
-    metrics_file = f"{params.file_label}/metrics_{params.file_label}.pkl"
+
+    output_path = os.path.join(params.work_path, f"{params.file_label}")
+    os.makedirs(output_path, exist_ok=True)
+    metrics_file = os.path.join(output_path, f"metrics_{params.file_label}.pkl")
     with open(metrics_file, "wb") as f:
         pickle.dump(metrics, f)
