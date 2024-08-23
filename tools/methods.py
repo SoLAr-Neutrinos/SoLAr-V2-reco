@@ -444,6 +444,9 @@ def ransacFit(
     min_samples=None,
     residual_threshold=None,
 ):
+    # Suppress the UndefinedMetricWarning
+    warnings.filterwarnings("ignore", category=Warning, module="sklearn")
+
     if weightArray is not None:
         estimator = RANSACRegressor(
             min_samples=min_samples,
@@ -480,6 +483,10 @@ def ransacFit(
             score = np.nan
 
     outliers = inliers == False
+
+    # Reset the warning filter
+    warnings.filterwarnings("default", category=Warning, module="sklearn")
+
     return inliers, outliers, score
 
 
@@ -504,6 +511,13 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
     steps = (
         np.arange(-2 * target_dh, h + 2 * target_dh, target_dh) + target_dh / 2
     )  # centering the steps in the middle of the cylinder
+    projected_pitch = (
+        np.dot(np.array([1, 1, 0]), abs(line_fit.direction.unit())) * params.pixel_pitch
+    )
+    limit_pitch = np.dot(
+        np.array([params.pixel_pitch, params.pixel_pitch, target_dh]),
+        abs(line_fit.direction.unit()),
+    )
 
     # Mask of points that have been accounted for
     counted = np.zeros(len(q), dtype=bool)
@@ -526,26 +540,30 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
             cylinder_fit.plot_3d(ax)
 
         # Initialize variables to store the minimum and maximum points
-        min_distance = np.inf
-        max_distance = -np.inf
+        point_distances = []
         for point_idx, point in enumerate(hitArray):
             if not counted[point_idx] and cylinder_fit.is_point_within(point):
                 counted[point_idx] = True
                 dq_i.loc[step] += q[point_idx]
 
-                point_projection = line_fit.project_point(point)
-                point_distance = cyl_origin.distance_point(point_projection)
-                # Update the minimum and maximum points
-                if point_distance < min_distance:
-                    min_distance = point_distance
-                if point_distance > max_distance:
-                    max_distance = point_distance
+                point_distances.append(line_fit.transform_points([point]))
 
-                # Calculate dh_i based on the distance between min_point and max_point
+        # Calculate dh_i based on the distance between points
+        max_distance = 0
+        if len(point_distances) > 0:
+            point_distances = np.unique(np.array(point_distances))
+            intervals = np.diff(point_distances)
+            total_distance = sum(
+                intervals[intervals <= limit_pitch]
+            ) + projected_pitch * 2 * (sum(intervals > limit_pitch))
+            max_distance = min(
+                abs(point_distances[-1] - point_distances[0]), total_distance
+            )
+
         step_length = (
-            max(max_distance - min_distance + params.pixel_pitch, 0)
-            if min_distance < max_distance
-            else params.pixel_pitch if dq_i.loc[step] > 0 else 0
+            max_distance + projected_pitch
+            if max_distance > 0
+            else projected_pitch if dq_i.loc[step] > 0 else 0
         )
         dh_i.loc[step] = min(step_length, target_dh)
 
@@ -1127,15 +1145,17 @@ def prepare_event(event, charge_df, light_df=None, match_dict=None):
         index=["x", "y", "z", "q"],
     ).T
     if "event_hits_channelid" in charge_df:
-        channel_ids = charge_df.loc[
-            event,
-            "event_hits_channelid",
-        ]
-        non_zero_mask = (charge_event["ch"] != 0) * (
+        channel_ids = pd.Series(
+            charge_df.loc[
+                event,
+                "event_hits_channelid",
+            ]
+        )
+        non_zero_mask = (charge_event["x"] != 0) * (
             charge_event["y"] != 0
         )  # Remove (0,0) entries
 
-        noisy_channels_mask = ~charge_event["ch"].isin(
+        noisy_channels_mask = ~channel_ids.isin(
             [ch[0] for ch in params.channel_disable_list]
         )  # Disable channel 7
 

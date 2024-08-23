@@ -84,11 +84,9 @@ if __name__ == "__main__":
         params.file_label = "_".join(input_light.split("_")[-2:]).split(".")[0]
         charge_df, light_df, match_dict = process_root(input_charge, input_light)
     else:
-        params.file_label = args.folder
+        params.file_label = os.path.split(args.folder)[-1]
         # Load charge file
-        charge_df, light_df, match_dict = load_data(
-            params.file_label, return_metrics=False
-        )
+        charge_df, light_df, match_dict = load_data(args.folder, return_metrics=False)
 
     metrics = fit_events(charge_df, light_df, match_dict)
     metrics_file = f"{params.file_label}/metrics_{params.file_label}.pkl"

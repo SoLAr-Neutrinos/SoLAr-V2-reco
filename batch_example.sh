@@ -1,5 +1,5 @@
 # Full analysis
-for light_file in ../../data/SoLAr_v2/Light/root/46v_12db_th950_deco/*
+for light_file in /eos/experiment/dune/solar/data/SoLAr_v2/Light/root/46v_12db_th950_deco/*
 do
   # Print the current file name
   echo Light file: "$light_file"
