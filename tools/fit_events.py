@@ -14,7 +14,9 @@ def fit_events(charge_df, light_df, match_dict):
 
         if charge_event is None and light_event is None:
             continue
-
+        if len(charge_event) <= 2:
+            # tqdm.write(f"Event {event} has 2 or less entries. Skipping...")
+            continue
         # Create a design matrix
         labels = cluster_hits(charge_event[["x", "y", "z"]].to_numpy())
         # Fit clusters
@@ -27,7 +29,7 @@ def fit_events(charge_df, light_df, match_dict):
         # Light to track geometry metrics
         track_lines = []
         for track_idx, values in metrics[event].items():
-            if "Fit_line" not in values:
+            if isinstance(track_idx, str) or track_idx <= 0:
                 continue
             values["SiPM"] = light_geometry(
                 track_line=values["Fit_line"],
@@ -63,6 +65,7 @@ if __name__ == "__main__":
         literal_eval,
         params,
         pd,
+        tqdm,
         prepare_event,
         recal_params,
         tqdm,
@@ -130,6 +133,7 @@ else:
         literal_eval,
         params,
         pd,
+        tqdm,
         prepare_event,
         recal_params,
         voxelize_hits,
