@@ -91,7 +91,7 @@ if __name__ == "__main__":
     recal_params()
 
     translation = montecarlo.get_translation()
-    if all([t != 0 for t in translation]):
+    if any([t != 0 for t in translation]):
         charge_df = montecarlo.translate_coordinates(charge_df, translation)
 
     charge_df = montecarlo.cut_volume(charge_df)

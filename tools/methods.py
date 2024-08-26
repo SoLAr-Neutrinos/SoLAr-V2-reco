@@ -22,6 +22,7 @@ from itables import init_notebook_mode
 from matplotlib.colors import LinearSegmentedColormap, LogNorm, to_rgba
 from matplotlib.ticker import AutoMinorLocator, MaxNLocator, ScalarFormatter
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from mpl_toolkits.mplot3d import Axes3D
 from scipy.optimize import curve_fit
 from skimage.measure import LineModelND, ransac
 from sklearn.cluster import DBSCAN, KMeans
@@ -1467,7 +1468,7 @@ def event_display(
     sipm_cbar = plt.colorbar(sipm_plot)
     sipm_cbar.set_label(rf"Light {params.light_variable} [{params.light_unit}]")
 
-    ax3d.set_zlim([0, ax3d.get_zlim()[1]])
+    ax3d.set_zlim([0, max(ax3d.get_zlim()[1], charge_df["z"].max())])
     # ax3d.view_init(160, 110, -85)
     ax3d.view_init(30, 20, 100)
     # ax3d.view_init(0, 0, 0)
