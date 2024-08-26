@@ -43,10 +43,14 @@ def main(metrics, **kwargs):
         if event_idx in metrics:
             for track_idx, values in metrics[event_idx].items():
                 if not isinstance(track_idx, str) and track_idx > 0:
-                    dQ_array = values["dQ"]
-                    dh = values["dx"]
+                    dQ_series = values["dQ"]
+                    dh_series = values["dx"]
                     plot_dQ(
-                        dQ_array, event_idx, track_idx, dh, **method_kwargs["plot_dQ"]
+                        dQ_series=dQ_series,
+                        dh_series=dh_series,
+                        event_idx=event_idx,
+                        track_idx=track_idx,
+                        **method_kwargs["plot_dQ"],
                     )
 
                     if params.show_figures:
