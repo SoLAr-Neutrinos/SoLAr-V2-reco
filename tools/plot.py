@@ -13,14 +13,26 @@ from sklearn.cluster import KMeans
 
 if __package__:
     from . import params
-    from .methods import (cluster_hits, cluster_hot_bins, create_square,
-                          fit_hit_clusters, generate_dead_area,
-                          get_track_stats, max_std)
+    from .methods import (
+        cluster_hits,
+        cluster_hot_bins,
+        create_square,
+        fit_hit_clusters,
+        generate_dead_area,
+        get_track_stats,
+        max_std,
+    )
 else:
     import params
-    from methods import (cluster_hits, cluster_hot_bins, create_square,
-                         fit_hit_clusters, generate_dead_area, get_track_stats,
-                         max_std)
+    from methods import (
+        cluster_hits,
+        cluster_hot_bins,
+        create_square,
+        fit_hit_clusters,
+        generate_dead_area,
+        get_track_stats,
+        max_std,
+    )
 
 
 class OOMFormatter(ScalarFormatter):
@@ -163,6 +175,7 @@ def event_display(
     light_df=None,
     plot_cyl=False,
     metrics=None,
+    **kwargs,
 ):
     if len(charge_df) < 2:
         return None
@@ -313,7 +326,7 @@ def event_display(
     return metrics
 
 
-def plot_fake_data(z_range, buffer=1):
+def plot_fake_data(z_range, buffer=1, **kwargs):
     fake_data = generate_dead_area(z_range, buffer)
     fake_x, fake_y, fake_z = fake_data[:, 0], fake_data[:, 1], fake_data[:, 2]
 
@@ -345,7 +358,7 @@ def plot_fake_data(z_range, buffer=1):
 
 
 # Plot dQ versus X
-def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False):
+def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwargs):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax_twinx = ax.twinx()
@@ -423,6 +436,65 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False):
         )
 
 
+def plot_track_angles(metrics, **kwargs):
+    cos_x = []
+    cos_y = []
+    cos_z = []
+    vectors = []
+    for idx, metric in metrics.items():
+        for track_idx, track in metric.items():
+            if type(track) is dict:
+                if "RANSAC_score" in track and track["RANSAC_score"] < 0.5:
+                    continue
+                if "Fit_norm" in track and track["Fit_norm"] < 1:
+                    continue
+                if "Fit_line" in track:
+                    cos_x.append(
+                        track["Fit_line"].direction.cosine_similarity([1, 0, 0])
+                    )
+                    cos_y.append(
+                        track["Fit_line"].direction.cosine_similarity([0, 1, 0])
+                    )
+                    cos_z.append(
+                        track["Fit_line"].direction.cosine_similarity([0, 0, 1])
+                    )
+                    vectors.append(track["Fit_line"].direction.to_array())
+
+    vectors = np.array(vectors)
+    cos_x = np.array(cos_x)
+    cos_y = np.array(cos_y)
+    cos_z = np.array(cos_z)
+    entries = len(cos_x)
+
+    fig, ax = plt.subplots(2, 3, figsize=(18, 12))
+
+    ax[0, 0].hist(vectors[:, 0], bins=20)
+    ax[0, 0].set_xlabel("X vector component")
+    ax[0, 1].hist(vectors[:, 1], bins=20)
+    ax[0, 1].set_xlabel("Y vector component")
+    ax[0, 2].hist(vectors[:, 2], bins=20)
+    ax[0, 2].set_xlabel("Z vector component")
+
+    ax[1, 0].hist(abs(cos_x), bins=20)
+    ax[1, 0].set_xlabel("Cosine similarity to x-axis")
+    ax[1, 1].hist(abs(cos_y), bins=20)
+    ax[1, 1].set_xlabel("Cosine similarity to y-axis")
+    ax[1, 2].hist(abs(cos_z), bins=20)
+    ax[1, 2].set_xlabel("Cosine similarity to z-axis")
+
+    fig.tight_layout()
+    if params.save_figures:
+        output_path = os.path.join(params.work_path, params.file_label)
+        os.makedirs(output_path, exist_ok=True)
+        fig.savefig(
+            os.path.join(
+                output_path, f"track_angles_{params.file_label}_{entries}.pdf"
+            ),
+            dpi=300,
+            bbox_inches="tight",
+        )
+
+
 def plot_track_stats(
     metrics,
     limit_xrange=True,
@@ -432,6 +504,7 @@ def plot_track_stats(
     lognorm=True,
     profile=False,
     bins=[40, 40],
+    **kwargs,
 ):
     df = get_track_stats(
         metrics, empty_ratio_lims=empty_ratio_lims, min_entries=min_entries
@@ -933,6 +1006,7 @@ def plot_light_geo_stats(
     max_std_ratio=0.2,
     single_track=True,
     lognorm=True,
+    **kwargs,
 ):
     sipm_distance = []
     sipm_angle = []
@@ -1119,7 +1193,7 @@ def plot_light_geo_stats(
         )
 
 
-def plot_light_fit_stats(metrics):
+def plot_light_fit_stats(metrics, **kwargs):
     cosine_df = pd.DataFrame(columns=["cosine", "threshold", "Light", "Charge"])
     for event, metric in metrics.items():
         if "Fit_line" not in metric["SiPM"]:
@@ -1170,7 +1244,9 @@ def plot_light_fit_stats(metrics):
         )
 
 
-def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False):
+def plot_voxel_data(
+    metrics, bins=50, log=(False, False, False), lognorm=False, **kwargs
+):
     z = []
     q = []
     l = []
@@ -1334,7 +1410,7 @@ def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False):
         )
 
 
-def light_vs_charge(
+def plot_light_vs_charge(
     metrics,
     light_max=None,
     min_count_ratio=0.99,
@@ -1343,6 +1419,7 @@ def light_vs_charge(
     bin_density=1,
     log=(True, False),
     p0=True,
+    **kwargs,
 ):
     if isinstance(log, bool):
         log = [log, log]
