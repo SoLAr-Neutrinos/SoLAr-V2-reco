@@ -11,6 +11,7 @@ def main(metrics, **kwargs):
 
     methods = [
         plot_track_stats,
+        plot_track_angles,
         plot_dQ,
     ]
     method_kwargs = {}
@@ -33,7 +34,15 @@ def main(metrics, **kwargs):
     else:
         plt.close("all")
 
-    # 2 - Individual dQ/dx plots
+    # 2 - Track angular distribution plots
+    print("\nPlotting track angular distribution\n")
+    plot_track_angles(metrics, **method_kwargs["plot_track_angles"])
+    if params.show_figures:
+        plt.show()
+    else:
+        plt.close("all")
+
+    # 3 - Individual dQ/dx plots
     print("\nPlotting individual dQ/dx plots")
     for event_idx in tqdm(params.individual_plots):
         if event_idx in metrics:
@@ -61,11 +70,12 @@ if __name__ == "__main__":
         "folder",
         help="Folder name for specific metrics file",
         default="combined",
+        nargs="?",
     )
     parser.add_argument(
         "--filter", help="Tag number of filter file within folder", default=None
     )
-    parser.add_argument("--save", "-s", help="Save images", action="store_true")
+    # parser.add_argument("--save", "-s", help="Save images", action="store_true")
     parser.add_argument(
         "--display", help="Display images (not recomended)", action="store_true"
     )
@@ -87,7 +97,7 @@ if __name__ == "__main__":
     params.file_label = args.folder
     filter_tag = args.filter
     params.show_figures = args.display
-    params.save_figures = args.save
+    params.save_figures = True  # args.save
     params.simulate_dead_area = args.dead_areas
     if params.simulate_dead_area and not params.file_label.endswith("DA"):
         params.file_label += "_DA"
