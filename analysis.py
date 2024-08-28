@@ -11,9 +11,10 @@ def main(metrics, **kwargs):
 
     methods = [
         plot_track_stats,
+        plot_track_angles,
         plot_dQ,
         plot_light_geo_stats,
-        light_vs_charge,
+        plot_light_vs_charge,
         plot_voxel_data,
         plot_light_fit_stats,
     ]
@@ -37,16 +38,28 @@ def main(metrics, **kwargs):
     else:
         plt.close("all")
 
-    # 2 - Individual dQ/dx plots
+    # 2 - Track angular distribution plots
+    print("\nPlotting track angular distribution\n")
+    plot_track_angles(metrics, **method_kwargs["plot_track_angles"])
+    if params.show_figures:
+        plt.show()
+    else:
+        plt.close("all")
+
+    # 3 - Individual dQ/dx plots
     print("\nPlotting individual dQ/dx plots\n")
     for event_idx in tqdm(params.individual_plots, leave=False):
         if event_idx in metrics:
             for track_idx, values in metrics[event_idx].items():
                 if not isinstance(track_idx, str) and track_idx > 0:
-                    dQ_array = values["dQ"]
-                    dh = values["dx"]
+                    dQ_series = values["dQ"]
+                    dx_series = values["dx"]
                     plot_dQ(
-                        dQ_array, event_idx, track_idx, dh, **method_kwargs["plot_dQ"]
+                        dQ_series=dQ_series,
+                        dx_series=dx_series,
+                        event_idx=event_idx,
+                        track_idx=track_idx,
+                        **method_kwargs["plot_dQ"],
                     )
 
                     if params.show_figures:
@@ -54,7 +67,7 @@ def main(metrics, **kwargs):
                     else:
                         plt.close("all")
 
-    # 3 - Light geometrical properties to charge tracks statistics
+    # 4 - Light geometrical properties to charge tracks statistics
     print("\nPlotting light geometrical properties to charge tracks statistics\n")
     plot_light_geo_stats(metrics, **method_kwargs["plot_light_geo_stats"])
 
@@ -63,16 +76,16 @@ def main(metrics, **kwargs):
     else:
         plt.close("all")
 
-    # 4 - Event level light vs charge statistics
+    # 5 - Event level light vs charge statistics
     print("\nPlotting event level light vs charge statistics\n")
-    light_vs_charge(metrics, **method_kwargs["light_vs_charge"])
+    plot_light_vs_charge(metrics, **method_kwargs["plot_light_vs_charge"])
 
     if params.show_figures:
         plt.show()
     else:
         plt.close("all")
 
-    # 5 - Voxelized charge and light data
+    # 6 - Voxelized charge and light data
     print("\nPlotting voxelized charge and light data\n")
     plot_voxel_data(metrics, **method_kwargs["plot_voxel_data"])
 
@@ -81,7 +94,7 @@ def main(metrics, **kwargs):
     else:
         plt.close("all")
 
-    # 6 - Light fit statistics
+    # 7 - Light fit statistics
     print("\nPlotting light fit statistics\n")
     plot_light_fit_stats(metrics, **method_kwargs["plot_light_fit_stats"])
 
@@ -96,15 +109,15 @@ def main(metrics, **kwargs):
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
-        "--folder",
-        "-f",
+        "folder",
         help="Folder name for specific metrics file",
         default="combined",
+        nargs="?",
     )
     parser.add_argument(
         "--filter", help="Tag number of filter file within folder", default=None
     )
-    parser.add_argument("--save", "-s", help="Save images", action="store_true")
+    # parser.add_argument("--save", "-s", help="Save images", action="store_true")
     parser.add_argument(
         "--display", "-d", help="Display images (not recomended)", action="store_true"
     )
@@ -118,10 +131,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    print("\nAnalysis started...")
+
     params.file_label = args.folder
     filter_tag = args.filter
     params.show_figures = args.display
-    params.save_figures = args.save
+    params.save_figures = True  # args.save
 
     kwargs = {}
     if args.parameters is not None:
@@ -147,7 +162,7 @@ if __name__ == "__main__":
                 try:
                     params.__dict__[key] = (
                         literal_eval(value)
-                        if not isinstance(params.__dict__[key, str])
+                        if not isinstance(params.__dict__[key], str)
                         else value
                     )
                 except ValueError:

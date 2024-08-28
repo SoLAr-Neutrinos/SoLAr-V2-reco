@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+import json
+import os
+import pickle
+
 
 def fit_events(charge_df, light_df, match_dict):
     metrics = {}
@@ -10,7 +14,9 @@ def fit_events(charge_df, light_df, match_dict):
 
         if charge_event is None and light_event is None:
             continue
-
+        if len(charge_event) <= 2:
+            # tqdm.write(f"Event {event} has 2 or less entries. Skipping...")
+            continue
         # Create a design matrix
         labels = cluster_hits(charge_event[["x", "y", "z"]].to_numpy())
         # Fit clusters
@@ -23,7 +29,7 @@ def fit_events(charge_df, light_df, match_dict):
         # Light to track geometry metrics
         track_lines = []
         for track_idx, values in metrics[event].items():
-            if "Fit_line" not in values:
+            if isinstance(track_idx, str) or track_idx <= 0:
                 continue
             values["SiPM"] = light_geometry(
                 track_line=values["Fit_line"],
@@ -51,19 +57,19 @@ def fit_events(charge_df, light_df, match_dict):
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
+
     from methods import (
         cluster_hits,
         fit_hit_clusters,
-        json,
         light_geometry,
         literal_eval,
         params,
         pd,
-        pickle,
+        tqdm,
         prepare_event,
         recal_params,
-        voxelize_hits,
         tqdm,
+        voxelize_hits,
     )
 
     parser = ArgumentParser()
@@ -79,24 +85,43 @@ if __name__ == "__main__":
 
     # Load charge file
     charge_df = pd.read_csv(
-        f"{params.file_label}/charge_df_{params.file_label}.bz2", index_col="eventID"
+        os.path.join(
+            params.work_path, params.file_label, "charge_df_{params.file_label}.bz2"
+        ),
+        index_col="eventID",
     )
     charge_df[charge_df.columns[9:]] = charge_df[charge_df.columns[9:]].map(
         lambda x: literal_eval(x) if isinstance(x, str) else x
     )
 
     # Load light file
-    light_df = pd.read_csv(f"{params.file_label}/light_df_{params.file_label}.bz2")
+    light_df = pd.read_csv(
+        os.path.join(
+            params.work_path, params.file_label, f"light_df_{params.file_label}.bz2"
+        ),
+        index_col=0,
+    )
 
     # Load match dictionary
     match_dict = json.load(
-        open(f"{params.file_label}/match_dict_{params.file_label}.json")
+        open(
+            os.path.join(
+                params.work_path,
+                params.file_label,
+                f"match_dict_{params.file_label}.json",
+            )
+        )
     )
     match_dict = {int(key): value for key, value in match_dict.items()}
 
     metrics = fit_events(charge_df, light_df, match_dict)
 
-    with open(f"{params.file_label}/metrics_{params.file_label}.pkl", "wb") as f:
+    with open(
+        os.path.join(
+            params.work_path, params.file_label, f"metrics_{params.file_label}.pkl"
+        ),
+        "wb",
+    ) as f:
         pickle.dump(metrics, f)
 
 
@@ -104,12 +129,11 @@ else:
     from .methods import (
         cluster_hits,
         fit_hit_clusters,
-        json,
         light_geometry,
         literal_eval,
         params,
         pd,
-        pickle,
+        tqdm,
         prepare_event,
         recal_params,
         voxelize_hits,
