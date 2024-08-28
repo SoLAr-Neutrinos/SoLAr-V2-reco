@@ -165,7 +165,7 @@ def cut_chips(hit_df):
 
 def fit_events(charge_df):
     metrics = {}
-    for event in tqdm(charge_df.index):
+    for event in tqdm(charge_df.index, desc="Fitting events"):
         charge_values = pd.DataFrame(
             charge_df.loc[
                 event,

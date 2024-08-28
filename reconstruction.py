@@ -41,7 +41,7 @@ if __name__ == "__main__":
                 "The '--folder' argument is required when not using the '--charge' and '--light' arguments."
             )
 
-    print("\nReconstruction started...")
+    print("\nReconstruction started...\n")
 
     kwargs = {}
     if args.parameters is not None:
@@ -95,3 +95,5 @@ if __name__ == "__main__":
     metrics_file = os.path.join(output_path, f"metrics_{params.file_label}.pkl")
     with open(metrics_file, "wb") as f:
         pickle.dump(metrics, f)
+
+    print("\nReconstruction finished.\n")

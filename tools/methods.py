@@ -159,7 +159,9 @@ def match_events(charge_df, light_df, window=10):
     charge_events = charge_df[["event_unix_ts", "event_start_t"]].drop_duplicates()
     light_events = light_df[["tai_ns", "event"]].drop_duplicates()
 
-    for event, row in tqdm(charge_events.iterrows(), total=len(charge_events)):
+    for event, row in tqdm(
+        charge_events.iterrows(), total=len(charge_events), desc="Matching events"
+    ):
         charge_ts = (float(row["event_unix_ts"]) * 1e6) + (
             float(row["event_start_t"]) * 1e-1
         )
@@ -782,7 +784,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
             dQdx = (dQ / dx).rename("dQdx")
             dQdx = dQdx.iloc[non_zero_mask[0] : non_zero_mask[-1] + 1]
-            
+
             position = [
                 values["Fit_line"].to_point(t=-values["Fit_norm"] / 2 + t)
                 for t in dQ.index
@@ -1057,9 +1059,7 @@ def combine_metrics():
     combined_metrics = {}
 
     search_path = glob.glob(f"{params.work_path}/**/*metrics*.pkl")
-    if search_path:
-        print("Combining metrics:")
-    for file in tqdm(search_path, leave=True):
+    for file in tqdm(search_path, leave=True, desc="Combining metrics"):
         folder = file.split("/")[-1]
         tqdm.write(folder)
         with open(file, "rb") as f:
