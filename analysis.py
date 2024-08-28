@@ -112,11 +112,12 @@ if __name__ == "__main__":
         "folder",
         help="Folder name for specific metrics file",
         default="combined",
+        nargs="?",
     )
     parser.add_argument(
         "--filter", help="Tag number of filter file within folder", default=None
     )
-    parser.add_argument("--save", "-s", help="Save images", action="store_true")
+    # parser.add_argument("--save", "-s", help="Save images", action="store_true")
     parser.add_argument(
         "--display", "-d", help="Display images (not recomended)", action="store_true"
     )
@@ -135,7 +136,7 @@ if __name__ == "__main__":
     params.file_label = args.folder
     filter_tag = args.filter
     params.show_figures = args.display
-    params.save_figures = args.save
+    params.save_figures = True  # args.save
 
     kwargs = {}
     if args.parameters is not None:

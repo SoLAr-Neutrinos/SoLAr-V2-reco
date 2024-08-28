@@ -37,9 +37,9 @@ def display_events(events, charge_df, light_df=None, match_dict=None, metrics=No
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("file", help="Folder name for specific data file")
+    parser.add_argument("folder", help="Folder name for specific data file")
     parser.add_argument("-e", "--events", help="Event number", type=int, nargs="+")
-    parser.add_argument("--save", "-s", help="Save images", action="store_true")
+    # parser.add_argument("--save", "-s", help="Save images", action="store_true")
     parser.add_argument(
         "--no-display", "-n", help="Don't display images", action="store_false"
     )
@@ -47,8 +47,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     params.show_figures = args.no_display
-    params.file_label = args.file
-    params.save_figures = args.save
+    params.file_label = args.folder
+    params.save_figures = True  # args.save
 
     if args.events:
         params.individual_plots = args.events

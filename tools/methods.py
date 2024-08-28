@@ -1056,8 +1056,11 @@ def filter_metrics(metrics, **kwargs):
 def combine_metrics():
     combined_metrics = {}
 
-    for file in tqdm(glob.glob(f"{params.work_path}/**/*metrics*.pkl"), leave=True):
-        folder = file.split("/")[0]
+    search_path = glob.glob(f"{params.work_path}/**/*metrics*.pkl")
+    if search_path:
+        print("Combining metrics:")
+    for file in tqdm(search_path, leave=True):
+        folder = file.split("/")[-1]
         tqdm.write(folder)
         with open(file, "rb") as f:
             metric = pickle.load(f)
@@ -1070,7 +1073,7 @@ def combine_metrics():
     with open(os.path.join(output_path, "metrics_combined.pkl"), "wb") as o:
         pickle.dump(combined_metrics, o)
 
-    print("Done")
+    print("Done\n")
 
     return combined_metrics
 
