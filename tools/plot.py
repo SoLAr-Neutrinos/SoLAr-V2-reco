@@ -409,8 +409,8 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwa
         lw=1,
     )
 
-    ax.step(dQ_series.index, dQ_series / dx_series, where="mid")
-    # ax.scatter(dQ_series.index, dQ_series / dx_series)
+    ax.step(dQ_series.index, (dQ_series / dx_series).fillna(0), where="mid")
+    # ax.scatter(dQ_series.index, (dQ_series / dx_series).fillna(0))
     ax.set_xlabel(rf"$x$ [{params.dh_unit}]")
     ax.set_ylabel(rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]")
 

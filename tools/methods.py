@@ -67,7 +67,7 @@ def get_dh(unit_vector, length):
     if params.force_dh is not None:
         return params.force_dh
 
-    dl_vector = np.array([params.xy_epsilon, params.xy_epsilon, params.z_epsilon]) * 2
+    dl_vector = np.array([params.xy_epsilon, params.xy_epsilon, params.z_epsilon])
     dl_projection = np.dot(abs(unit_vector), dl_vector)
     ratio = round(length / dl_projection)
     dh = length / max(round(ratio), 1)
@@ -520,11 +520,18 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
                 abs(point_distances[-1] - point_distances[0]), total_distance
             )
 
-        step_length = (
-            max_distance + projected_pitch
-            if max_distance > 0
-            else projected_pitch if dq_i.loc[step] > 0 else 0
-        )
+        # Calculate step_length based on conditions
+        if max_distance > 0:
+            step_length = max_distance + projected_pitch
+        else:
+            if dq_i.loc[step] > 0:
+                step_length = (
+                    projected_pitch if projected_pitch > 0 else target_dh
+                )  # Fallback for vertical tracks. Need to use correct value based on z interval
+            else:
+                step_length = 0
+
+        # Assign the minimum of step_length and target_dh to dh_i.loc[step]
         dh_i.loc[step] = min(step_length, target_dh)
 
     return dq_i, dh_i
@@ -768,7 +775,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
             dQ = values["dQ"]
             dx = values["dx"]
-            non_zero_mask = np.where(dQ > 0)[0]
+            non_zero_mask = np.where((dQ > 0) & (dx > 0))[0]
 
             if len(non_zero_mask) < min_entries:
                 short_count += 1
@@ -860,9 +867,9 @@ def recal_params():
 
     params.first_chip = (2, 1) if params.detector_y == 160 else (1, 1)
 
-    print("\nRecalculating parameters:")
     print(
-        f"\n dh_unit set to {params.dh_unit}\n",
+        "\nRecalculating parameters:\n",
+        f"dh_unit set to {params.dh_unit}\n",
         f"light_unit set to {params.light_unit}\n",
         f"detector_x set to {params.detector_x}\n",
         f"detector_y set to {params.detector_y}\n",
@@ -1060,7 +1067,7 @@ def combine_metrics():
 
     search_path = glob.glob(f"{params.work_path}/**/*metrics*.pkl")
     for file in tqdm(search_path, leave=True, desc="Combining metrics"):
-        folder = file.split("/")[-1]
+        folder = file.split("/")[-2]
         tqdm.write(folder)
         with open(file, "rb") as f:
             metric = pickle.load(f)

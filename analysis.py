@@ -48,7 +48,9 @@ def main(metrics, **kwargs):
 
     # 3 - Individual dQ/dx plots
     print("\nPlotting individual dQ/dx plots\n")
-    for event_idx in tqdm(params.individual_plots, leave=False, desc="Plotting dQ/dx"):
+    for event_idx in tqdm(
+        params.individual_plots, leave=False, desc="Individual dQ/dx"
+    ):
         if event_idx in metrics:
             for track_idx, values in metrics[event_idx].items():
                 if not isinstance(track_idx, str) and track_idx > 0:
@@ -131,7 +133,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print("\nAnalysis started...\n")
+    print("\nAnalysis started...")
 
     params.file_label = args.folder
     filter_tag = args.filter
@@ -169,11 +171,7 @@ if __name__ == "__main__":
                     params.__dict__[key] = value
             else:
                 try:
-                    kwargs[key] = (
-                        literal_eval(value)
-                        if not isinstance(params.__dict__[key], str)
-                        else value
-                    )
+                    kwargs[key] = literal_eval(value)
                 except ValueError:
                     kwargs[key] = value
 

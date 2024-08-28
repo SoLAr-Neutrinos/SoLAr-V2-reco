@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print("\nEvent display started...\n")
+    print("\nEvent display started...")
 
     params.show_figures = args.no_display
     params.file_label = args.folder

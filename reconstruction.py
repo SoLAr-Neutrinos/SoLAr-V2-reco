@@ -41,7 +41,7 @@ if __name__ == "__main__":
                 "The '--folder' argument is required when not using the '--charge' and '--light' arguments."
             )
 
-    print("\nReconstruction started...\n")
+    print("\nReconstruction started...")
 
     kwargs = {}
     if args.parameters is not None:

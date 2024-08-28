@@ -26,7 +26,7 @@ show_figures = False
 label_font_size = 16
 tick_font_size = 16
 title_font_size = 18
-style = "dark_background"
+style = "default"  # "dark_background"
 
 # Events to process
 event_list = None
