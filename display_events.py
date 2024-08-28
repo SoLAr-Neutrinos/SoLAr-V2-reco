@@ -14,7 +14,7 @@ from tools import (
 
 
 def display_events(events, charge_df, light_df=None, match_dict=None, metrics=None):
-    for event in tqdm(events):
+    for event in tqdm(events, desc="Event display"):
         charge_event, light_event, _ = prepare_event(
             event, charge_df, light_df, match_dict
         )
@@ -49,6 +49,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    print("\nEvent display started...\n")
+
     params.show_figures = args.no_display
     params.file_label = args.folder
     params.save_figures = args.save
@@ -73,3 +75,5 @@ if __name__ == "__main__":
     )
 
     display_events(params.individual_plots, charge_df, light_df, match_dict, metrics)
+
+    print("\nEvent display finished.\n")

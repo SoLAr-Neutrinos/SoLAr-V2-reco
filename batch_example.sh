@@ -1,7 +1,8 @@
 #!/bin/sh
 
 # Loop through all files matching the pattern in the specified directory
-for file in  $SOLAREOS/montecarlo/singlecube/cosmic_v0/singlecube_cry_hit_*.root
+# for file in  $SOLAREOS/montecarlo/singlecube/cosmic_v0/singlecube_cry_hit_*.root
+for file in ../Monte\ Carlo/singlecube_cry_hit_*.root
 do
 
 echo "Processing" $file

@@ -220,7 +220,7 @@ def fit_events(charge_df):
     dict: Dictionary containing metrics for each event.
     """
     metrics = {}
-    for event in tqdm(charge_df.index):
+    for event in tqdm(charge_df.index, desc="Fitting events"):
         charge_values = pd.DataFrame(
             charge_df.loc[
                 event,

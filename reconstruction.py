@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print("\nReconstruction started...")
+    print("\nReconstruction started...\n")
 
     input_charge = args.charge
     params.simulate_dead_area = args.dead_areas
@@ -107,3 +107,5 @@ if __name__ == "__main__":
 
     with open(metrics_file, "wb") as f:
         pickle.dump(metrics, f)
+
+    print("\nReconstruction finished.\n")
