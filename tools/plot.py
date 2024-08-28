@@ -506,13 +506,16 @@ def plot_track_stats(
     lognorm=True,
     profile=False,
     bins=[40, 40],
+    dropna=True,
     **kwargs,
 ):
     df = get_track_stats(
         metrics, empty_ratio_lims=empty_ratio_lims, min_entries=min_entries
     )
+    if dropna:
+        df = df.dropna(subset=["track_dQdx"])
 
-    track_dQdx = df["track_dQdx"]
+    track_dQdx = df["track_dQdx"].dropna()
     track_length = df["track_length"].astype(float)
     track_score = df["track_score"].astype(float)
     track_z = df["track_z"].astype(float)

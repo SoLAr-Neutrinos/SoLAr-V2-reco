@@ -758,7 +758,7 @@ def light_geometry(track_line, track_norm, sipm_df, light_variable="integral"):
 
 
 # Charge data
-def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
+def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
     track_dQdx = []
     track_length = []
     track_score = []
@@ -773,12 +773,19 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
             if isinstance(track, str) or track <= 0:
                 continue
 
+            track_length.append(values["Fit_norm"])
+            track_score.append(values["RANSAC_score"])
+            track_z.append(values["Fit_line"].point[2])
+            events.append(event)
+
             dQ = values["dQ"]
             dx = values["dx"]
             non_zero_mask = np.where((dQ > 0) & (dx > 0))[0]
 
             if len(non_zero_mask) < min_entries:
                 short_count += 1
+                track_dQdx.append(np.nan)
+                track_points.append(np.nan)
                 continue
 
             empty_ratio = sum(
@@ -787,6 +794,8 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
             if empty_ratio > empty_ratio_lims[1] or empty_ratio < empty_ratio_lims[0]:
                 empty_count += 1
+                track_dQdx.append(np.nan)
+                track_points.append(np.nan)
                 continue
 
             dQdx = (dQ / dx).rename("dQdx")
@@ -800,10 +809,6 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
             track_dQdx.append(dQdx)
             track_points.append(pd.Series(position, index=dQdx.index, name="position"))
-            track_length.append(values["Fit_norm"])
-            track_score.append(values["RANSAC_score"])
-            track_z.append(values["Fit_line"].point[2])
-            events.append(event)
 
     print(f"Tracks with dead area outside {empty_ratio_lims} interval: {empty_count}")
     print(f"Tracks with less than {min_entries} entries: {short_count}")
