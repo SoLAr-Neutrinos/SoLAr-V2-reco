@@ -1075,10 +1075,12 @@ def combine_metrics():
             for key, value in tqdm(metric.items(), leave=False):
                 combined_metrics[f"{folder}_{key}"] = value
 
-    output_path = os.path.join(params.work_path, "combined")
+    output_path = os.path.join(params.work_path, params.output_folder)
     os.makedirs(output_path, exist_ok=True)
 
-    with open(os.path.join(output_path, "metrics_combined.pkl"), "wb") as o:
+    with open(
+        os.path.join(output_path, f"metrics_{params.output_folder}.pkl"), "wb"
+    ) as o:
         pickle.dump(combined_metrics, o)
 
     print("Done\n")

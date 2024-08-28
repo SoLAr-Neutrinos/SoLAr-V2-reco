@@ -23,14 +23,27 @@
 #   ./analysis.py "$label" -p min_track_length=160
 # done
 
-# Reconstruction after root files have been processed
+# # Reconstruction after root files have been processed
+# for folder in 202307*
+# do
+#   # Print the current file name
+#   echo Folder: "$folder"
+  
+#   # Run the reconstruction script again without simulating dead areas
+#   ./reconstruction.py -f "$folder"
+
+#   ./display_events.py "$folder" -s -n
+  
+#   # Run the analysis script again on the output folder
+#   ./analysis.py "$folder"
+#   ./analysis.py "$folder" -p min_track_length=160
+# done
+
+# Only event displays and analysis after
 for folder in 202307*
 do
   # Print the current file name
   echo Folder: "$folder"
-  
-  # Run the reconstruction script again without simulating dead areas
-  ./reconstruction.py -f "$folder"
 
   ./display_events.py "$folder" -s -n
   
@@ -39,15 +52,6 @@ do
   ./analysis.py "$folder" -p min_track_length=160
 done
 
-# # Only event displays and analysis after
-# for folder in 202307*
-# do
-#   # Print the current file name
-#   echo Folder: "$folder"
-
-#   ./display_events.py "$folder" -s -n
-  
-#   # Run the analysis script again on the output folder
-#   ./analysis.py "$folder"
-#   ./analysis.py "$folder" -p min_track_length=160
-# done
+# Run analysis on combined metrics
+./analysis.py
+./analysis.py -p min_track_length=160

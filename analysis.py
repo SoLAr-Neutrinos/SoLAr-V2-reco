@@ -182,7 +182,7 @@ if __name__ == "__main__":
 
     recal_params()
 
-    if params.output_folder == "combined" and not os.path.isfile(metrics_file):
+    if "combined" in params.output_folder and not os.path.isfile(metrics_file):
         metrics = combine_metrics()
     elif not os.path.isdir(params.output_folder):
         print(f"Folder {params.output_folder} not found. Exiting...")
