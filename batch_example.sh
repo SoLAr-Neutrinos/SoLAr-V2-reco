@@ -19,8 +19,8 @@ do
   ./display_events.py "$label" -s -n
   
   # Run the analysis script again on the output folder
-  ./analysis.py "$label" -s
-  ./analysis.py "$label" -s -p min_track_length=160
+  ./analysis.py "$label"
+  ./analysis.py "$label" -p min_track_length=160
 done
 
 # # Reconstruction after root files have been processed
@@ -35,6 +35,6 @@ done
 #   ./display_events.py "$folder" -s -n
   
 #   # Run the analysis script again on the output folder
-#   ./analysis.py "$folder" -s
-#   ./analysis.py "$folder" -s -p min_track_length=160
+#   ./analysis.py "$folder"
+#   ./analysis.py "$folder" -p min_track_length=160
 # done

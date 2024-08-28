@@ -34,6 +34,8 @@ else:
         max_std,
     )
 
+plt.style.use(params.style)
+
 
 class OOMFormatter(ScalarFormatter):
     def __init__(self, order=0, fformat="%1.1f", offset=True, mathText=True):
