@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print("\nReconstruction started...\n")
+    print("\nReconstruction started...")
 
     input_charge = args.charge
     params.simulate_dead_area = args.dead_areas
@@ -77,7 +77,7 @@ if __name__ == "__main__":
         params.detector_x = params.quadrant_size * 8
         params.detector_y = params.quadrant_size * 8
         print(
-            f"Not simulating dead areas. Detector x and y dimensions reset to {params.quadrant_size * 8}"
+            f"\nNot simulating dead areas. Detector x and y dimensions reset to {params.quadrant_size * 8}"
         )
     else:
         if not params.file_label.endswith("DA"):

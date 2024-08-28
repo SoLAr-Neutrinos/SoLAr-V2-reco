@@ -5,7 +5,7 @@
 for file in ../Monte\ Carlo/singlecube_cry_hit_*.root
 do
 
-echo "Processing" $file
+echo "Processing" $file "with dead areas"
 # Extract the numbers after 'hit_' and before '.root' using sed to get the output folder
 folder=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\.root/\1/p')
 
@@ -17,6 +17,8 @@ folder=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\.root/\1/p')
 
 # Run the analysis script on the output folder
 ./analysis.py $folder -d #-s
+
+echo "Processing" $file "without dead areas"
 
 # Run the reconstruction script again without simulating dead areas
 ./reconstruction.py "$file" -p file_label=$folder

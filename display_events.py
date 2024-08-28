@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print("\nEvent display started...\n")
+    print("\nEvent display started...")
 
     params.show_figures = args.no_display
     params.file_label = args.folder
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         params.detector_x = params.quadrant_size * 8
         params.detector_y = params.quadrant_size * 8
         print(
-            f"Not simulating dead areas. Detector x and y dimensions set to {params.quadrant_size * 8}"
+            f"\nNot simulating dead areas. Detector x and y dimensions set to {params.quadrant_size * 8}"
         )
     elif not params.file_label.endswith("DA"):
         params.file_label += "_DA"
