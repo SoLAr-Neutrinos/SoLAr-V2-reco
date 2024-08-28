@@ -64,6 +64,7 @@ if __name__ == "__main__":
         os,
         params,
     )
+    from uproot import load_charge, load_light
 
     parser = ArgumentParser()
     parser.add_argument("light", help="Path to light file")
@@ -83,10 +84,9 @@ else:
     from .methods import (
         ak,
         json,
-        load_charge,
-        load_light,
         match_events,
         np,
         os,
         params,
     )
+    from .uproot import load_charge, load_light
