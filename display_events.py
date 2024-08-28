@@ -49,7 +49,7 @@ if __name__ == "__main__":
     print("\nEvent display started...")
 
     params.show_figures = args.no_display
-    params.file_label = args.folder
+    params.output_folder = args.folder
     params.save_figures = args.save
 
     if args.events:
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     recal_params()
 
     charge_df, light_df, match_dict, metrics = load_data(
-        params.file_label, return_metrics=True
+        params.output_folder, return_metrics=True
     )
 
     display_events(params.individual_plots, charge_df, light_df, match_dict, metrics)

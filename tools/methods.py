@@ -88,7 +88,7 @@ def get_dr(rmse):
 
 def prepare_event(event, charge_df, light_df=None, match_dict=None):
     if event not in charge_df.index:
-        tqdm.write(f"Event {event} not found in {params.file_label}")
+        tqdm.write(f"Event {event} not found in {params.output_folder}")
         return None, None, None
 
     light_event = None
@@ -102,7 +102,7 @@ def prepare_event(event, charge_df, light_df=None, match_dict=None):
                 subset=params.light_variable
             )
         else:
-            print(f"No light event found for event {event} in {params.file_label}")
+            print(f"No light event found for event {event} in {params.output_folder}")
 
     charge_event = pd.DataFrame(
         charge_df.rename(
@@ -820,12 +820,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
     track_z = pd.Series(track_z)
     events = pd.Series(events)
 
-    mask = (
-        track_dQdx.apply(lambda x: x.notna().all())
-        * track_length.notna()
-        * track_score.notna()
-        * track_z.notna()
-    )
+    mask = track_length.notna() * track_score.notna() * track_z.notna()
 
     print(f"\nRemaining tracks: {sum(mask)}\n")
 
@@ -1042,9 +1037,10 @@ def filter_metrics(metrics, **kwargs):
                     filtered_metrics[event_idx] = candidate_metric
 
     print(f"{len(filtered_metrics)} metrics remaining")
+    params.filter_label = len(filtered_metrics)
 
     # Save the filtering parameters to a JSON file
-    output_path = os.path.join(params.work_path, params.file_label)
+    output_path = os.path.join(params.work_path, params.output_folder)
     os.makedirs(output_path, exist_ok=True)
     with open(
         os.path.join(output_path, f"filter_parameters_{len(filtered_metrics)}.json"),

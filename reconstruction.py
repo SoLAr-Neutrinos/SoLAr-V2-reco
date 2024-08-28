@@ -81,18 +81,18 @@ if __name__ == "__main__":
     if params.reload_files:
         input_charge = args.charge
         input_light = args.light
-        params.file_label = "_".join(input_light.split("_")[-2:]).split(".")[0]
+        params.output_folder = "_".join(input_light.split("_")[-2:]).split(".")[0]
         charge_df, light_df, match_dict = process_root(input_charge, input_light)
     else:
-        params.file_label = os.path.split(args.folder)[-1]
+        params.output_folder = os.path.split(args.folder)[-1]
         # Load charge file
         charge_df, light_df, match_dict = load_data(args.folder, return_metrics=False)
 
     metrics = fit_events(charge_df, light_df, match_dict)
 
-    output_path = os.path.join(params.work_path, f"{params.file_label}")
+    output_path = os.path.join(params.work_path, f"{params.output_folder}")
     os.makedirs(output_path, exist_ok=True)
-    metrics_file = os.path.join(output_path, f"metrics_{params.file_label}.pkl")
+    metrics_file = os.path.join(output_path, f"metrics_{params.output_folder}.pkl")
     with open(metrics_file, "wb") as f:
         pickle.dump(metrics, f)
 

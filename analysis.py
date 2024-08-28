@@ -135,7 +135,7 @@ if __name__ == "__main__":
 
     print("\nAnalysis started...")
 
-    params.file_label = args.folder
+    params.output_folder = args.folder
     filter_tag = args.filter
     params.show_figures = args.display
     params.save_figures = True  # args.save
@@ -176,16 +176,16 @@ if __name__ == "__main__":
                     kwargs[key] = value
 
     if filter_tag is not None:
-        filter_file = f"{params.file_label}/filter_parameters_{filter_tag}.json"
+        filter_file = f"{params.output_folder}/filter_parameters_{filter_tag}.json"
 
-    metrics_file = f"{params.file_label}/metrics_{params.file_label}.pkl"
+    metrics_file = f"{params.output_folder}/metrics_{params.output_folder}.pkl"
 
     recal_params()
 
-    if params.file_label == "combined" and not os.path.isfile(metrics_file):
+    if params.output_folder == "combined" and not os.path.isfile(metrics_file):
         metrics = combine_metrics()
-    elif not os.path.isdir(params.file_label):
-        print(f"Folder {params.file_label} not found. Exiting...")
+    elif not os.path.isdir(params.output_folder):
+        print(f"Folder {params.output_folder} not found. Exiting...")
         exit(1)
     else:
         with open(metrics_file, "rb") as f:
