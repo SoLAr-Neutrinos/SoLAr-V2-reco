@@ -16,7 +16,7 @@ folder=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\.root/\1/p')
 ./display_events.py $folder -n -d -s
 
 # Run the analysis script on the output folder
-./analysis.py $folder -d #-s
+./analysis.py $folder -d
 
 echo "Processing" $file "without dead areas"
 
@@ -27,6 +27,6 @@ echo "Processing" $file "without dead areas"
 ./display_events.py $folder -n -s
 
 # Run the analysis script again on the output folder
-./analysis.py $folder #-s
+./analysis.py $folder
 
 done
