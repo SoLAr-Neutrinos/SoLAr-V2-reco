@@ -88,7 +88,7 @@ def get_dr(rmse):
 
 def prepare_event(event, charge_df, light_df=None, match_dict=None):
     if event not in charge_df.index:
-        tqdm.write(f"Event {event} not found in {params.file_label}")
+        tqdm.write(f"Event {event} not found in {params.output_folder}")
         return None, None, None
 
     light_event = None
@@ -102,7 +102,7 @@ def prepare_event(event, charge_df, light_df=None, match_dict=None):
                 subset=params.light_variable
             )
         else:
-            print(f"No light event found for event {event} in {params.file_label}")
+            print(f"No light event found for event {event} in {params.output_folder}")
 
     charge_event = pd.DataFrame(
         charge_df.rename(
@@ -531,6 +531,7 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
             else:
                 step_length = 0
 
+        # Assign the minimum of step_length and target_dh to dh_i.loc[step]
         dh_i.loc[step] = min(step_length, target_dh)
 
     return dq_i, dh_i
@@ -757,7 +758,7 @@ def light_geometry(track_line, track_norm, sipm_df, light_variable="integral"):
 
 
 # Charge data
-def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
+def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
     track_dQdx = []
     track_length = []
     track_score = []
@@ -772,12 +773,19 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
             if isinstance(track, str) or track <= 0:
                 continue
 
+            track_length.append(values["Fit_norm"])
+            track_score.append(values["RANSAC_score"])
+            track_z.append(values["Fit_line"].point[2])
+            events.append(event)
+
             dQ = values["dQ"]
             dx = values["dx"]
             non_zero_mask = np.where((dQ > 0) & (dx > 0))[0]
 
             if len(non_zero_mask) < min_entries:
                 short_count += 1
+                track_dQdx.append(np.nan)
+                track_points.append(np.nan)
                 continue
 
             empty_ratio = sum(
@@ -786,11 +794,13 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
             if empty_ratio > empty_ratio_lims[1] or empty_ratio < empty_ratio_lims[0]:
                 empty_count += 1
+                track_dQdx.append(np.nan)
+                track_points.append(np.nan)
                 continue
 
             dQdx = (dQ / dx).rename("dQdx")
             dQdx = dQdx.iloc[non_zero_mask[0] : non_zero_mask[-1] + 1]
-            x_range = dQdx.index
+
             position = [
                 values["Fit_line"].to_point(t=-values["Fit_norm"] / 2 + t)
                 for t in dQ.index
@@ -799,10 +809,6 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
             track_dQdx.append(dQdx)
             track_points.append(pd.Series(position, index=dQdx.index, name="position"))
-            track_length.append(values["Fit_norm"])
-            track_score.append(values["RANSAC_score"])
-            track_z.append(values["Fit_line"].point[2])
-            events.append(event)
 
     print(f"Tracks with dead area outside {empty_ratio_lims} interval: {empty_count}")
     print(f"Tracks with less than {min_entries} entries: {short_count}")
@@ -814,12 +820,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
     track_z = pd.Series(track_z)
     events = pd.Series(events)
 
-    mask = (
-        track_dQdx.apply(lambda x: x.notna().all())
-        * track_length.notna()
-        * track_score.notna()
-        * track_z.notna()
-    )
+    mask = track_length.notna() * track_score.notna() * track_z.notna()
 
     print(f"\nRemaining tracks: {sum(mask)}\n")
 
@@ -1036,9 +1037,10 @@ def filter_metrics(metrics, **kwargs):
                     filtered_metrics[event_idx] = candidate_metric
 
     print(f"{len(filtered_metrics)} metrics remaining")
+    params.filter_label = len(filtered_metrics)
 
     # Save the filtering parameters to a JSON file
-    output_path = os.path.join(params.work_path, params.file_label)
+    output_path = os.path.join(params.work_path, params.output_folder)
     os.makedirs(output_path, exist_ok=True)
     with open(
         os.path.join(output_path, f"filter_parameters_{len(filtered_metrics)}.json"),

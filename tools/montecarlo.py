@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 
-from .methods import cluster_hits, fit_hit_clusters, np, params, pd, tqdm
+from .methods import (
+    params,
+    np,
+    pd,
+    cluster_hits,
+    fit_hit_clusters,
+    tqdm,
+)
 
 
 def get_translation():
-    """
-    Calculate the translation vector based on simulation parameters.
-
-    Returns:
-    tuple: A tuple containing the translation values for x, y, and z coordinates.
-    """
     translation = (
         (
             -np.power(-1, params.flip_x)
@@ -24,17 +25,6 @@ def get_translation():
 
 
 def translate_coordinates(hit_df, translation, inverse=False):
-    """
-    Translate the coordinates of hits in the DataFrame.
-
-    Parameters:
-    hit_df (pd.DataFrame): DataFrame containing hit data.
-    translation (tuple): Tuple containing translation values for x, y, and z coordinates.
-    inverse (bool): If True, apply inverse translation. Default is False.
-
-    Returns:
-    pd.DataFrame: DataFrame with translated hit coordinates.
-    """
     hit_df["hit_x"] = hit_df["hit_x"].apply(
         lambda x: [round(i - translation[0] * np.power(-1, inverse), 1) for i in x]
     )
@@ -49,15 +39,6 @@ def translate_coordinates(hit_df, translation, inverse=False):
 
 
 def rotate_coordinates(hit_df):
-    """
-    Rotate the coordinates of hits in the DataFrame.
-
-    Parameters:
-    hit_df (pd.DataFrame): DataFrame containing hit data.
-
-    Returns:
-    pd.DataFrame: DataFrame with rotated hit coordinates.
-    """
     df = hit_df.copy()
     df["hit_x"] = hit_df["hit_z"].apply(lambda x: [-i for i in x])
     df["hit_y"] = hit_df["hit_y"]
@@ -67,15 +48,6 @@ def rotate_coordinates(hit_df):
 
 
 def cut_volume(hit_df):
-    """
-    Filter hits that are within the detector volume.
-
-    Parameters:
-    hit_df (pd.DataFrame): DataFrame containing hit data.
-
-    Returns:
-    pd.DataFrame: DataFrame with hits filtered by detector volume.
-    """
     additional_columns = [
         col for col in hit_df.columns if col not in ["hit_x", "hit_y", "hit_z"]
     ]
@@ -102,15 +74,6 @@ def cut_volume(hit_df):
 
 
 def cut_sipms(hit_df):
-    """
-    Filter hits that are within the SiPMs (Silicon Photomultipliers) area.
-
-    Parameters:
-    hit_df (pd.DataFrame): DataFrame containing hit data.
-
-    Returns:
-    pd.DataFrame: DataFrame with hits filtered by SiPMs area.
-    """
     additional_columns = [
         col for col in hit_df.columns if col not in ["hit_x", "hit_y", "hit_z"]
     ]
@@ -144,15 +107,6 @@ def cut_sipms(hit_df):
 
 
 def cut_chips(hit_df):
-    """
-    Filter hits that are within the chip areas.
-
-    Parameters:
-    hit_df (pd.DataFrame): DataFrame containing hit data.
-
-    Returns:
-    pd.DataFrame: DataFrame with hits filtered by chip areas.
-    """
     additional_columns = [
         col for col in hit_df.columns if col not in ["hit_x", "hit_y", "hit_z"]
     ]
@@ -210,15 +164,6 @@ def cut_chips(hit_df):
 
 
 def fit_events(charge_df):
-    """
-    Fit events in the charge DataFrame and calculate metrics.
-
-    Parameters:
-    charge_df (pd.DataFrame): DataFrame containing charge data.
-
-    Returns:
-    dict: Dictionary containing metrics for each event.
-    """
     metrics = {}
     for event in tqdm(charge_df.index, desc="Fitting events"):
         charge_values = pd.DataFrame(
@@ -268,5 +213,5 @@ def fit_events(charge_df):
 
 #     input_charge = args.charge
 #     params.simulate_dead_area = args.dead_areas
-#     params.file_label = input_charge.split("_")[-1].split(".")[0]
+#     params.output_folder = input_charge.split("_")[-1].split(".")[0]
 #     recal_params()

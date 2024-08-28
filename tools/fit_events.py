@@ -7,7 +7,7 @@ import pickle
 
 def fit_events(charge_df, light_df, match_dict):
     metrics = {}
-    for event in tqdm(charge_df.index):
+    for event in tqdm(charge_df.index, desc="Fitting events"):
         charge_event, light_event, mask = prepare_event(
             event, charge_df, light_df, match_dict
         )
@@ -80,13 +80,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    params.file_label = args.file
+    params.output_folder = args.file
     recal_params()
 
     # Load charge file
     charge_df = pd.read_csv(
         os.path.join(
-            params.work_path, params.file_label, "charge_df_{params.file_label}.bz2"
+            params.work_path, params.output_folder, "charge_df_{params.output_folder}.bz2"
         ),
         index_col="eventID",
     )
@@ -97,7 +97,9 @@ if __name__ == "__main__":
     # Load light file
     light_df = pd.read_csv(
         os.path.join(
-            params.work_path, params.file_label, f"light_df_{params.file_label}.bz2"
+            params.work_path,
+            params.output_folder,
+            f"light_df_{params.output_folder}.bz2",
         ),
         index_col=0,
     )
@@ -107,8 +109,8 @@ if __name__ == "__main__":
         open(
             os.path.join(
                 params.work_path,
-                params.file_label,
-                f"match_dict_{params.file_label}.json",
+                params.output_folder,
+                f"match_dict_{params.output_folder}.json",
             )
         )
     )
@@ -118,7 +120,9 @@ if __name__ == "__main__":
 
     with open(
         os.path.join(
-            params.work_path, params.file_label, f"metrics_{params.file_label}.pkl"
+            params.work_path,
+            params.output_folder,
+            f"metrics_{params.output_folder}.pkl",
         ),
         "wb",
     ) as f:
