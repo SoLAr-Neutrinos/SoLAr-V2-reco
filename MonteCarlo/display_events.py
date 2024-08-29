@@ -80,8 +80,10 @@ if __name__ == "__main__":
 
     recal_params()
 
+    search_path = os.path.join(params.work_path, f"{params.output_folder}")
+
     charge_df, light_df, match_dict, metrics = load_data(
-        params.output_folder, return_metrics=True
+        search_path, return_metrics=True
     )
 
     display_events(params.individual_plots, charge_df, light_df, match_dict, metrics)

@@ -131,7 +131,7 @@ if __name__ == "__main__":
                 try:
                     params.__dict__[key] = (
                         literal_eval(value)
-                        if not isinstance(params.__dict__[key, str])
+                        if not isinstance(params.__dict__[key], str)
                         else value
                     )
                 except ValueError:
@@ -146,16 +146,18 @@ if __name__ == "__main__":
                 except ValueError:
                     kwargs[key] = value
 
-    if filter_tag is not None:
-        filter_file = f"{params.output_folder}/filter_parameters_{filter_tag}.json"
+    search_path = os.path.join(params.work_path, f"{params.output_folder}")
 
-    metrics_file = f"{params.output_folder}/metrics_{params.output_folder}.pkl"
+    if filter_tag is not None:
+        filter_file = os.path.join(search_path, f"filter_parameters_{filter_tag}.json")
+
+    metrics_file = os.path.join(search_path, f"metrics_{params.output_folder}.pkl")
 
     recal_params()
 
     if params.output_folder == "combined" and not os.path.isfile(metrics_file):
         metrics = combine_metrics()
-    elif not os.path.isdir(params.output_folder):
+    elif not os.path.isdir(search_path):
         print(f"Folder {params.output_folder} not found. Exiting...")
         exit(1)
     else:
