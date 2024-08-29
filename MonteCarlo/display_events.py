@@ -5,8 +5,16 @@ from argparse import ArgumentParser
 
 sys.path.append("..")
 
-from tools import (event_display, load_data, params, plt, prepare_event,
-                   recal_params, tqdm)
+from tools import (
+    os,
+    event_display,
+    load_data,
+    params,
+    plt,
+    prepare_event,
+    recal_params,
+    tqdm,
+)
 
 
 def display_events(events, charge_df, light_df=None, match_dict=None, metrics=None):

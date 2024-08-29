@@ -106,11 +106,18 @@ if __name__ == "__main__":
 
     metrics = montecarlo.fit_events(charge_df)
 
-    output_charge = f"{params.output_folder}/charge_df_{params.output_folder}.bz2"
-    metrics_file = f"{params.output_folder}/metrics_{params.output_folder}.pkl"
+    output_path = os.path.join(params.work_path, f"{params.output_folder}")
+    output_charge = os.path.join(
+        output_path,
+        f"charge_df_{params.output_folder}.bz2",
+    )
+    metrics_file = os.path.join(
+        output_path,
+        f"metrics_{params.output_folder}.pkl",
+    )
 
     # Save files
-    os.makedirs(params.output_folder, exist_ok=True)
+    os.makedirs(output_path, exist_ok=True)
     charge_df.to_csv(output_charge)
 
     with open(metrics_file, "wb") as f:

@@ -471,7 +471,6 @@ def plot_track_angles(metrics, **kwargs):
     cos_x = np.array(cos_x)
     cos_y = np.array(cos_y)
     cos_z = np.array(cos_z)
-    entries = len(cos_x)
 
     fig, ax = plt.subplots(2, 3, figsize=(18, 12))
 
@@ -496,9 +495,14 @@ def plot_track_angles(metrics, **kwargs):
     if params.save_figures:
         output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
+        label = (
+            f"_{params.filter_label}"
+            if params.filter_label is not None
+            else f"_{len(cos_x)}"
+        )
         fig.savefig(
             os.path.join(
-                output_path, f"track_angles_{params.output_folder}_{entries}.pdf"
+                output_path, f"track_angles_{params.output_folder}{label}.pdf"
             ),
             dpi=300,
             bbox_inches="tight",
@@ -588,37 +592,41 @@ def plot_track_stats(
         np.std(bin_centers_all11) / 2,
         max(n_all11),
     )
-
-    popt, pcov = curve_fit(
-        pylandau.langau,
-        bin_centers_all11,
-        n_all11,
-        absolute_sigma=True,
-        p0=p0,
-        bounds=(
-            (
-                bin_centers_all11[max(n_all11.argmax() - 3, 0)],
-                0,
-                0,
-                0,
-            ),
-            (
-                bin_centers_all11[
-                    min(n_all11.argmax() + 3, len(bin_centers_all11) - 1)
-                ],
-                np.inf,
-                np.inf,
-                np.inf,
-            ),
+    bounds = (
+        (
+            bin_centers_all11[max(n_all11.argmax() - 3, 0)],
+            0,
+            0,
+            0,
+        ),
+        (
+            bin_centers_all11[min(n_all11.argmax() + 3, len(bin_centers_all11) - 1)],
+            np.inf,
+            np.inf,
+            np.inf,
         ),
     )
+    try:
+        popt, pcov = curve_fit(
+            pylandau.langau,
+            bin_centers_all11[bin_centers_all11>2000],
+            n_all11[bin_centers_all11>2000],
+            absolute_sigma=True,
+            p0=p0,
+            bounds=bounds,
+        )
 
-    ax11.plot(
-        fit_x := np.linspace(bins_all11[0], bins_all11[-1], 1000),
-        pylandau.langau(fit_x, *popt),
-        "r-",
-        label=r"fit: $\mu$=%5.1f, $\eta$=%5.1f, $\sigma$=%5.1f, A=%5.1f" % tuple(popt),
-    )
+        ax11.plot(
+            fit_x := np.linspace(bins_all11[0], bins_all11[-1], 1000),
+            pylandau.langau(fit_x, *popt),
+            "r-",
+            label=r"fit: $\mu$=%5.1f, $\eta$=%5.1f, $\sigma$=%5.1f, A=%5.1f"
+            % tuple(popt),
+        )
+    except:
+        print("\nCould not fit Landau to dQ/dx")
+        print(f"p0: {p0}")
+        print(f"bounds: {bounds}")
 
     ax11.set_xlabel(
         rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",

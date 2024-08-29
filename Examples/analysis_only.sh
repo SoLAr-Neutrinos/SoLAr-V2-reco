@@ -3,10 +3,10 @@
 # Get the directory where the script is located
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 
-# Get the parent directory of the script's directory
-PARENT_DIR=$(basename "$(dirname "$SCRIPT_DIR")")
+# Get the name of the parent directory
+PARENT_DIR=$(basename "$SCRIPT_DIR")
 
-# Check if the parent directory is "Examples"
+# Check if the parent directory is named "Examples"
 if [ "$PARENT_DIR" == "Examples" ]; then
   # Save the current directory and change to the parent directory
   pushd "$SCRIPT_DIR/.."
