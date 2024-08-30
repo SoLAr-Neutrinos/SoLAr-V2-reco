@@ -4,13 +4,12 @@ from argparse import ArgumentParser
 
 from tools import (
     fit_events,
-    json,
-    literal_eval,
     load_data,
     os,
     params,
     pickle,
     process_root,
+    load_params,
 )
 
 if __name__ == "__main__":
@@ -43,40 +42,7 @@ if __name__ == "__main__":
 
     print("\nReconstruction started...")
 
-    kwargs = {}
-    if args.parameters is not None:
-        # Check if parameters are provided in a JSON file
-        if (
-            len(args.parameters) == 1
-            and args.parameters[0].endswith(".json")
-            and os.path.isfile(args.parameters[0])
-        ):
-            with open(args.parameters[0], "r") as f:
-                param = json.load(f)
-        else:
-            # Convert command line parameters to dictionary
-            param = {
-                key: value
-                for param in args.parameters
-                for key, value in [param.split("=") if "=" in param else (param, None)]
-            }
-
-        # Now process the parameters in a single for loop
-        for key, value in param.items():
-            if key in params.__dict__:
-                try:
-                    params.__dict__[key] = (
-                        literal_eval(value)
-                        if not isinstance(params.__dict__[key], str)
-                        else value
-                    )
-                except ValueError:
-                    params.__dict__[key] = value
-            # else:
-            #     try:
-            #         kwargs[key] = literal_eval(value)
-            #     except ValueError:
-            #         kwargs[key] = value
+    kwargs = load_params(args.parameters)
 
     if params.reload_files:
         input_charge = args.charge

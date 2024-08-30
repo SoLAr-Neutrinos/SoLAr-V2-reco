@@ -6,18 +6,24 @@ from argparse import ArgumentParser
 import inspect
 
 
-def main(metrics, **kwargs):
+def main(metrics, mc=False, **kwargs):
     warnings.filterwarnings("ignore", category=Warning, module="numpy")
 
     methods = [
         plot_track_stats,
         plot_track_angles,
         plot_dQ,
-        plot_light_geo_stats,
-        plot_light_vs_charge,
-        plot_voxel_data,
-        plot_light_fit_stats,
     ]
+    if not mc:
+        methods.extend(
+            [
+                plot_light_geo_stats,
+                plot_light_vs_charge,
+                plot_voxel_data,
+                plot_light_fit_stats,
+            ]
+        )
+
     method_kwargs = {}
     for method in methods:
         method_kwargs[method.__qualname__] = {}
@@ -69,6 +75,9 @@ def main(metrics, **kwargs):
                     else:
                         plt.close("all")
 
+    if mc:
+        return
+
     # 4 - Light geometrical properties to charge tracks statistics
     print("\nPlotting light geometrical properties to charge tracks statistics\n")
     plot_light_geo_stats(metrics, **method_kwargs["plot_light_geo_stats"])
@@ -117,11 +126,11 @@ if __name__ == "__main__":
         nargs="?",
     )
     parser.add_argument(
-        "--filter", help="Tag number of filter file within folder", default=None
+        "-f", "--filter", help="Tag number of filter file within folder", default=None
     )
     # parser.add_argument("--save", "-s", help="Save images", action="store_true")
     parser.add_argument(
-        "--display", "-d", help="Display images (not recomended)", action="store_true"
+        "--display", help="Display images (not recomended)", action="store_true"
     )
     parser.add_argument(
         "-p",
@@ -129,6 +138,18 @@ if __name__ == "__main__":
         action="append",
         help="Key=value pairs for aditional parameters or json file containing parameters",
         required=False,
+    )
+    parser.add_argument(
+        "-m",
+        "--montecarlo",
+        help="Flag for Monte Carlo simulation files",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-d",
+        "--dead-areas",
+        help="Simulate dead areas in Monte Carlo files",
+        action="store_true",
     )
 
     args = parser.parse_args()
@@ -139,41 +160,35 @@ if __name__ == "__main__":
     filter_tag = args.filter
     params.show_figures = args.display
     params.save_figures = True  # args.save
+    params.simulate_dead_area = False
 
-    kwargs = {}
-    if args.parameters is not None:
-        # Check if parameters are provided in a JSON file
-        if (
-            len(args.parameters) == 1
-            and args.parameters[0].endswith(".json")
-            and os.path.isfile(args.parameters[0])
-        ):
-            with open(args.parameters[0], "r") as f:
-                param = json.load(f)
+    if args.montecarlo:
+        params.simulate_dead_area = args.dead_areas
+        if args.dead_areas:
+            params.detector_x = params.quadrant_size * 4
+            params.detector_y = params.quadrant_size * 5
+            print(
+                f"Simulating dead areas. Detector x and y dimensions reset to ({params.detector_x},{params.detector_y})"
+            )
+            if params.simulate_dead_area and not params.output_folder.endswith("DA"):
+                params.output_folder += "_DA"
+            if (
+                params.simulate_dead_area
+                and not os.path.split(params.work_path)[-1] == "DA"
+            ):
+                params.work_path = os.path.join(params.work_path, "DA")
         else:
-            # Convert command line parameters to dictionary
-            param = {
-                key: value
-                for param in args.parameters
-                for key, value in [param.split("=") if "=" in param else (param, None)]
-            }
+            params.detector_x = params.quadrant_size * 8
+            params.detector_y = params.quadrant_size * 8
+            print(
+                f"Not simulating dead areas. Detector x and y dimensions reset to ({params.detector_x},{params.detector_y})"
+            )
+    else:
+        print(
+            "Warning: The -d/--dead-areas flag is ignored because the -m/--montecarlo flag is not set."
+        )
 
-        # Now process the parameters in a single for loop
-        for key, value in param.items():
-            if key in params.__dict__:
-                try:
-                    params.__dict__[key] = (
-                        literal_eval(value)
-                        if not isinstance(params.__dict__[key], str)
-                        else value
-                    )
-                except ValueError:
-                    params.__dict__[key] = value
-            else:
-                try:
-                    kwargs[key] = literal_eval(value)
-                except ValueError:
-                    kwargs[key] = value
+    kwargs = load_params(args.parameters)
 
     search_path = os.path.join(params.work_path, f"{params.output_folder}")
 
@@ -201,6 +216,6 @@ if __name__ == "__main__":
     print(len(metrics), "metrics loaded")
     metrics = filter_metrics(metrics)
 
-    main(metrics, **kwargs)
+    main(metrics, args.montecarlo, **kwargs)
 
     print("\nAnalysis finished.\n")

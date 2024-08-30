@@ -24,21 +24,25 @@ label=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\.root/\1/p')
 ./reconstruction.py "$file" -d -p file_label=$label
 
 # Make event displays
-./display_events.py $label -n -s -d
+./../display_events.py $label -m -n -s -d
 
 # Run the analysis script on the output folder
-./analysis.py $label -d -s
+./../analysis.py $label -m -d -s
 
 # Run the reconstruction script again without simulating dead areas
 ./reconstruction.py "$file" -p file_label=$label
 
 # Make event displays
-./display_events.py $label -n -s
+./../display_events.py $label -m -n -s
 
 # Run the analysis script again on the output folder
-./analysis.py $label -s
+./../analysis.py $label -m -s
 
 done
+
+# Run the analysis script on all output folders
+./../analysis.py -m -s -d
+./../analysis.py -m -s
 
 # If pushd was executed, return to the original directory
 if [ "$PARENT_DIR" == "Examples" ]; then

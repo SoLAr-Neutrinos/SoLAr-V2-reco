@@ -47,6 +47,8 @@ light_unit = "p.e."
 
 
 # Conversion factors
+drift_v = 1.6  # mm/us
+integration_window = 1  # us
 charge_gain = 245  # mV to e
 detector_z = 300
 detector_x = 128

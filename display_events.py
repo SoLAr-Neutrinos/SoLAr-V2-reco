@@ -3,6 +3,7 @@
 from argparse import ArgumentParser
 
 from tools import (
+    os,
     event_display,
     plt,
     recal_params,
@@ -39,9 +40,18 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("folder", help="Folder name for specific data file")
     parser.add_argument("-e", "--events", help="Event number", type=int, nargs="+")
-    parser.add_argument("--save", "-s", help="Save images", action="store_true")
+    parser.add_argument("-s", "--save", help="Save images", action="store_true")
     parser.add_argument(
-        "--no-display", "-n", help="Don't display images", action="store_false"
+        "-n", "--no-display", help="Don't display images", action="store_false"
+    )
+    parser.add_argument(
+        "-m",
+        "--montecarlo",
+        help="Flag for Monte Carlo simulation files",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-d", "--dead-areas", help="Simulate dead areas", action="store_true"
     )
 
     args = parser.parse_args()
@@ -51,9 +61,32 @@ if __name__ == "__main__":
     params.show_figures = args.no_display
     params.output_folder = args.folder
     params.save_figures = args.save
+    params.simulate_dead_area = False
 
     if args.events:
         params.individual_plots = args.events
+
+    if args.montecarlo:
+        params.simulate_dead_area = args.dead_areas
+        if params.simulate_dead_area:
+            params.detector_x = params.quadrant_size * 4
+            params.detector_y = params.quadrant_size * 5
+            print(
+                f"Simulating dead areas. Detector x and y dimensions reset to ({params.detector_x},{params.detector_y})"
+            )
+            if not params.output_folder.endswith("DA"):
+                params.output_folder += "_DA"
+            if (
+                params.simulate_dead_area
+                and not os.path.split(params.work_path)[-1] == "DA"
+            ):
+                params.work_path = os.path.join(params.work_path, "DA")
+        else:
+            params.detector_x = params.quadrant_size * 8
+            params.detector_y = params.quadrant_size * 8
+            print(
+                f"Not simulating dead areas. Detector x and y dimensions reset to ({params.detector_x},{params.detector_y})"
+            )
 
     recal_params()
 

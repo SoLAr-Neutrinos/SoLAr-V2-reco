@@ -6,13 +6,12 @@ from argparse import ArgumentParser
 sys.path.append("..")
 
 from tools import (
-    json,
-    literal_eval,
     load_charge,
     montecarlo,
     os,
     params,
     pickle,
+    load_params,
     recal_params,
 )
 
@@ -38,40 +37,7 @@ if __name__ == "__main__":
     params.simulate_dead_area = args.dead_areas
     params.output_folder = input_charge.split("_")[-1].split(".")[0]
 
-    kwargs = {}
-    if args.parameters is not None:
-        # Check if parameters are provided in a JSON file
-        if (
-            len(args.parameters) == 1
-            and args.parameters[0].endswith(".json")
-            and os.path.isfile(args.parameters[0])
-        ):
-            with open(args.parameters[0], "r") as f:
-                param = json.load(f)
-        else:
-            # Convert command line parameters to dictionary
-            param = {
-                key: value
-                for param in args.parameters
-                for key, value in [param.split("=") if "=" in param else (param, None)]
-            }
-
-        # Now process the parameters in a single for loop
-        for key, value in param.items():
-            if key in params.__dict__:
-                try:
-                    params.__dict__[key] = (
-                        literal_eval(value)
-                        if not isinstance(params.__dict__[key], str)
-                        else value
-                    )
-                except ValueError:
-                    params.__dict__[key] = value
-            # else:
-            #     try:
-            #         kwargs[key] = literal_eval(value)
-            #     except ValueError:
-            #         kwargs[key] = value
+    kwargs = load_params(args.parameters)
 
     charge_df = load_charge(input_charge)
     charge_df = montecarlo.rotate_coordinates(charge_df)
@@ -83,6 +49,11 @@ if __name__ == "__main__":
             f"Not simulating dead areas. Detector x and y dimensions reset to {params.quadrant_size * 8}"
         )
     else:
+        params.detector_x = params.quadrant_size * 4
+        params.detector_y = params.quadrant_size * 5
+        print(
+            f"Simulating dead areas. Detector x and y dimensions reset to ({params.detector_x},{params.detector_y})"
+        )
         if not params.output_folder.endswith("DA"):
             params.output_folder += "_DA"
         if (
