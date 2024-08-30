@@ -219,6 +219,7 @@ def event_display(
         s=round((30**4) / (params.detector_x * params.detector_y)),
         vmin=q_sum.min(),
         vmax=q_sum.max(),
+        zorder=9,
     )
     cbar = plt.colorbar(plot2d)
     cbar.set_label(f"charge [{params.q_unit}]")

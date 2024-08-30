@@ -520,23 +520,25 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
         if len(point_distances) > 0:
             point_distances = np.unique(np.array(point_distances))
             intervals = np.diff(point_distances)
-            total_distance = sum(
-                intervals[intervals <= limit_pitch]
-            ) + projected_pitch * 2 * (sum(intervals > limit_pitch))
-            max_distance = min(
-                abs(point_distances[-1] - point_distances[0]), total_distance
+
+            # Sum up the live areas (intervals <= limit_pitch) and correct by the pixel pitch
+            live_intervals = intervals[intervals <= limit_pitch]
+            dead_intervals_count = np.sum(intervals > limit_pitch)
+            total_live_distance = np.sum(live_intervals) + (
+                dead_intervals_count * projected_pitch
             )
 
-        # Calculate step_length based on conditions
-        if max_distance > 0:
-            step_length = max_distance + projected_pitch
-        else:
-            if dq_i.loc[step] > 0:
-                step_length = (
-                    projected_pitch if projected_pitch > 0 else target_dh
-                )  # Fallback for vertical tracks. Need to use correct value based on z interval
-            else:
-                step_length = 0
+            # Calculate max_distance based on live areas
+            max_distance = min(
+                abs(point_distances[-1] - point_distances[0]), total_live_distance
+            )
+
+            # Calculate step_length based on conditions
+        step_length = (
+            max_distance + projected_pitch
+            if max_distance > 0
+            else (projected_pitch if dq_i.loc[step] > 0 else 0)
+        )
 
         # Assign the minimum of step_length and target_dh to dh_i.loc[step]
         dh_i.loc[step] = min(step_length, target_dh)
