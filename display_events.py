@@ -39,9 +39,9 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("folder", help="Folder name for specific data file")
     parser.add_argument("-e", "--events", help="Event number", type=int, nargs="+")
-    parser.add_argument("--save", "-s", help="Save images", action="store_true")
+    parser.add_argument("-s", "--save", help="Save images", action="store_true")
     parser.add_argument(
-        "--no-display", "-n", help="Don't display images", action="store_false"
+       "-n", "--no-display", help="Don't display images", action="store_false"
     )
 
     args = parser.parse_args()

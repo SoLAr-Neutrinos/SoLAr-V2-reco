@@ -63,6 +63,7 @@ if __name__ == "__main__":
         "folder",
         help="Folder name for specific metrics file",
         default="combined",
+        nargs="?",
     )
     parser.add_argument(
         "--filter", help="Tag number of filter file within folder", default=None
@@ -92,13 +93,12 @@ if __name__ == "__main__":
     params.save_figures = args.save
     params.simulate_dead_area = args.dead_areas
 
-    if not params.simulate_dead_area:
-        params.detector_x = params.quadrant_size * 8
-        params.detector_y = params.quadrant_size * 8
+    if params.simulate_dead_area:
+        params.detector_x = params.quadrant_size * 4
+        params.detector_y = params.quadrant_size * 5
         print(
-            f"Not simulating dead areas. Detector x and y dimensions reset to {params.quadrant_size * 8}"
+            f"Simulating dead areas. Detector x and y dimensions reset to ({params.detector_x}, {params.detector_y})"
         )
-    else:
         if params.simulate_dead_area and not params.output_folder.endswith("DA"):
             params.output_folder += "_DA"
         if (
@@ -106,45 +106,14 @@ if __name__ == "__main__":
             and not os.path.split(params.work_path)[-1] == "DA"
         ):
             params.work_path = os.path.join(params.work_path, "DA")
+    else:
+        params.detector_x = params.quadrant_size * 8
+        params.detector_y = params.quadrant_size * 8
+        print(
+            f"Not simulating dead areas. Detector x and y dimensions reset to ({params.detector_x}, {params.detector_y})"
+        )
 
-    kwargs = {}
-    if args.parameters is not None:
-        # Check if parameters are provided in a JSON file
-        if (
-            len(args.parameters) == 1
-            and args.parameters[0].endswith(".json")
-            and os.path.isfile(args.parameters[0])
-        ):
-            with open(args.parameters[0], "r") as f:
-                param = json.load(f)
-        else:
-            # Convert command line parameters to dictionary
-            param = {
-                key: value
-                for param in args.parameters
-                for key, value in [param.split("=") if "=" in param else (param, None)]
-            }
-
-        # Now process the parameters in a single for loop
-        for key, value in param.items():
-            if key in params.__dict__:
-                try:
-                    params.__dict__[key] = (
-                        literal_eval(value)
-                        if not isinstance(params.__dict__[key], str)
-                        else value
-                    )
-                except ValueError:
-                    params.__dict__[key] = value
-            else:
-                try:
-                    kwargs[key] = (
-                        literal_eval(value)
-                        if not isinstance(params.__dict__[key], str)
-                        else value
-                    )
-                except ValueError:
-                    kwargs[key] = value
+    kwargs = load_params(args.parameters)
 
     search_path = os.path.join(params.work_path, f"{params.output_folder}")
 
@@ -155,7 +124,7 @@ if __name__ == "__main__":
 
     recal_params()
 
-    if params.output_folder == "combined" and not os.path.isfile(metrics_file):
+    if "combined" in params.output_folder and not os.path.isfile(metrics_file):
         metrics = combine_metrics()
     elif not os.path.isdir(search_path):
         print(f"Folder {params.output_folder} not found. Exiting...")
@@ -173,3 +142,5 @@ if __name__ == "__main__":
     metrics = filter_metrics(metrics)
 
     main(metrics, **kwargs)
+
+    print("\nAnalysis finished.\n")

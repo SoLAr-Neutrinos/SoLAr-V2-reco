@@ -471,8 +471,15 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
     steps = (
         np.arange(-2 * target_dh, h + 2 * target_dh, target_dh) + target_dh / 2
     )  # centering the steps in the middle of the cylinder
-    projected_pitch = (
-        np.dot(np.array([1, 1, 0]), abs(line_fit.direction.unit())) * params.pixel_pitch
+    projected_pitch = np.dot(
+        np.array(
+            [
+                params.pixel_pitch,
+                params.pixel_pitch,
+                params.integration_window * params.drift_velocity,
+            ]
+        ),
+        abs(line_fit.direction.unit()),
     )
     limit_pitch = np.dot(
         np.array([params.pixel_pitch, params.pixel_pitch, target_dh]),
@@ -765,6 +772,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
     track_z = []
     track_points = []
     events = []
+    tracks = []
 
     empty_count = 0
     short_count = 0
@@ -777,6 +785,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
             track_score.append(values["RANSAC_score"])
             track_z.append(values["Fit_line"].point[2])
             events.append(event)
+            tracks.append(track)
 
             dQ = values["dQ"]
             dx = values["dx"]
@@ -819,6 +828,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
     track_score = pd.Series(track_score)
     track_z = pd.Series(track_z)
     events = pd.Series(events)
+    tracks = pd.Series(tracks)
 
     mask = track_length.notna() * track_score.notna() * track_z.notna()
 
@@ -830,6 +840,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
     track_score = track_score[mask]
     track_z = track_z[mask]
     events = events[mask]
+    tracks = tracks[mask]
 
     df = pd.DataFrame(
         [
@@ -839,6 +850,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
             track_score,
             track_z,
             events,
+            tracks,
         ],
         index=[
             "track_dQdx",
@@ -847,6 +859,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
             "track_score",
             "track_z",
             "event",
+            "track",
         ],
     ).T
 
@@ -854,6 +867,49 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
 
 
 # ### Helpers
+
+
+def load_params(parameters):
+    kwargs = {}
+    if parameters is not None:
+        # Check if parameters are provided in a JSON file
+        if (
+            len(parameters) == 1
+            and parameters[0].endswith(".json")
+            and os.path.isfile(parameters[0])
+        ):
+            with open(parameters[0], "r") as f:
+                param = json.load(f)
+        else:
+            # Convert command line parameters to dictionary
+            param = {
+                key: value
+                for param in parameters
+                for key, value in [param.split("=") if "=" in param else (param, None)]
+            }
+
+        # Now process the parameters in a single for loop
+        for key, value in param.items():
+            if key in params.__dict__:
+                try:
+                    params.__dict__[key] = (
+                        literal_eval(value)
+                        if not isinstance(params.__dict__[key], str)
+                        else value
+                    )
+                except ValueError:
+                    params.__dict__[key] = value
+            else:
+                try:
+                    kwargs[key] = (
+                        literal_eval(value)
+                        if not isinstance(params.__dict__[key], str)
+                        else value
+                    )
+                except ValueError:
+                    kwargs[key] = value
+
+    return kwargs
 
 
 def recal_params():

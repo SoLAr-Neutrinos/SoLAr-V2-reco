@@ -18,27 +18,31 @@ do
 
 echo "Processing" $file
 # Extract the numbers after 'hit_' and before '.root' using sed to get the output folder
-label=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\.root/\1/p')
+folder=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\.root/\1/p')
 
 # Run the reconstruction script simulating dead areas and dh set to 30
-./reconstruction.py "$file" -d -p file_label=$label
+./reconstruction.py "$file" -d -p output_folder=$folder
 
 # Make event displays
-./display_events.py $label -n -s -d
+./display_events.py $folder -n -s -d
 
 # Run the analysis script on the output folder
-./analysis.py $label -d -s
+./analysis.py $folder -d -s
 
 # Run the reconstruction script again without simulating dead areas
-./reconstruction.py "$file" -p file_label=$label
+./reconstruction.py "$file" -p output_folder=$folder
 
 # Make event displays
-./display_events.py $label -n -s
+./display_events.py $folder -n -s
 
 # Run the analysis script again on the output folder
-./analysis.py $label -s
+./analysis.py $folder -s
 
 done
+
+# Run the analysis script on combined metrics
+./analysis.py $label -s
+./analysis.py -s
 
 # If pushd was executed, return to the original directory
 if [ "$PARENT_DIR" == "Examples" ]; then

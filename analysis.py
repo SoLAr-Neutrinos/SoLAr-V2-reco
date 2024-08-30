@@ -117,11 +117,11 @@ if __name__ == "__main__":
         nargs="?",
     )
     parser.add_argument(
-        "--filter", help="Tag number of filter file within folder", default=None
+        "-f", "--filter", help="Tag number of filter file within folder", default=None
     )
     # parser.add_argument("--save", "-s", help="Save images", action="store_true")
     parser.add_argument(
-        "--display", "-d", help="Display images (not recomended)", action="store_true"
+        "-d", "--display", help="Display images (not recomended)", action="store_true"
     )
     parser.add_argument(
         "-p",
@@ -140,40 +140,7 @@ if __name__ == "__main__":
     params.show_figures = args.display
     params.save_figures = True  # args.save
 
-    kwargs = {}
-    if args.parameters is not None:
-        # Check if parameters are provided in a JSON file
-        if (
-            len(args.parameters) == 1
-            and args.parameters[0].endswith(".json")
-            and os.path.isfile(args.parameters[0])
-        ):
-            with open(args.parameters[0], "r") as f:
-                param = json.load(f)
-        else:
-            # Convert command line parameters to dictionary
-            param = {
-                key: value
-                for param in args.parameters
-                for key, value in [param.split("=") if "=" in param else (param, None)]
-            }
-
-        # Now process the parameters in a single for loop
-        for key, value in param.items():
-            if key in params.__dict__:
-                try:
-                    params.__dict__[key] = (
-                        literal_eval(value)
-                        if not isinstance(params.__dict__[key], str)
-                        else value
-                    )
-                except ValueError:
-                    params.__dict__[key] = value
-            else:
-                try:
-                    kwargs[key] = literal_eval(value)
-                except ValueError:
-                    kwargs[key] = value
+    kwargs = load_params(args.parameters)
 
     search_path = os.path.join(params.work_path, f"{params.output_folder}")
 
