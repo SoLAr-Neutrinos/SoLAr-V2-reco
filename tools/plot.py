@@ -1707,8 +1707,8 @@ def plot_light_vs_charge(
                 x_plot = np.linspace(min(array), max(array), len(bins) * 10)
                 y_plot = fit_function(x_plot / min(bin_centers), *parameters)
 
-                print("Parameters:")
                 print(
+                    "Parameters:",
                     "\n".join(
                         [
                             f"{name}: {value}"
@@ -1739,6 +1739,7 @@ def plot_light_vs_charge(
 
     fig2 = plt.figure(figsize=(8, 6))
     ax2 = plt.subplot(111)
+    print("Light vs. Charge plot\n")
     n2d, xedges2d, yedges2d, image2d = hist2d(
         charge_array, light_array, ax2, bins, log[0]
     )
@@ -1747,6 +1748,7 @@ def plot_light_vs_charge(
     fig3 = plt.figure(figsize=(8, 6))
     ax3 = plt.subplot(111)
     ratio = charge_array / light_array
+    print("Light / Charge ratio plot\n")
     hist1d(ratio, ax3, bin_density, log[1], p0)
     ax3.set_xlabel(
         f"Event total charge / Light [{params.q_unit}/{params.light_unit}{' - Log' if log[1] else ''}]"
@@ -1755,10 +1757,12 @@ def plot_light_vs_charge(
 
     fig4, axes4 = plt.subplots(1, 2, figsize=(14, 6))
 
+    print("Charge plot\n")
     hist1d(charge_array, axes4[0], bin_density, log[1], p0)
     axes4[0].set_xlabel(
         f"Event total charge [{params.q_unit}{' - Log' if log[1] else ''}]"
     )
+    print("Light plot\n")
     hist1d(light_array, axes4[1], bin_density, log[1], p0)
     axes4[1].set_xlabel(
         f"Event total Light [{params.light_unit}{' - Log' if log[1] else ''}]"

@@ -21,7 +21,7 @@ echo "Processing" $file
 folder=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\.root/\1/p')
 
 # Run the reconstruction script simulating dead areas and dh set to 30
-./reconstruction.py "$file" -d -p output_folder=$folder
+./reconstruction.py "$file" -d
 
 # Make event displays
 ./display_events.py $folder -n -s -d
@@ -30,7 +30,7 @@ folder=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\.root/\1/p')
 ./analysis.py $folder -d -s
 
 # Run the reconstruction script again without simulating dead areas
-./reconstruction.py "$file" -p output_folder=$folder
+./reconstruction.py "$file"
 
 # Make event displays
 ./display_events.py $folder -n -s
@@ -41,7 +41,7 @@ folder=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\.root/\1/p')
 done
 
 # Run the analysis script on combined metrics
-./analysis.py $label -s
+./analysis.py -s -d
 ./analysis.py -s
 
 # If pushd was executed, return to the original directory

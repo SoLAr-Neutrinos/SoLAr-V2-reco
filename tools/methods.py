@@ -507,7 +507,7 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
             cylinder_fit.plot_3d(ax)
 
         # Initialize variables to store the minimum and maximum points
-        point_distances = []
+        point_distances = [line_fit.transform_points([cyl_origin])]
         for point_idx, point in enumerate(hitArray):
             if not counted[point_idx] and cylinder_fit.is_point_within(point):
                 counted[point_idx] = True
@@ -515,9 +515,11 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
 
                 point_distances.append(line_fit.transform_points([point]))
 
+        point_distances.append(point_distances[0] + cyl_height.norm())
+
         # Calculate dh_i based on the distance between points
         max_distance = 0
-        if len(point_distances) > 0:
+        if len(point_distances) > 2:
             point_distances = np.unique(np.array(point_distances))
             intervals = np.diff(point_distances)
 
@@ -535,7 +537,7 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
 
             # Calculate step_length based on conditions
         step_length = (
-            max_distance + projected_pitch
+            max_distance
             if max_distance > 0
             else (projected_pitch if dq_i.loc[step] > 0 else 0)
         )
