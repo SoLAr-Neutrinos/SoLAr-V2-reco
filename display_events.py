@@ -10,10 +10,13 @@ from tools import (
     prepare_event,
     tqdm,
     load_data,
+    load_params,
 )
 
 
-def display_events(events, charge_df, light_df=None, match_dict=None, metrics=None):
+def display_events(
+    events, charge_df, light_df=None, match_dict=None, metrics=None, **kwargs
+):
     for event in tqdm(events, desc="Event display"):
         charge_event, light_event, _ = prepare_event(
             event, charge_df, light_df, match_dict
@@ -27,6 +30,7 @@ def display_events(events, charge_df, light_df=None, match_dict=None, metrics=No
             charge_df=charge_event,
             light_df=light_event,
             metrics=metrics[event] if int(event) in metrics else None,
+            **kwargs,
         )
 
         if params.show_figures:
@@ -41,7 +45,14 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--events", help="Event number", type=int, nargs="+")
     parser.add_argument("-s", "--save", help="Save images", action="store_true")
     parser.add_argument(
-       "-n", "--no-display", help="Don't display images", action="store_false"
+        "-n", "--no-display", help="Don't display images", action="store_false"
+    )
+    parser.add_argument(
+        "-p",
+        "--parameters",
+        action="append",
+        help="Key=value pairs for aditional parameters or json file containing parameters",
+        required=False,
     )
 
     args = parser.parse_args()
@@ -52,6 +63,8 @@ if __name__ == "__main__":
     params.output_folder = args.folder
     params.save_figures = args.save
 
+    kwargs = load_params(args.parameters)
+
     if args.events:
         params.individual_plots = args.events
 
@@ -61,6 +74,8 @@ if __name__ == "__main__":
         params.output_folder, return_metrics=True
     )
 
-    display_events(params.individual_plots, charge_df, light_df, match_dict, metrics)
+    display_events(
+        params.individual_plots, charge_df, light_df, match_dict, metrics, **kwargs
+    )
 
     print("\nEvent display finished.\n")

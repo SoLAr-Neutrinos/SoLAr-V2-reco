@@ -35,8 +35,6 @@ else:
         max_std,
     )
 
-plt.style.use(params.style)
-
 
 class OOMFormatter(ScalarFormatter):
     def __init__(self, order=0, fformat="%1.1f", offset=True, mathText=True):
@@ -92,6 +90,7 @@ def set_common_ax_options(ax=None, cbar=None):
 
 # ### Event display
 def create_ed_axes(event_idx, charge, light):
+    plt.style.use(params.style)
     fig = plt.figure(figsize=(14, 6))
     ax3d = fig.add_subplot(121, projection="3d")
     ax2d = fig.add_subplot(122)
@@ -180,6 +179,7 @@ def event_display(
     metrics=None,
     **kwargs,
 ):
+
     if len(charge_df) < 2:
         return None
     if light_df is None:
@@ -333,6 +333,7 @@ def event_display(
 
 
 def plot_fake_data(z_range, buffer=1, **kwargs):
+    plt.style.use(params.style)
     fake_data = generate_dead_area(z_range, buffer)
     fake_x, fake_y, fake_z = fake_data[:, 0], fake_data[:, 1], fake_data[:, 2]
 
@@ -365,6 +366,7 @@ def plot_fake_data(z_range, buffer=1, **kwargs):
 
 # Plot dQ versus X
 def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwargs):
+    plt.style.use(params.style)
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax_twinx = ax.twinx()
@@ -445,6 +447,7 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwa
 
 
 def plot_track_angles(metrics, **kwargs):
+    plt.style.use(params.style)
     cos_x = []
     cos_y = []
     cos_z = []
@@ -522,6 +525,7 @@ def plot_track_stats(
     dropna=True,
     **kwargs,
 ):
+    plt.style.use(params.style)
     df = get_track_stats(
         metrics, empty_ratio_lims=empty_ratio_lims, min_entries=min_entries
     )
@@ -610,8 +614,8 @@ def plot_track_stats(
     try:
         popt, pcov = curve_fit(
             pylandau.langau,
-            bin_centers_all11[bin_centers_all11 > 2000],
-            n_all11[bin_centers_all11 > 2000],
+            bin_centers_all11[bin_centers_all11 > 1000],
+            n_all11[bin_centers_all11 > 1000],
             absolute_sigma=True,
             p0=p0,
             bounds=bounds,
@@ -1093,6 +1097,7 @@ def plot_light_geo_stats(
     sipm_angle = sipm_angle[~np.isnan(sipm_light) & (sipm_light > 0)]
     sipm_light = sipm_light[~np.isnan(sipm_light) & (sipm_light > 0)]
 
+    plt.style.use(params.style)
     fig1 = plt.figure(figsize=(7, 6))
     ax1 = fig1.add_subplot(111)
 
@@ -1359,6 +1364,7 @@ def plot_voxel_data(
     else:
         bins_l = bins
 
+    plt.style.use(params.style)
     fig1 = plt.figure(figsize=(10, 6))
     ax1 = fig1.add_subplot(111)
 
@@ -1509,6 +1515,7 @@ def plot_light_vs_charge(
     charge_array = charge_array[mask]
     light_array = light_array[mask]
 
+    plt.style.use(params.style)
     fig1 = plt.figure(figsize=(8, 6))
     ax1 = fig1.add_subplot(111)
     ax1.set_xlabel("Max light integral")
@@ -1586,12 +1593,12 @@ def plot_light_vs_charge(
                         f"{name}: {value}"
                         for name, value in zip(
                             [
-                                "amplitude",
-                                "mu_x",
-                                "mu_y",
-                                "sigma_x",
-                                "sigma_y",
-                                "theta",
+                                "A",
+                                "μ_x",
+                                "μ_y",
+                                "σ_x",
+                                "σ_y",
+                                "θ",
                             ],
                             parameters,
                         )
@@ -1701,9 +1708,7 @@ def plot_light_vs_charge(
                     "\n ".join(
                         [
                             f"{name}: {value}"
-                            for name, value in zip(
-                                ["mu", "rho", "sigma", "amplitude"], parameters
-                            )
+                            for name, value in zip(["μ", "ρ", "σ", "A"], parameters)
                         ]
                     ),
                     "\n",

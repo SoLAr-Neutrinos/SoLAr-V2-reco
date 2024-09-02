@@ -13,11 +13,14 @@ from tools import (
     plt,
     prepare_event,
     recal_params,
+    load_params,
     tqdm,
 )
 
 
-def display_events(events, charge_df, light_df=None, match_dict=None, metrics=None):
+def display_events(
+    events, charge_df, light_df=None, match_dict=None, metrics=None, **kwargs
+):
     for event in tqdm(events):
         charge_event, light_event, _ = prepare_event(
             event, charge_df, light_df, match_dict
@@ -31,6 +34,7 @@ def display_events(events, charge_df, light_df=None, match_dict=None, metrics=No
             charge_df=charge_event,
             light_df=light_event,
             metrics=metrics[event] if int(event) in metrics else None,
+            **kwargs,
         )
 
         if params.show_figures:
@@ -49,6 +53,13 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-d", "--dead-areas", help="Simulate dead areas", action="store_true"
+    )
+    parser.add_argument(
+        "-p",
+        "--parameters",
+        action="append",
+        help="Key=value pairs for aditional parameters or json file containing parameters",
+        required=False,
     )
 
     args = parser.parse_args()
@@ -83,6 +94,8 @@ if __name__ == "__main__":
     if args.events:
         params.individual_plots = args.events
 
+    kwargs = load_params(args.parameters)
+
     recal_params()
 
     search_path = os.path.join(params.work_path, f"{params.output_folder}")
@@ -91,4 +104,6 @@ if __name__ == "__main__":
         search_path, return_metrics=True
     )
 
-    display_events(params.individual_plots, charge_df, light_df, match_dict, metrics)
+    display_events(
+        params.individual_plots, charge_df, light_df, match_dict, metrics, **kwargs
+    )

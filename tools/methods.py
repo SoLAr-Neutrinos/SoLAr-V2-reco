@@ -933,7 +933,7 @@ def recal_params():
     params.first_chip = (2, 1) if params.detector_y == 160 else (1, 1)
 
     print(
-        "\nRecalculating parameters:\n",
+        "\nCalculated parameters:\n",
         f"dh_unit set to {params.dh_unit}\n",
         f"light_unit set to {params.light_unit}\n",
         f"detector_x set to {params.detector_x}\n",
