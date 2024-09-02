@@ -94,9 +94,11 @@ def create_ed_axes(event_idx, charge, light):
     fig = plt.figure(figsize=(14, 6))
     ax3d = fig.add_subplot(121, projection="3d")
     ax2d = fig.add_subplot(122)
-    fig.suptitle(
-        f"Event {event_idx} - Charge = {charge} {params.q_unit} - Light = {light} {params.light_unit}"
-    )
+    title = f"Event {event_idx} - Charge = {'%.2E' % charge} {params.q_unit}"
+    if light > 0:
+        title += f" - Light = {'%.2E' % light} {params.light_unit}"
+
+    fig.suptitle(title)
     grid_color = plt.rcParams["grid.color"]
 
     # Draw dead areas
@@ -307,9 +309,9 @@ def event_display(
                     edgecolors=grid_color,
                 )
             )
-
-    sipm_cbar = plt.colorbar(sipm_plot)
-    sipm_cbar.set_label(rf"Light {params.light_variable} [{params.light_unit}]")
+    if not light_df.empty:
+        sipm_cbar = plt.colorbar(sipm_plot)
+        sipm_cbar.set_label(rf"Light {params.light_variable} [{params.light_unit}]")
 
     ax3d.set_zlim([0, ax3d.get_zlim()[1]])
     # ax3d.view_init(160, 110, -85)
