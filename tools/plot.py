@@ -1087,7 +1087,7 @@ def plot_light_geo_stats(
         params.detector_x**2 + params.detector_y**2 + params.detector_z**2
     )
     print("Max possible distance to track", round(max_distance, 2), "mm")
-    print("Drift distance", params.detector_z, "mm")
+    print("Drift distance", params.detector_z, "mm\n")
 
     sipm_distance = sipm_distance[~np.isnan(sipm_light) & (sipm_light > 0)]
     sipm_angle = sipm_angle[~np.isnan(sipm_light) & (sipm_light > 0)]
@@ -1579,9 +1579,9 @@ def plot_light_vs_charge(
             z_plot = fit_function(plot_mesh, *parameters)
 
             # print(latexify.get_latex(fit_function))
-            print("Parameters:")
             print(
-                "\n".join(
+                "Parameters:\n",
+                "\n ".join(
                     [
                         f"{name}: {value}"
                         for name, value in zip(
@@ -1650,17 +1650,6 @@ def plot_light_vs_charge(
         return n, x_edges, y_edges, image
 
     def hist1d(array, ax, bin_density, log, p0):
-        # fit peak with curve_fit
-        def fit_function(x, a, mu, sigma, b, c):
-            return (
-                # gaussian_part
-                a
-                * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
-                / (sigma * np.sqrt(2 * np.pi))
-                # exponential_part
-                + b * np.exp(-c * x)
-            )
-
         upper_bound = np.percentile(array, 95)
         array = array[array < upper_bound]
         if log:
@@ -1681,6 +1670,7 @@ def plot_light_vs_charge(
         peak_x = edges[n.argmax() : n.argmax() + 1].mean()
         mean = array.mean()
         median = np.median(array)
+        std = np.std(array)
 
         set_common_ax_options(ax)
         if not log:
@@ -1691,29 +1681,28 @@ def plot_light_vs_charge(
             try:
                 if p0 is True:
                     p0 = [
+                        peak_x,
+                        std / 10,
+                        std / 2,
                         peak_y,
-                        max(peak_x / min(bin_centers), 1),
-                        0.04 * max(bin_centers) / max(peak_x, 1),
-                        peak_y,
-                        0.01,
                     ]
                 parameters, cov_matrix = curve_fit(
-                    fit_function,
-                    bin_centers / min(bin_centers),
+                    pylandau.langau,
+                    bin_centers,
                     bin_peaks,
                     p0=p0,
-                    bounds=([0, 0, 0, 0, -np.inf], np.inf),
+                    bounds=(0, np.inf),
                 )
                 x_plot = np.linspace(min(array), max(array), len(bins) * 10)
-                y_plot = fit_function(x_plot / min(bin_centers), *parameters)
+                y_plot = pylandau.langau(x_plot, *parameters)
 
                 print(
-                    "Parameters:",
-                    "\n".join(
+                    "Parameters:\n",
+                    "\n ".join(
                         [
                             f"{name}: {value}"
                             for name, value in zip(
-                                ["a", "mu", "sigma", "b", "c"], parameters
+                                ["mu", "rho", "sigma", "amplitude"], parameters
                             )
                         ]
                     ),
@@ -1723,7 +1712,7 @@ def plot_light_vs_charge(
                     x_plot,
                     y_plot,
                     "m",
-                    label=rf"Fit ($\mu={parameters[1]*min(bin_centers):.2f}$)",
+                    label=rf"Fit ($\mu={parameters[0]:.2f}$)",
                 )
             except:
                 print("Fit failed\n")

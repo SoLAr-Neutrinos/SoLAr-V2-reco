@@ -526,8 +526,13 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
             # Sum up the live areas (intervals <= limit_pitch) and correct by the pixel pitch
             live_intervals = intervals[intervals <= limit_pitch]
             dead_intervals_count = np.sum(intervals > limit_pitch)
-            total_live_distance = np.sum(live_intervals) + (
-                dead_intervals_count * projected_pitch
+            boundary_intervals = (
+                (intervals[0] > limit_pitch) + (intervals[-1] > limit_pitch)
+            ) / 2
+            total_live_distance = (
+                np.sum(live_intervals)
+                + (dead_intervals_count * projected_pitch)
+                - boundary_intervals * projected_pitch
             )
 
             # Calculate max_distance based on live areas
