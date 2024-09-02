@@ -4,8 +4,7 @@ from argparse import ArgumentParser
 
 from tools import (
     fit_events,
-    json,
-    literal_eval,
+    load_params,
     load_data,
     os,
     params,
@@ -43,56 +42,23 @@ if __name__ == "__main__":
 
     print("\nReconstruction started...")
 
-    kwargs = {}
-    if args.parameters is not None:
-        # Check if parameters are provided in a JSON file
-        if (
-            len(args.parameters) == 1
-            and args.parameters[0].endswith(".json")
-            and os.path.isfile(args.parameters[0])
-        ):
-            with open(args.parameters[0], "r") as f:
-                param = json.load(f)
-        else:
-            # Convert command line parameters to dictionary
-            param = {
-                key: value
-                for param in args.parameters
-                for key, value in [param.split("=") if "=" in param else (param, None)]
-            }
-
-        # Now process the parameters in a single for loop
-        for key, value in param.items():
-            if key in params.__dict__:
-                try:
-                    params.__dict__[key] = (
-                        literal_eval(value)
-                        if not isinstance(params.__dict__[key], str)
-                        else value
-                    )
-                except ValueError:
-                    params.__dict__[key] = value
-            # else:
-            #     try:
-            #         kwargs[key] = literal_eval(value)
-            #     except ValueError:
-            #         kwargs[key] = value
+    kwargs = load_params(args.parameters)
 
     if params.reload_files:
         input_charge = args.charge
         input_light = args.light
-        params.file_label = "_".join(input_light.split("_")[-2:]).split(".")[0]
+        params.output_folder = "_".join(input_light.split("_")[-2:]).split(".")[0]
         charge_df, light_df, match_dict = process_root(input_charge, input_light)
     else:
-        params.file_label = os.path.split(args.folder)[-1]
+        params.output_folder = os.path.split(args.folder)[-1]
         # Load charge file
         charge_df, light_df, match_dict = load_data(args.folder, return_metrics=False)
 
     metrics = fit_events(charge_df, light_df, match_dict)
 
-    output_path = os.path.join(params.work_path, f"{params.file_label}")
+    output_path = os.path.join(params.work_path, f"{params.output_folder}")
     os.makedirs(output_path, exist_ok=True)
-    metrics_file = os.path.join(output_path, f"metrics_{params.file_label}.pkl")
+    metrics_file = os.path.join(output_path, f"metrics_{params.output_folder}.pkl")
     with open(metrics_file, "wb") as f:
         pickle.dump(metrics, f)
 

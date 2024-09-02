@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pylandau
+from IPython.display import display
 from matplotlib.colors import LinearSegmentedColormap, LogNorm, to_rgba
 from matplotlib.ticker import AutoMinorLocator, MaxNLocator, ScalarFormatter
 from mpl_toolkits.mplot3d import Axes3D
@@ -33,8 +34,6 @@ else:
         get_track_stats,
         max_std,
     )
-
-plt.style.use(params.style)
 
 
 class OOMFormatter(ScalarFormatter):
@@ -91,12 +90,15 @@ def set_common_ax_options(ax=None, cbar=None):
 
 # ### Event display
 def create_ed_axes(event_idx, charge, light):
+    plt.style.use(params.style)
     fig = plt.figure(figsize=(14, 6))
     ax3d = fig.add_subplot(121, projection="3d")
     ax2d = fig.add_subplot(122)
-    fig.suptitle(
-        f"Event {event_idx} - Charge = {charge} {params.q_unit} - Light = {light} {params.light_unit}"
-    )
+    title = f"Event {event_idx} - Charge = {'%.2E' % charge} {params.q_unit}"
+    if light > 0:
+        title += f" - Light = {'%.2E' % light} {params.light_unit}"
+
+    fig.suptitle(title)
     grid_color = plt.rcParams["grid.color"]
 
     # Draw dead areas
@@ -179,6 +181,7 @@ def event_display(
     metrics=None,
     **kwargs,
 ):
+
     if len(charge_df) < 2:
         return None
     if light_df is None:
@@ -218,6 +221,7 @@ def event_display(
         s=round((30**4) / (params.detector_x * params.detector_y)),
         vmin=q_sum.min(),
         vmax=q_sum.max(),
+        zorder=9,
     )
     cbar = plt.colorbar(plot2d)
     cbar.set_label(f"charge [{params.q_unit}]")
@@ -266,7 +270,7 @@ def event_display(
         light_df["y"],
         c=light_df[params.light_variable],
         marker="s",
-        s=200,
+        s=round(4 * (30**4) / (params.detector_x * params.detector_y)),
         linewidths=1.5,
         edgecolors=grid_color,
         zorder=6,
@@ -305,9 +309,9 @@ def event_display(
                     edgecolors=grid_color,
                 )
             )
-
-    sipm_cbar = plt.colorbar(sipm_plot)
-    sipm_cbar.set_label(rf"Light {params.light_variable} [{params.light_unit}]")
+    if not light_df.empty:
+        sipm_cbar = plt.colorbar(sipm_plot)
+        sipm_cbar.set_label(rf"Light {params.light_variable} [{params.light_unit}]")
 
     ax3d.set_zlim([0, ax3d.get_zlim()[1]])
     # ax3d.view_init(160, 110, -85)
@@ -317,7 +321,9 @@ def event_display(
     fig.tight_layout()
 
     if params.save_figures:
-        output_path = os.path.join(params.work_path, params.file_label, str(event_idx))
+        output_path = os.path.join(
+            params.work_path, params.output_folder, str(event_idx)
+        )
         os.makedirs(output_path, exist_ok=True)
         fig.savefig(
             os.path.join(output_path, f"event_{event_idx}.pdf"),
@@ -329,6 +335,7 @@ def event_display(
 
 
 def plot_fake_data(z_range, buffer=1, **kwargs):
+    plt.style.use(params.style)
     fake_data = generate_dead_area(z_range, buffer)
     fake_x, fake_y, fake_z = fake_data[:, 0], fake_data[:, 1], fake_data[:, 2]
 
@@ -349,7 +356,7 @@ def plot_fake_data(z_range, buffer=1, **kwargs):
     ax.tick_params(axis="both", which="both", top=True, right=True)
     fig.tight_layout()
 
-    output_path = os.path.join(params.work_path, params.file_label)
+    output_path = os.path.join(params.work_path, params.output_folder)
     os.makedirs(output_path, exist_ok=True)
     fig.savefig(
         os.path.join(output_path, "fake_data_map.pdf"), dpi=300, bbox_inches="tight"
@@ -361,6 +368,7 @@ def plot_fake_data(z_range, buffer=1, **kwargs):
 
 # Plot dQ versus X
 def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwargs):
+    plt.style.use(params.style)
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax_twinx = ax.twinx()
@@ -427,7 +435,9 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwa
 
     fig.tight_layout()
     if params.save_figures:
-        output_path = os.path.join(params.work_path, params.file_label, str(event_idx))
+        output_path = os.path.join(
+            params.work_path, params.output_folder, str(event_idx)
+        )
         os.makedirs(output_path, exist_ok=True)
         fig.savefig(
             os.path.join(
@@ -439,6 +449,7 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwa
 
 
 def plot_track_angles(metrics, **kwargs):
+    plt.style.use(params.style)
     cos_x = []
     cos_y = []
     cos_z = []
@@ -466,7 +477,6 @@ def plot_track_angles(metrics, **kwargs):
     cos_x = np.array(cos_x)
     cos_y = np.array(cos_y)
     cos_z = np.array(cos_z)
-    entries = len(cos_x)
 
     fig, ax = plt.subplots(2, 3, figsize=(18, 12))
 
@@ -484,13 +494,21 @@ def plot_track_angles(metrics, **kwargs):
     ax[1, 2].hist(abs(cos_z), bins=20)
     ax[1, 2].set_xlabel("Cosine similarity to z-axis")
 
+    for axes in ax.flatten():
+        set_common_ax_options(axes)
+
     fig.tight_layout()
     if params.save_figures:
-        output_path = os.path.join(params.work_path, params.file_label)
+        output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
+        label = (
+            f"_{params.filter_label}"
+            if params.filter_label is not None
+            else f"_{len(cos_x)}"
+        )
         fig.savefig(
             os.path.join(
-                output_path, f"track_angles_{params.file_label}_{entries}.pdf"
+                output_path, f"track_angles_{params.output_folder}{label}.pdf"
             ),
             dpi=300,
             bbox_inches="tight",
@@ -506,33 +524,45 @@ def plot_track_stats(
     lognorm=True,
     profile=False,
     bins=[40, 40],
+    dropna=True,
     **kwargs,
 ):
+    plt.style.use(params.style)
     df = get_track_stats(
         metrics, empty_ratio_lims=empty_ratio_lims, min_entries=min_entries
     )
+    if dropna:
+        df = df.dropna(subset=["track_dQdx"])
 
     track_dQdx = df["track_dQdx"]
     track_length = df["track_length"].astype(float)
     track_score = df["track_score"].astype(float)
     track_z = df["track_z"].astype(float)
-    track_cv_dQdx = track_dQdx.apply(lambda x: x.std() / x.mean()).astype(float)
-    track_mean_dQdx = track_dQdx.apply(lambda x: x.mean()).astype(float)
+    track_cv_dQdx = (
+        track_dQdx.dropna().apply(lambda x: x.std() / x.mean()).astype(float)
+    )
+    track_mean_dQdx = track_dQdx.dropna().apply(lambda x: x.mean()).astype(float)
 
     score_mask = (track_score >= min_score).to_numpy()
+    nan_mask = track_dQdx.notna().to_numpy()
     score_bool = (1 - score_mask).sum() > 0
 
     print(f"Tracks with score < {min_score}: {len(track_dQdx)-sum(score_mask)}")
     # print(f"\nRemaining tracks: {sum(score_mask)}\n")
 
-    dQdx_series = pd.concat(track_dQdx.to_list())
+    dQdx_series = pd.concat(track_dQdx.dropna().to_list())
     dQdx_series = dQdx_series[dQdx_series > 0].dropna().sort_index()
-    cut_dQdx_series = pd.concat(track_dQdx[score_mask].to_list())
+    cut_dQdx_series = pd.concat(track_dQdx[score_mask].dropna().to_list())
     cut_dQdx_series = cut_dQdx_series[cut_dQdx_series > 0].dropna().sort_index()
 
-    # print("\ndQ/dx stats:")
-    # TODO if ipython
-    # display(dQdx_series.describe())
+    print("\ndQ/dx stats:")
+    try:
+        if get_ipython() is not None:
+            display(dQdx_series.describe())
+        else:
+            print(dQdx_series.describe())
+    except:
+        print(dQdx_series.describe())
 
     # 1D histograms
     fig1 = plt.figure(figsize=(14, 6))
@@ -566,40 +596,44 @@ def plot_track_stats(
     p0 = (
         bin_centers_all11[n_all11.argmax()],
         np.std(bin_centers_all11) / 100,
-        np.std(bin_centers_all11) / 2,
+        np.std(bin_centers_all11) / 15,
         max(n_all11),
     )
-
-    popt, pcov = curve_fit(
-        pylandau.langau,
-        bin_centers_all11[bin_centers_all11 > 3000],
-        n_all11[bin_centers_all11 > 3000],
-        absolute_sigma=True,
-        p0=p0,
-        bounds=(
-            (
-                bin_centers_all11[max(n_all11.argmax() - 3, 0)],
-                0,
-                0,
-                0,
-            ),
-            (
-                bin_centers_all11[
-                    min(n_all11.argmax() + 3, len(bin_centers_all11) - 1)
-                ],
-                np.inf,
-                np.inf,
-                np.inf,
-            ),
+    bounds = (
+        (
+            bin_centers_all11[max(n_all11.argmax() - 3, 0)],
+            0,
+            0,
+            0,
+        ),
+        (
+            bin_centers_all11[min(n_all11.argmax() + 3, len(bin_centers_all11) - 1)],
+            np.inf,
+            np.inf,
+            np.inf,
         ),
     )
+    try:
+        popt, pcov = curve_fit(
+            pylandau.langau,
+            bin_centers_all11[bin_centers_all11 > 1000],
+            n_all11[bin_centers_all11 > 1000],
+            absolute_sigma=True,
+            p0=p0,
+            bounds=bounds,
+        )
 
-    ax11.plot(
-        fit_x := np.linspace(bins_all11[0], bins_all11[-1], 1000),
-        pylandau.langau(fit_x, *popt),
-        "r-",
-        label=r"fit: $\mu$=%5.1f, $\eta$=%5.1f, $\sigma$=%5.1f, A=%5.1f" % tuple(popt),
-    )
+        ax11.plot(
+            fit_x := np.linspace(bins_all11[0], bins_all11[-1], 1000),
+            pylandau.langau(fit_x, *popt),
+            "r-",
+            label=r"fit: $\mu$=%5.1f, $\eta$=%5.1f, $\sigma$=%5.1f, A=%5.1f"
+            % tuple(popt),
+        )
+    except:
+        print("\nCould not fit Landau to dQ/dx")
+        print(f"p0: {p0}")
+        print(f"bounds: {bounds}")
 
     ax11.set_xlabel(
         rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
@@ -680,11 +714,23 @@ def plot_track_stats(
     ax22.set_title("dQ/dx CV vs. Track length", fontsize=params.title_font_size)
 
     hist2d21 = hist2d(
-        track_length, track_mean_dQdx, ax21, bins, lognorm, fit="Log", profile=profile
+        track_length[nan_mask],
+        track_mean_dQdx,
+        ax21,
+        bins,
+        lognorm,
+        fit="Log",
+        profile=profile,
     )
 
     hist2d22 = hist2d(
-        track_length, track_cv_dQdx, ax22, bins, lognorm, fit="Linear", profile=profile
+        track_length[nan_mask],
+        track_cv_dQdx,
+        ax22,
+        bins,
+        lognorm,
+        fit="Linear",
+        profile=profile,
     )
 
     fig4 = plt.figure(figsize=(7, 6))
@@ -734,7 +780,15 @@ def plot_track_stats(
     )
     ax61.set_title(rf"{len(track_z)} tracks", fontsize=params.title_font_size)
 
-    hist2d(track_z, track_mean_dQdx, ax61, bins, lognorm, fit="Linear", profile=profile)
+    hist2d(
+        track_z[nan_mask],
+        track_mean_dQdx,
+        ax61,
+        bins,
+        lognorm,
+        fit="Linear",
+        profile=profile,
+    )
 
     # fig7 = plt.figure(figsize=(7 + 7 * score_bool, 6))
     # ax71 = fig7.add_subplot(111 + 10 * score_bool)
@@ -795,8 +849,8 @@ def plot_track_stats(
         axes.extend([ax31, ax32])
 
         hist2d31 = hist2d(
-            track_length[score_mask],
-            track_mean_dQdx[score_mask],
+            track_length[score_mask * nan_mask],
+            track_mean_dQdx[score_mask[nan_mask]],
             ax31,
             bins,
             lognorm,
@@ -805,8 +859,8 @@ def plot_track_stats(
         )
 
         hist2d32 = hist2d(
-            track_length[score_mask],
-            track_cv_dQdx[score_mask],
+            track_length[score_mask * nan_mask],
+            track_cv_dQdx[score_mask[nan_mask]],
             ax32,
             bins,
             lognorm,
@@ -857,8 +911,8 @@ def plot_track_stats(
         )
 
         hist2d(
-            track_z[score_mask],
-            track_mean_dQdx[score_mask],
+            track_z[score_mask * nan_mask],
+            track_mean_dQdx[score_mask[nan_mask]],
             ax62,
             bins,
             lognorm,
@@ -894,7 +948,7 @@ def plot_track_stats(
         params.detector_x**2 + params.detector_y**2 + params.detector_z**2
     )
     max_track_legth_xy = np.sqrt(params.detector_x**2 + params.detector_y**2)
-    print("Max possible track length", round(max_track_legth, 2), "mm")
+    print("\nMax possible track length", round(max_track_legth, 2), "mm")
     print("Max possible track length on xy plane", round(max_track_legth_xy, 2), "mm")
     print("Max possible vertical track length", params.detector_y, "mm")
 
@@ -937,13 +991,17 @@ def plot_track_stats(
         fig.tight_layout()
 
     if params.save_figures:
-        entries = len(track_dQdx)
-        output_path = os.path.join(params.work_path, params.file_label)
+        label = (
+            f"_{params.filter_label}"
+            if params.filter_label is not None
+            else f"_{len(track_length)}"
+        )
+        output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
 
         fig1.savefig(
             os.path.join(
-                output_path, f"track_stats_1D_hist_{params.file_label}_{entries}.pdf"
+                output_path, f"track_stats_1D_hist_{params.output_folder}{label}.pdf"
             ),
             dpi=300,
             bbox_inches="tight",
@@ -951,7 +1009,7 @@ def plot_track_stats(
         fig2.savefig(
             os.path.join(
                 output_path,
-                f"track_stats_2D_hist_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+                f"track_stats_2D_hist_{params.output_folder}{label}{'_profile' if profile else ''}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
@@ -959,7 +1017,7 @@ def plot_track_stats(
         fig4.savefig(
             os.path.join(
                 output_path,
-                f"track_stats_score_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+                f"track_stats_score_{params.output_folder}{label}{'_profile' if profile else ''}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
@@ -967,7 +1025,7 @@ def plot_track_stats(
         fig5.savefig(
             os.path.join(
                 output_path,
-                f"track_stats_dQdx_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+                f"track_stats_dQdx_{params.output_folder}{label}{'_profile' if profile else ''}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
@@ -975,13 +1033,13 @@ def plot_track_stats(
         fig6.savefig(
             os.path.join(
                 output_path,
-                f"track_stats_dQdx_z_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+                f"track_stats_dQdx_z_{params.output_folder}{label}{'_profile' if profile else ''}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
         )
         # fig7.savefig(
-        #     os.path.join(output_path, f"track_stats_dQ_z_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf"),
+        #     os.path.join(output_path, f"track_stats_dQ_z_{params.output_folder}{label}{'_profile' if profile else ''}.pdf"),
         #     dpi=300,
         #     bbox_inches="tight",
         # )
@@ -989,7 +1047,7 @@ def plot_track_stats(
             fig3.savefig(
                 os.path.join(
                     output_path,
-                    f"track_stats_2D_hist_cut_{params.file_label}_{entries}{'_profile' if profile else ''}.pdf",
+                    f"track_stats_2D_hist_cut_{params.output_folder}{label}{'_profile' if profile else ''}.pdf",
                 ),
                 dpi=300,
                 bbox_inches="tight",
@@ -1035,12 +1093,13 @@ def plot_light_geo_stats(
         params.detector_x**2 + params.detector_y**2 + params.detector_z**2
     )
     print("Max possible distance to track", round(max_distance, 2), "mm")
-    print("Drift distance", params.detector_z, "mm")
+    print("Drift distance", params.detector_z, "mm\n")
 
     sipm_distance = sipm_distance[~np.isnan(sipm_light) & (sipm_light > 0)]
     sipm_angle = sipm_angle[~np.isnan(sipm_light) & (sipm_light > 0)]
     sipm_light = sipm_light[~np.isnan(sipm_light) & (sipm_light > 0)]
 
+    plt.style.use(params.style)
     fig1 = plt.figure(figsize=(7, 6))
     ax1 = fig1.add_subplot(111)
 
@@ -1109,7 +1168,7 @@ def plot_light_geo_stats(
                 inverse_triangle_calc(sipm_angle.mean(), sipm_distance.mean()),
             ],
         )
-        print(f"Fit mean track length: {parameters[0]}")
+        print(f"Fit {cluster_label} mean track length: {parameters[0]}")
 
         ax2.plot(
             x2,
@@ -1169,26 +1228,31 @@ def plot_light_geo_stats(
         fig.tight_layout()
 
     if params.save_figures:
-        output_path = os.path.join(params.work_path, params.file_label)
+        output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
-        entries = len(sipm_light)
+        label = (
+            f"_{params.filter_label}"
+            if params.filter_label is not None
+            else f"_{len(sipm_light)}"
+        )
         fig1.savefig(
             os.path.join(
-                output_path, f"light_geo_optimization_{params.file_label}_{entries}.pdf"
+                output_path,
+                f"light_geo_optimization_{params.output_folder}{label}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
             os.path.join(
-                output_path, f"light_geo_2D_hist_{params.file_label}_{entries}.pdf"
+                output_path, f"light_geo_2D_hist_{params.output_folder}{label}.pdf"
             ),
             dpi=300,
             bbox_inches="tight",
         )
         fig3.savefig(
             os.path.join(
-                output_path, f"light_geo_1D_hist_{params.file_label}_{entries}.pdf"
+                output_path, f"light_geo_1D_hist_{params.output_folder}{label}.pdf"
             ),
             dpi=300,
             bbox_inches="tight",
@@ -1216,7 +1280,7 @@ def plot_light_fit_stats(metrics, **kwargs):
                     charge_track.direction,
                     light_track.direction,
                 ]
-    entries = len(cosine_df)
+
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(111)
     for i in range(0, int(cosine_df["threshold"].max()), 10):
@@ -1237,10 +1301,15 @@ def plot_light_fit_stats(metrics, **kwargs):
     ax.legend()
     fig.tight_layout()
     if params.save_figures:
-        output_path = os.path.join(params.work_path, params.file_label)
+        label = (
+            f"_{params.filter_label}"
+            if params.filter_label is not None
+            else f"_{len(cosine_df)}"
+        )
+        output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
         fig.savefig(
-            os.path.join(output_path, f"light_fit_{params.file_label}_{entries}.pdf"),
+            os.path.join(output_path, f"light_fit_{params.output_folder}{label}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
@@ -1249,6 +1318,9 @@ def plot_light_fit_stats(metrics, **kwargs):
 def plot_voxel_data(
     metrics, bins=50, log=(False, False, False), lognorm=False, **kwargs
 ):
+    if not isinstance(bins, int):
+        bins = 50
+
     z = []
     q = []
     l = []
@@ -1294,6 +1366,7 @@ def plot_voxel_data(
     else:
         bins_l = bins
 
+    plt.style.use(params.style)
     fig1 = plt.figure(figsize=(10, 6))
     ax1 = fig1.add_subplot(111)
 
@@ -1393,19 +1466,24 @@ def plot_voxel_data(
         fig.tight_layout()
 
     if params.save_figures:
-        output_path = os.path.join(params.work_path, params.file_label)
+        output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
-        events = sum(mask)
+        label = (
+            f"_{params.filter_label}"
+            if params.filter_label is not None
+            else f"_{sum(mask)}"
+        )
         fig1.savefig(
             os.path.join(
-                output_path, f"voxel_light_vs_z_{params.file_label}_{events}.pdf"
+                output_path, f"voxel_light_vs_z_{params.output_folder}{label}.pdf"
             ),
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
             os.path.join(
-                output_path, f"voxel_charge_vs_z_hist_{params.file_label}_{events}.pdf"
+                output_path,
+                f"voxel_charge_vs_z_hist_{params.output_folder}{label}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
@@ -1439,6 +1517,7 @@ def plot_light_vs_charge(
     charge_array = charge_array[mask]
     light_array = light_array[mask]
 
+    plt.style.use(params.style)
     fig1 = plt.figure(figsize=(8, 6))
     ax1 = fig1.add_subplot(111)
     ax1.set_xlabel("Max light integral")
@@ -1509,19 +1588,19 @@ def plot_light_vs_charge(
             z_plot = fit_function(plot_mesh, *parameters)
 
             # print(latexify.get_latex(fit_function))
-            print("Parameters:")
             print(
-                "\n".join(
+                "Parameters:\n",
+                "\n ".join(
                     [
                         f"{name}: {value}"
                         for name, value in zip(
                             [
-                                "amplitude",
-                                "mu_x",
-                                "mu_y",
-                                "sigma_x",
-                                "sigma_y",
-                                "theta",
+                                "A",
+                                "μ_x",
+                                "μ_y",
+                                "σ_x",
+                                "σ_y",
+                                "θ",
                             ],
                             parameters,
                         )
@@ -1580,17 +1659,6 @@ def plot_light_vs_charge(
         return n, x_edges, y_edges, image
 
     def hist1d(array, ax, bin_density, log, p0):
-        # fit peak with curve_fit
-        def fit_function(x, a, mu, sigma, b, c):
-            return (
-                # gaussian_part
-                a
-                * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
-                / (sigma * np.sqrt(2 * np.pi))
-                # exponential_part
-                + b * np.exp(-c * x)
-            )
-
         upper_bound = np.percentile(array, 95)
         array = array[array < upper_bound]
         if log:
@@ -1611,6 +1679,7 @@ def plot_light_vs_charge(
         peak_x = edges[n.argmax() : n.argmax() + 1].mean()
         mean = array.mean()
         median = np.median(array)
+        std = np.std(array)
 
         set_common_ax_options(ax)
         if not log:
@@ -1621,30 +1690,27 @@ def plot_light_vs_charge(
             try:
                 if p0 is True:
                     p0 = [
+                        peak_x,
+                        std / 10,
+                        std / 2,
                         peak_y,
-                        max(peak_x / min(bin_centers), 1),
-                        0.04 * max(bin_centers) / max(peak_x, 1),
-                        peak_y,
-                        0.01,
                     ]
                 parameters, cov_matrix = curve_fit(
-                    fit_function,
-                    bin_centers / min(bin_centers),
+                    pylandau.langau,
+                    bin_centers,
                     bin_peaks,
                     p0=p0,
-                    bounds=([0, 0, 0, 0, -np.inf], np.inf),
+                    bounds=(0, np.inf),
                 )
                 x_plot = np.linspace(min(array), max(array), len(bins) * 10)
-                y_plot = fit_function(x_plot / min(bin_centers), *parameters)
+                y_plot = pylandau.langau(x_plot, *parameters)
 
-                print("Parameters:")
                 print(
-                    "\n".join(
+                    "Parameters:\n",
+                    "\n ".join(
                         [
                             f"{name}: {value}"
-                            for name, value in zip(
-                                ["a", "mu", "sigma", "b", "c"], parameters
-                            )
+                            for name, value in zip(["μ", "ρ", "σ", "A"], parameters)
                         ]
                     ),
                     "\n",
@@ -1653,7 +1719,7 @@ def plot_light_vs_charge(
                     x_plot,
                     y_plot,
                     "m",
-                    label=rf"Fit ($\mu={parameters[1]*min(bin_centers):.2f}$)",
+                    label=rf"Fit ($\mu={parameters[0]:.2f}$)",
                 )
             except:
                 print("Fit failed\n")
@@ -1669,6 +1735,7 @@ def plot_light_vs_charge(
 
     fig2 = plt.figure(figsize=(8, 6))
     ax2 = plt.subplot(111)
+    print("Light vs. Charge plot\n")
     n2d, xedges2d, yedges2d, image2d = hist2d(
         charge_array, light_array, ax2, bins, log[0]
     )
@@ -1677,6 +1744,7 @@ def plot_light_vs_charge(
     fig3 = plt.figure(figsize=(8, 6))
     ax3 = plt.subplot(111)
     ratio = charge_array / light_array
+    print("Light / Charge ratio plot\n")
     hist1d(ratio, ax3, bin_density, log[1], p0)
     ax3.set_xlabel(
         f"Event total charge / Light [{params.q_unit}/{params.light_unit}{' - Log' if log[1] else ''}]"
@@ -1685,10 +1753,12 @@ def plot_light_vs_charge(
 
     fig4, axes4 = plt.subplots(1, 2, figsize=(14, 6))
 
+    print("Charge plot\n")
     hist1d(charge_array, axes4[0], bin_density, log[1], p0)
     axes4[0].set_xlabel(
         f"Event total charge [{params.q_unit}{' - Log' if log[1] else ''}]"
     )
+    print("Light plot\n")
     hist1d(light_array, axes4[1], bin_density, log[1], p0)
     axes4[1].set_xlabel(
         f"Event total Light [{params.light_unit}{' - Log' if log[1] else ''}]"
@@ -1752,27 +1822,33 @@ def plot_light_vs_charge(
         fig.tight_layout()
 
     if params.save_figures:
-        output_path = os.path.join(params.work_path, params.file_label)
+        output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
-        events = len(ratio)
+        label = (
+            f"_{params.filter_label}"
+            if params.filter_label is not None
+            else f"_{len(ratio)}"
+        )
         fig1.savefig(
             os.path.join(
                 output_path,
-                f"light_vs_charge_optmization_{params.file_label}_{events}.pdf",
+                f"light_vs_charge_optmization_{params.output_folder}{label}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
             os.path.join(
-                output_path, f"light_vs_charge_2D_hist_{params.file_label}_{events}.pdf"
+                output_path,
+                f"light_vs_charge_2D_hist_{params.output_folder}{label}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
         )
         fig3.savefig(
             os.path.join(
-                output_path, f"light_vs_charge_ratio_{params.file_label}_{events}.pdf"
+                output_path,
+                f"light_vs_charge_ratio_{params.output_folder}{label}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",

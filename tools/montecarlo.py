@@ -213,5 +213,5 @@ def fit_events(charge_df):
 
 #     input_charge = args.charge
 #     params.simulate_dead_area = args.dead_areas
-#     params.file_label = input_charge.split("_")[-1].split(".")[0]
+#     params.output_folder = input_charge.split("_")[-1].split(".")[0]
 #     recal_params()

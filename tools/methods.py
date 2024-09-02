@@ -88,7 +88,7 @@ def get_dr(rmse):
 
 def prepare_event(event, charge_df, light_df=None, match_dict=None):
     if event not in charge_df.index:
-        tqdm.write(f"Event {event} not found in {params.file_label}")
+        tqdm.write(f"Event {event} not found in {params.output_folder}")
         return None, None, None
 
     light_event = None
@@ -102,7 +102,7 @@ def prepare_event(event, charge_df, light_df=None, match_dict=None):
                 subset=params.light_variable
             )
         else:
-            print(f"No light event found for event {event} in {params.file_label}")
+            print(f"No light event found for event {event} in {params.output_folder}")
 
     charge_event = pd.DataFrame(
         charge_df.rename(
@@ -471,8 +471,15 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
     steps = (
         np.arange(-2 * target_dh, h + 2 * target_dh, target_dh) + target_dh / 2
     )  # centering the steps in the middle of the cylinder
-    projected_pitch = (
-        np.dot(np.array([1, 1, 0]), abs(line_fit.direction.unit())) * params.pixel_pitch
+    projected_pitch = np.dot(
+        np.array(
+            [
+                params.pixel_pitch,
+                params.pixel_pitch,
+                params.integration_window * params.drift_velocity,
+            ]
+        ),
+        abs(line_fit.direction.unit()),
     )
     limit_pitch = np.dot(
         np.array([params.pixel_pitch, params.pixel_pitch, target_dh]),
@@ -500,7 +507,7 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
             cylinder_fit.plot_3d(ax)
 
         # Initialize variables to store the minimum and maximum points
-        point_distances = []
+        point_distances = [line_fit.transform_points([cyl_origin])]
         for point_idx, point in enumerate(hitArray):
             if not counted[point_idx] and cylinder_fit.is_point_within(point):
                 counted[point_idx] = True
@@ -508,28 +515,37 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
 
                 point_distances.append(line_fit.transform_points([point]))
 
+        point_distances.append(point_distances[0] + cyl_height.norm())
+
         # Calculate dh_i based on the distance between points
         max_distance = 0
-        if len(point_distances) > 0:
+        if len(point_distances) > 2:
             point_distances = np.unique(np.array(point_distances))
             intervals = np.diff(point_distances)
-            total_distance = sum(
-                intervals[intervals <= limit_pitch]
-            ) + projected_pitch * 2 * (sum(intervals > limit_pitch))
-            max_distance = min(
-                abs(point_distances[-1] - point_distances[0]), total_distance
+
+            # Sum up the live areas (intervals <= limit_pitch) and correct by the pixel pitch
+            live_intervals = intervals[intervals <= limit_pitch]
+            dead_intervals_count = np.sum(intervals > limit_pitch)
+            boundary_intervals = (
+                (intervals[0] > limit_pitch) + (intervals[-1] > limit_pitch)
+            ) / 2
+            total_live_distance = (
+                np.sum(live_intervals)
+                + (dead_intervals_count * projected_pitch)
+                - boundary_intervals * projected_pitch
             )
 
-        # Calculate step_length based on conditions
-        if max_distance > 0:
-            step_length = max_distance + projected_pitch
-        else:
-            if dq_i.loc[step] > 0:
-                step_length = (
-                    projected_pitch if projected_pitch > 0 else target_dh
-                )  # Fallback for vertical tracks. Need to use correct value based on z interval
-            else:
-                step_length = 0
+            # Calculate max_distance based on live areas
+            max_distance = min(
+                abs(point_distances[-1] - point_distances[0]), total_live_distance
+            )
+
+            # Calculate step_length based on conditions
+        step_length = (
+            max_distance
+            if max_distance > 0
+            else (projected_pitch if dq_i.loc[step] > 0 else 0)
+        )
 
         # Assign the minimum of step_length and target_dh to dh_i.loc[step]
         dh_i.loc[step] = min(step_length, target_dh)
@@ -758,13 +774,14 @@ def light_geometry(track_line, track_norm, sipm_df, light_variable="integral"):
 
 
 # Charge data
-def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
+def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
     track_dQdx = []
     track_length = []
     track_score = []
     track_z = []
     track_points = []
     events = []
+    tracks = []
 
     empty_count = 0
     short_count = 0
@@ -773,12 +790,20 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
             if isinstance(track, str) or track <= 0:
                 continue
 
+            track_length.append(values["Fit_norm"])
+            track_score.append(values["RANSAC_score"])
+            track_z.append(values["Fit_line"].point[2])
+            events.append(event)
+            tracks.append(track)
+
             dQ = values["dQ"]
             dx = values["dx"]
             non_zero_mask = np.where((dQ > 0) & (dx > 0))[0]
 
             if len(non_zero_mask) < min_entries:
                 short_count += 1
+                track_dQdx.append(np.nan)
+                track_points.append(np.nan)
                 continue
 
             empty_ratio = sum(
@@ -787,6 +812,8 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
             if empty_ratio > empty_ratio_lims[1] or empty_ratio < empty_ratio_lims[0]:
                 empty_count += 1
+                track_dQdx.append(np.nan)
+                track_points.append(np.nan)
                 continue
 
             dQdx = (dQ / dx).rename("dQdx")
@@ -800,10 +827,6 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
             track_dQdx.append(dQdx)
             track_points.append(pd.Series(position, index=dQdx.index, name="position"))
-            track_length.append(values["Fit_norm"])
-            track_score.append(values["RANSAC_score"])
-            track_z.append(values["Fit_line"].point[2])
-            events.append(event)
 
     print(f"Tracks with dead area outside {empty_ratio_lims} interval: {empty_count}")
     print(f"Tracks with less than {min_entries} entries: {short_count}")
@@ -814,13 +837,9 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
     track_score = pd.Series(track_score)
     track_z = pd.Series(track_z)
     events = pd.Series(events)
+    tracks = pd.Series(tracks)
 
-    mask = (
-        track_dQdx.apply(lambda x: x.notna().all())
-        * track_length.notna()
-        * track_score.notna()
-        * track_z.notna()
-    )
+    mask = track_length.notna() * track_score.notna() * track_z.notna()
 
     print(f"\nRemaining tracks: {sum(mask)}\n")
 
@@ -830,6 +849,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
     track_score = track_score[mask]
     track_z = track_z[mask]
     events = events[mask]
+    tracks = tracks[mask]
 
     df = pd.DataFrame(
         [
@@ -839,6 +859,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
             track_score,
             track_z,
             events,
+            tracks,
         ],
         index=[
             "track_dQdx",
@@ -847,6 +868,7 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
             "track_score",
             "track_z",
             "event",
+            "track",
         ],
     ).T
 
@@ -854,6 +876,49 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=2):
 
 
 # ### Helpers
+
+
+def load_params(parameters):
+    kwargs = {}
+    if parameters is not None:
+        # Check if parameters are provided in a JSON file
+        if (
+            len(parameters) == 1
+            and parameters[0].endswith(".json")
+            and os.path.isfile(parameters[0])
+        ):
+            with open(parameters[0], "r") as f:
+                param = json.load(f)
+        else:
+            # Convert command line parameters to dictionary
+            param = {
+                key: value
+                for param in parameters
+                for key, value in [param.split("=") if "=" in param else (param, None)]
+            }
+
+        # Now process the parameters in a single for loop
+        for key, value in param.items():
+            if key in params.__dict__:
+                try:
+                    params.__dict__[key] = (
+                        literal_eval(value)
+                        if not isinstance(params.__dict__[key], str)
+                        else value
+                    )
+                except ValueError:
+                    params.__dict__[key] = value
+            else:
+                try:
+                    kwargs[key] = (
+                        literal_eval(value)
+                        if not isinstance(params.__dict__[key], str)
+                        else value
+                    )
+                except ValueError:
+                    kwargs[key] = value
+
+    return kwargs
 
 
 def recal_params():
@@ -868,7 +933,7 @@ def recal_params():
     params.first_chip = (2, 1) if params.detector_y == 160 else (1, 1)
 
     print(
-        "\nRecalculating parameters:\n",
+        "\nCalculated parameters:\n",
         f"dh_unit set to {params.dh_unit}\n",
         f"light_unit set to {params.light_unit}\n",
         f"detector_x set to {params.detector_x}\n",
@@ -1037,9 +1102,10 @@ def filter_metrics(metrics, **kwargs):
                     filtered_metrics[event_idx] = candidate_metric
 
     print(f"{len(filtered_metrics)} metrics remaining")
+    params.filter_label = len(filtered_metrics)
 
     # Save the filtering parameters to a JSON file
-    output_path = os.path.join(params.work_path, params.file_label)
+    output_path = os.path.join(params.work_path, params.output_folder)
     os.makedirs(output_path, exist_ok=True)
     with open(
         os.path.join(output_path, f"filter_parameters_{len(filtered_metrics)}.json"),
@@ -1074,10 +1140,12 @@ def combine_metrics():
             for key, value in tqdm(metric.items(), leave=False):
                 combined_metrics[f"{folder}_{key}"] = value
 
-    output_path = os.path.join(params.work_path, "combined")
+    output_path = os.path.join(params.work_path, params.output_folder)
     os.makedirs(output_path, exist_ok=True)
 
-    with open(os.path.join(output_path, "metrics_combined.pkl"), "wb") as o:
+    with open(
+        os.path.join(output_path, f"metrics_{params.output_folder}.pkl"), "wb"
+    ) as o:
         pickle.dump(combined_metrics, o)
 
     print("Done\n")

@@ -15,7 +15,7 @@ rematch_events = False
 
 # Save options
 work_path = os.getcwd()
-file_label = "draft"
+output_folder = "draft"
 overwrite_metrics = True
 save_figures = True
 
@@ -47,6 +47,8 @@ light_unit = "p.e."
 
 
 # Conversion factors
+drift_velocity = 1.6  # mm/us
+integration_window = 1  # us
 charge_gain = 245  # mV to e
 detector_z = 300
 detector_x = 128
@@ -73,6 +75,7 @@ force_dh = None
 force_dr = None
 
 # Filters for post processing if not using filter parameters file
+filter_label = None
 min_score = -1.0
 max_score = 1.0
 min_track_length = 32

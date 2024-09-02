@@ -117,11 +117,11 @@ if __name__ == "__main__":
         nargs="?",
     )
     parser.add_argument(
-        "--filter", help="Tag number of filter file within folder", default=None
+        "-f", "--filter", help="Tag number of filter file within folder", default=None
     )
     # parser.add_argument("--save", "-s", help="Save images", action="store_true")
     parser.add_argument(
-        "--display", "-d", help="Display images (not recomended)", action="store_true"
+        "-d", "--display", help="Display images (not recomended)", action="store_true"
     )
     parser.add_argument(
         "-p",
@@ -135,57 +135,26 @@ if __name__ == "__main__":
 
     print("\nAnalysis started...")
 
-    params.file_label = args.folder
+    params.output_folder = args.folder
     filter_tag = args.filter
     params.show_figures = args.display
     params.save_figures = True  # args.save
 
-    kwargs = {}
-    if args.parameters is not None:
-        # Check if parameters are provided in a JSON file
-        if (
-            len(args.parameters) == 1
-            and args.parameters[0].endswith(".json")
-            and os.path.isfile(args.parameters[0])
-        ):
-            with open(args.parameters[0], "r") as f:
-                param = json.load(f)
-        else:
-            # Convert command line parameters to dictionary
-            param = {
-                key: value
-                for param in args.parameters
-                for key, value in [param.split("=") if "=" in param else (param, None)]
-            }
+    kwargs = load_params(args.parameters)
 
-        # Now process the parameters in a single for loop
-        for key, value in param.items():
-            if key in params.__dict__:
-                try:
-                    params.__dict__[key] = (
-                        literal_eval(value)
-                        if not isinstance(params.__dict__[key], str)
-                        else value
-                    )
-                except ValueError:
-                    params.__dict__[key] = value
-            else:
-                try:
-                    kwargs[key] = literal_eval(value)
-                except ValueError:
-                    kwargs[key] = value
+    search_path = os.path.join(params.work_path, f"{params.output_folder}")
 
     if filter_tag is not None:
-        filter_file = f"{params.file_label}/filter_parameters_{filter_tag}.json"
+        filter_file = os.path.join(search_path, f"filter_parameters_{filter_tag}.json")
 
-    metrics_file = f"{params.file_label}/metrics_{params.file_label}.pkl"
+    metrics_file = os.path.join(search_path, f"metrics_{params.output_folder}.pkl")
 
     recal_params()
 
-    if params.file_label == "combined" and not os.path.isfile(metrics_file):
+    if "combined" in params.output_folder and not os.path.isfile(metrics_file):
         metrics = combine_metrics()
-    elif not os.path.isdir(params.file_label):
-        print(f"Folder {params.file_label} not found. Exiting...")
+    elif not os.path.isdir(search_path):
+        print(f"Folder {params.output_folder} not found. Exiting...")
         exit(1)
     else:
         with open(metrics_file, "rb") as f:

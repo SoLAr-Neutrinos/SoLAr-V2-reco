@@ -2,14 +2,14 @@
 
 
 def process_root(input_charge, input_light):
-    params.file_label = "_".join(input_light.split("_")[-2:]).split(".")[0]
+    params.output_folder = "_".join(input_light.split("_")[-2:]).split(".")[0]
 
-    output_path = os.path.join(params.work_path, f"{params.file_label}")
-    output_charge = os.path.join(output_path, f"charge_df_{params.file_label}.bz2")
+    output_path = os.path.join(params.work_path, f"{params.output_folder}")
+    output_charge = os.path.join(output_path, f"charge_df_{params.output_folder}.bz2")
 
-    output_light = os.path.join(output_path, f"light_df_{params.file_label}.bz2")
+    output_light = os.path.join(output_path, f"light_df_{params.output_folder}.bz2")
 
-    output_match = os.path.join(output_path, f"match_dict_{params.file_label}.json")
+    output_match = os.path.join(output_path, f"match_dict_{params.output_folder}.json")
 
     print("\nLoading charge file...")
     charge_df = load_charge(input_charge)
