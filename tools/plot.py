@@ -270,7 +270,7 @@ def event_display(
         light_df["y"],
         c=light_df[params.light_variable],
         marker="s",
-        s=200,
+        s=round(4 * (30**4) / (params.detector_x * params.detector_y)),
         linewidths=1.5,
         edgecolors=grid_color,
         zorder=6,
