@@ -64,6 +64,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    print("\nEvent display started...")
+
     params.show_figures = args.no_display
     params.output_folder = args.file
     params.save_figures = args.save
@@ -107,3 +109,5 @@ if __name__ == "__main__":
     display_events(
         params.individual_plots, charge_df, light_df, match_dict, metrics, **kwargs
     )
+
+    print("\nEvent display finished.\n")

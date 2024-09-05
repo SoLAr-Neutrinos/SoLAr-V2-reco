@@ -595,7 +595,7 @@ def plot_track_stats(
     bin_centers_all11 = (bins_all11[1:] + bins_all11[:-1]) / 2
     p0 = (
         bin_centers_all11[n_all11.argmax()],
-        np.std(bin_centers_all11) / 100,
+        np.std(bin_centers_all11) / 30,
         np.std(bin_centers_all11) / 15,
         max(n_all11),
     )
@@ -609,15 +609,15 @@ def plot_track_stats(
         (
             bin_centers_all11[min(n_all11.argmax() + 3, len(bin_centers_all11) - 1)],
             np.inf,
-            np.inf,
+            np.std(bin_centers_all11) * 2,
             np.inf,
         ),
     )
     try:
         popt, pcov = curve_fit(
             pylandau.langau,
-            bin_centers_all11[bin_centers_all11 > 1000],
-            n_all11[bin_centers_all11 > 1000],
+            bin_centers_all11[bin_centers_all11 > 1500],
+            n_all11[bin_centers_all11 > 1500],
             absolute_sigma=True,
             p0=p0,
             bounds=bounds,

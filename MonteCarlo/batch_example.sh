@@ -28,6 +28,7 @@ folder=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\.root/\1/p')
 
 # Run the analysis script on the output folder
 ./analysis.py $folder -d -s
+./analysis.py $folder -d -s -p min_track_length=160
 
 # Run the reconstruction script again without simulating dead areas
 ./reconstruction.py "$file"
@@ -37,12 +38,16 @@ folder=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\.root/\1/p')
 
 # Run the analysis script again on the output folder
 ./analysis.py $folder -s
+./analysis.py $folder -s -p min_track_length=160
 
 done
 
 # Run the analysis script on combined metrics
 ./analysis.py -s -d
+./analysis.py -s -d -p min_track_length=160
+
 ./analysis.py -s
+./analysis.py -s -p min_track_length=160
 
 # If pushd was executed, return to the original directory
 if [ "$PARENT_DIR" == "Examples" ]; then
