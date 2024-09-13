@@ -70,14 +70,19 @@ def main():
 
     args = parser.parse_args()
 
+    print(args)
+
     if args.subparser_name == "reco":
         reco_args = parser_reconstruction.parse_args()
+        print(reco_args)
         reconstruction.main(**vars(reco_args))
     elif args.subparser_name == "ana":
         ana_args = parser_analysis.parse_args()
+        print(ana_args)
         analysis.main(**vars(ana_args))
     elif args.subparser_name == "display":
         display_args = parser_display.parse_args()
+        print(display_args)
         display_events.main(**vars(display_args))
 
 
