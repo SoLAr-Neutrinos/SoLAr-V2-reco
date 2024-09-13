@@ -28,6 +28,7 @@ def main():
     parser_analysis = subparsers.add_parser("ana", help="Analyze events")
     parser_analysis.add_argument(
         "folder",
+        type=str,
         help="Folder name for specific metrics file",
         default="combined",
         nargs="?",
@@ -51,7 +52,7 @@ def main():
 
     # Display events
     parser_display = subparsers.add_parser("display", help="Display events")
-    parser_display.add_argument("folder", help="Folder name for specific data file")
+    parser_display.add_argument("folder", type=str, help="Folder name for specific data file")
     parser_display.add_argument(
         "-e", "--events", help="Event number", type=int, nargs="+"
     )
@@ -68,8 +69,6 @@ def main():
     )
 
     args = parser.parse_args()
-
-    print(args)
 
     if args.subparser_name == "reco":
 

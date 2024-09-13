@@ -41,11 +41,11 @@ def display_events(
             plt.close("all")
 
 
-def main(file, events, no_display=True, save=False, dead_areas=False, parameters=None):
+def main(folder, events, no_display=True, save=False, dead_areas=False, parameters=None):
     print("\nEvent display started...")
 
     params.show_figures = no_display
-    params.output_folder = file
+    params.output_folder = folder
     params.save_figures = save
     params.simulate_dead_area = dead_areas
     if events:
@@ -93,7 +93,7 @@ def main(file, events, no_display=True, save=False, dead_areas=False, parameters
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("file", help="Folder name for specific data file")
+    parser.add_argument("folder", help="Folder name for specific data file")
     parser.add_argument("-e", "--events", help="Event number", type=int, nargs="+")
     parser.add_argument("-s", "--save", help="Save images", action="store_true")
     parser.add_argument(

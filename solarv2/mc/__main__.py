@@ -11,7 +11,7 @@ def main():
 
     # Reconstruction
     parser_reconstruction = subparsers.add_parser("reco", help="Reconstruct events")
-    parser_reconstruction.add_argument("charge", help="Path to the charge file")
+    parser_reconstruction.add_argument("charge", type=str, help="Path to the charge file")
     parser_reconstruction.add_argument(
         "--dead-areas", "-d", action="store_true", help="Simulate dead areas"
     )
@@ -23,6 +23,7 @@ def main():
     parser_analysis = subparsers.add_parser("ana", help="Analyze events")
     parser_analysis.add_argument(
         "folder",
+        type=str
         help="Folder name for specific metrics file",
         default="combined",
         nargs="?",
@@ -49,7 +50,7 @@ def main():
 
     # Display events
     parser_display = subparsers.add_parser("display", help="Display events")
-    parser_display.add_argument("file", help="Folder name for specific data file")
+    parser_display.add_argument("folder", type=str, help="Folder name for specific data file")
     parser_display.add_argument(
         "-e", "--events", help="Event number", type=int, nargs="+"
     )
@@ -75,7 +76,7 @@ def main():
     elif args.subparser_name == "ana":
         analysis.main(folder=args.folder, filter=args.filter, save=args.save, display=args.display, dead_areas=args.dead_areas, parameters=args.parameters)
     elif args.subparser_name == "display":
-        display_events.main(file=args.file, events=args.events, save=args.save, no_display=args.no_display, dead_areas=args.dead_areas, parameters=args.parameters)
+        display_events.main(folder=args.folder, events=args.events, save=args.save, no_display=args.no_display, dead_areas=args.dead_areas, parameters=args.parameters)
 
 
 if __name__ == "__main__":
