@@ -7,7 +7,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Solar event reconstruction and analysis"
     )
-    subparsers = parser.add_subparsers(dest="subparser_name")
+    subparsers = parser.add_subparsers(dest="subparser_name", required=True)
 
     # Reconstruction
     parser_reconstruction = subparsers.add_parser("reco", help="Reconstruct events")
