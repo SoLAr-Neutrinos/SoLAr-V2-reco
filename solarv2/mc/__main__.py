@@ -70,20 +70,12 @@ def main():
 
     args = parser.parse_args()
 
-    print(args)
-
     if args.subparser_name == "reco":
-        reco_args = parser_reconstruction.parse_args()
-        print(reco_args)
-        reconstruction.main(**vars(reco_args))
+        reconstruction.main(charge=args.charge, dead_areas=args.dead_areas, parameters=args.parameters)
     elif args.subparser_name == "ana":
-        ana_args = parser_analysis.parse_args()
-        print(ana_args)
-        analysis.main(**vars(ana_args))
+        analysis.main(folder=args.folder, filter=args.filter, save=args.save, display=args.display, dead_areas=args.dead_areas, parameters=args.parameters)
     elif args.subparser_name == "display":
-        display_args = parser_display.parse_args()
-        print(display_args)
-        display_events.main(**vars(display_args))
+        display_events.main(file=args.file, events=args.events, save=args.save, no_display=args.no_display, dead_areas=args.dead_areas, parameters=args.parameters)
 
 
 if __name__ == "__main__":
