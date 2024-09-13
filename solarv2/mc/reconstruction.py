@@ -1,46 +1,29 @@
 #!/usr/bin/env python
 
-import sys
 from argparse import ArgumentParser
 
-sys.path.append("..")
-
-from tools import (
+from .montecarlo import *
+from ..tools import (
     load_params,
     load_charge,
-    montecarlo,
     os,
     params,
     pickle,
     recal_params,
 )
 
-if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument("charge", help="Path to charge file")
-    parser.add_argument(
-        "--dead-areas", "-d", help="Simulate dead areas", action="store_true"
-    )
-    parser.add_argument(
-        "-p",
-        "--parameters",
-        action="append",
-        help="Key=value pairs for aditional parameters or json file containing parameters",
-        required=False,
-    )
 
-    args = parser.parse_args()
-
+def main(charge, dead_areas, parameters=None):
     print("\nReconstruction started...")
 
-    input_charge = args.charge
-    params.simulate_dead_area = args.dead_areas
+    input_charge = charge
+    params.simulate_dead_area = dead_areas
     params.output_folder = input_charge.split("_")[-1].split(".")[0]
 
-    kwargs = load_params(args.parameters)
+    kwargs = load_params(parameters)
 
     charge_df = load_charge(input_charge)
-    charge_df = montecarlo.rotate_coordinates(charge_df)
+    charge_df = rotate_coordinates(charge_df)
 
     if params.simulate_dead_area:
         params.detector_x = params.quadrant_size * 4
@@ -57,9 +40,9 @@ if __name__ == "__main__":
             params.work_path = os.path.join(params.work_path, "DA")
 
         # Cut SiPMs from the anode
-        charge_df = montecarlo.cut_sipms(charge_df)
+        charge_df = cut_sipms(charge_df)
         # Cut dead chips from anode
-        charge_df = montecarlo.cut_chips(charge_df)
+        charge_df = cut_chips(charge_df)
 
     else:
         params.detector_x = params.quadrant_size * 8
@@ -70,13 +53,13 @@ if __name__ == "__main__":
 
     recal_params()
 
-    translation = montecarlo.get_translation()
+    translation = get_translation()
     if any([t != 0 for t in translation]):
-        charge_df = montecarlo.translate_coordinates(charge_df, translation)
+        charge_df = translate_coordinates(charge_df, translation)
 
-    charge_df = montecarlo.cut_volume(charge_df)
+    charge_df = cut_volume(charge_df)
 
-    metrics = montecarlo.fit_events(charge_df)
+    metrics = fit_events(charge_df)
 
     output_path = os.path.join(params.work_path, f"{params.output_folder}")
     output_charge = os.path.join(
@@ -94,3 +77,22 @@ if __name__ == "__main__":
 
     with open(metrics_file, "wb") as f:
         pickle.dump(metrics, f)
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("charge", help="Path to charge file")
+    parser.add_argument(
+        "--dead-areas", "-d", help="Simulate dead areas", action="store_true"
+    )
+    parser.add_argument(
+        "-p",
+        "--parameters",
+        action="append",
+        help="Key=value pairs for aditional parameters or json file containing parameters",
+        required=False,
+    )
+
+    args = parser.parse_args()
+
+    main(**vars(args))

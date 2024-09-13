@@ -13,8 +13,8 @@ if [ "$PARENT_DIR" == "Examples" ]; then
 fi
 
 # Run analysis on combined metrics
-./analysis.py
-./analysis.py -p min_track_length=160
+python -m solarv2 ana
+python -m solarv2 ana -p min_track_length=160
 
 # If pushd was executed, return to the original directory
 if [ "$PARENT_DIR" == "Examples" ]; then

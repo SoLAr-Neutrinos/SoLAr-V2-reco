@@ -28,13 +28,13 @@ do
   echo Charge file: "$charge_file"
   
   # Run the reconstruction script again without simulating dead areas
-  ./reconstruction.py -c "$charge_file" -l "$light_file" 
+  python -m solarv2 reco -c "$charge_file" -l "$light_file" 
 
-  ./display_events.py "$label" -s -n
+  python -m solarv2 display "$label" -s -n
   
   # Run the analysis script again on the output folder
-  ./analysis.py "$label"
-  ./analysis.py "$label" -p min_track_length=160
+  python -m solarv2 ana "$label"
+  python -m solarv2 ana "$label" -p min_track_length=160
 done
 
 # If pushd was executed, return to the original directory

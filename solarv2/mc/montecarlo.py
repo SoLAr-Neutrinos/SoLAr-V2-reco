@@ -1,13 +1,6 @@
 #!/usr/bin/env python
 
-from .methods import (
-    params,
-    np,
-    pd,
-    cluster_hits,
-    fit_hit_clusters,
-    tqdm,
-)
+from ..tools.methods import cluster_hits, fit_hit_clusters, np, params, pd, tqdm
 
 
 def get_translation():
@@ -198,20 +191,3 @@ def fit_events(charge_df):
         metrics[event]["Total_charge"] = charge_values["q"].sum()
 
     return metrics
-
-
-# if __name__ == "__main__":
-#     from argparse import ArgumentParser
-
-#     parser = ArgumentParser()
-#     parser.add_argument("charge", help="Path to charge file")
-#     parser.add_argument(
-#         "--dead-areas", "-d", help="Simulate dead areas", action="store_false"
-#     )
-
-#     args = parser.parse_args()
-
-#     input_charge = args.charge
-#     params.simulate_dead_area = args.dead_areas
-#     params.output_folder = input_charge.split("_")[-1].split(".")[0]
-#     recal_params()

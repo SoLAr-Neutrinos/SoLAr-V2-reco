@@ -2,7 +2,7 @@
 
 from argparse import ArgumentParser
 
-from tools import (
+from .tools import (
     event_display,
     plt,
     recal_params,
@@ -39,6 +39,31 @@ def display_events(
             plt.close("all")
 
 
+def main(folder, events=None, save=False, no_display=True, parameters=None):
+    print("\nEvent display started...")
+
+    params.show_figures = no_display
+    params.output_folder = folder
+    params.save_figures = save
+
+    kwargs = load_params(parameters)
+
+    if events:
+        params.individual_plots = events
+
+    recal_params()
+
+    charge_df, light_df, match_dict, metrics = load_data(
+        params.output_folder, return_metrics=True
+    )
+
+    display_events(
+        params.individual_plots, charge_df, light_df, match_dict, metrics, **kwargs
+    )
+
+    print("\nEvent display finished.\n")
+
+
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("folder", help="Folder name for specific data file")
@@ -57,25 +82,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print("\nEvent display started...")
-
-    params.show_figures = args.no_display
-    params.output_folder = args.folder
-    params.save_figures = args.save
-
-    kwargs = load_params(args.parameters)
-
-    if args.events:
-        params.individual_plots = args.events
-
-    recal_params()
-
-    charge_df, light_df, match_dict, metrics = load_data(
-        params.output_folder, return_metrics=True
-    )
-
-    display_events(
-        params.individual_plots, charge_df, light_df, match_dict, metrics, **kwargs
-    )
-
-    print("\nEvent display finished.\n")
+    main(**vars(args))

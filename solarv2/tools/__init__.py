@@ -1,4 +1,3 @@
-from . import montecarlo
 from .fit_events import fit_events
 from .load_data import load_data
 from .methods import *

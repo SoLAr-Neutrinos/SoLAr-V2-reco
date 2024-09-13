@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pylandau
 from IPython.display import display
+from IPython import get_ipython
 from matplotlib.colors import LinearSegmentedColormap, LogNorm, to_rgba
 from matplotlib.ticker import AutoMinorLocator, MaxNLocator, ScalarFormatter
 from mpl_toolkits.mplot3d import Axes3D
