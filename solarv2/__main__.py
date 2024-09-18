@@ -85,7 +85,7 @@ def main():
 
     elif args.subparser_name == "display":
         
-        display_events.main(folder=args.folder, events=args.events, save=args.save, display=args.no_display, parameters=args.parameters)
+        display_events.main(folder=args.folder, events=args.events, save=args.save, no_display=args.no_display, parameters=args.parameters)
 
 
 if __name__ == "__main__":

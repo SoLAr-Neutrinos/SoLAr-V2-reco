@@ -1,0 +1,50 @@
+[project]
+name = "solarv2"
+version = "1.0.0"
+description = "Toolset for SoLAr V2 data analysis"
+authors = [{name="Guilherme Ruiz"}]
+readme = "README.md"
+requires = "python>=3.9"
+dynamic = ["dependencies"]
+
+[project.urls]
+Source = "https://github.com/solarneutrinos/SoLAr-V2-Reco"
+
+[project.scripts]
+solarv2 = "solarv2.__main__:main"
+solarv2-mc = "solarv2.mc.__main__:main"
+
+[build-system]
+requires = ["hatchling", "hatch-requirements-txt"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata.hooks.requirements_txt]
+files = ["requirements.txt"]
+
+[tool.coverage.run]
+branch = true
+source = ["solarv2"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.mypy]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+enable_error_code = ["ignore-without-code", "truthy-bool"]
+follow_imports = "normal"
+ignore_missing_imports = true
+pretty = true
+show_column_numbers = true
+warn_no_return = false
+warn_unused_ignores = true
+
+[tool.black]
+line-length = 125
+
+[tool.isort]
+profile = "black"
+combine_as_imports = true
+combine_star = true
+line_length = 125
