@@ -13,12 +13,12 @@ if [ "$PARENT_DIR" == "Examples" ]; then
 fi
 
 # Loop through all files matching the pattern in the specified directory
-for file in /eos/experiment/dune/solar/montecarlo/singlecube/cosmic_v0/singlecube_cry_hit_*.root
+for file in /eos/experiment/dune/solar/montecarlo/singlecube/cosmic_v0/singlecube_cry_hit_*thrs3800.root
 do
 
 echo "Processing" $file
 # Extract the numbers after 'hit_' and before '.root' using sed to get the output folder
-folder=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\.root/\1/p')
+folder=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\_thrs3800.root/\1/p')
 
 # Run the reconstruction script simulating dead areas and dh set to 30
 ./reconstruction.py "$file" -d

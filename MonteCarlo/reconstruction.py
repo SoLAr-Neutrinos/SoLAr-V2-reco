@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     input_charge = args.charge
     params.simulate_dead_area = args.dead_areas
-    params.output_folder = input_charge.split("_")[-1].split(".")[0]
+    params.output_folder = input_charge.split("_")[-2].split(".")[0]
 
     kwargs = load_params(args.parameters)
 
