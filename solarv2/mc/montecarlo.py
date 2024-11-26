@@ -5,28 +5,17 @@ from ..tools.methods import cluster_hits, fit_hit_clusters, np, params, pd, tqdm
 
 def get_translation():
     translation = (
-        (
-            -np.power(-1, params.flip_x)
-            * params.quadrant_size
-            * 2.0
-            * params.simulate_dead_area
-        ),
-        (params.quadrant_size * 1.5 * params.simulate_dead_area),
+        (-np.power(-1, params.flip_x) * params.quadrant_size * 2.0 * params.simulate_dead_area),
+        (params.quadrant_size * 0.5 * params.simulate_dead_area),
         -155,
     )
     return translation
 
 
 def translate_coordinates(hit_df, translation, inverse=False):
-    hit_df["hit_x"] = hit_df["hit_x"].apply(
-        lambda x: [round(i - translation[0] * np.power(-1, inverse), 1) for i in x]
-    )
-    hit_df["hit_y"] = hit_df["hit_y"].apply(
-        lambda x: [round(i - translation[1] * np.power(-1, inverse), 1) for i in x]
-    )
-    hit_df["hit_z"] = hit_df["hit_z"].apply(
-        lambda x: [round(i - translation[2] * np.power(-1, inverse), 1) for i in x]
-    )
+    hit_df["hit_x"] = hit_df["hit_x"].apply(lambda x: [round(i - translation[0] * np.power(-1, inverse), 1) for i in x])
+    hit_df["hit_y"] = hit_df["hit_y"].apply(lambda x: [round(i - translation[1] * np.power(-1, inverse), 1) for i in x])
+    hit_df["hit_z"] = hit_df["hit_z"].apply(lambda x: [round(i - translation[2] * np.power(-1, inverse), 1) for i in x])
 
     return hit_df
 
@@ -41,9 +30,7 @@ def rotate_coordinates(hit_df):
 
 
 def cut_volume(hit_df):
-    additional_columns = [
-        col for col in hit_df.columns if col not in ["hit_x", "hit_y", "hit_z"]
-    ]
+    additional_columns = [col for col in hit_df.columns if col not in ["hit_x", "hit_y", "hit_z"]]
     columns_to_zip = ["hit_x", "hit_y", "hit_z"] + additional_columns
 
     def filter_hits(hit_row):
@@ -67,9 +54,7 @@ def cut_volume(hit_df):
 
 
 def cut_sipms(hit_df):
-    additional_columns = [
-        col for col in hit_df.columns if col not in ["hit_x", "hit_y", "hit_z"]
-    ]
+    additional_columns = [col for col in hit_df.columns if col not in ["hit_x", "hit_y", "hit_z"]]
     columns_to_zip = ["hit_x", "hit_y", "hit_z"] + additional_columns
 
     def filter_hits(hit_row):
@@ -78,9 +63,7 @@ def cut_sipms(hit_df):
             for hit in zip(*[hit_row[col] for col in columns_to_zip])
             if not any(
                 sipm_x - params.sipm_size / 2 <= hit[0] <= sipm_x + params.sipm_size / 2
-                and sipm_y - params.sipm_size / 2
-                <= hit[1]
-                <= sipm_y + params.sipm_size / 2
+                and sipm_y - params.sipm_size / 2 <= hit[1] <= sipm_y + params.sipm_size / 2
                 for sipm_x, sipm_y in [
                     (
                         -params.quadrant_size * 4 + params.quadrant_size * (i + 0.5),
@@ -100,9 +83,7 @@ def cut_sipms(hit_df):
 
 
 def cut_chips(hit_df):
-    additional_columns = [
-        col for col in hit_df.columns if col not in ["hit_x", "hit_y", "hit_z"]
-    ]
+    additional_columns = [col for col in hit_df.columns if col not in ["hit_x", "hit_y", "hit_z"]]
     columns_to_zip = ["hit_x", "hit_y", "hit_z"] + additional_columns
 
     def filter_hits(hit_row):
@@ -114,15 +95,11 @@ def cut_chips(hit_df):
                     chip_x - params.quadrant_size / 2
                     <= hit[0] * np.power(-1, params.flip_x)
                     <= chip_x + params.quadrant_size / 2
-                    and chip_y - params.quadrant_size / 2
-                    <= hit[1]
-                    <= chip_y + params.quadrant_size / 2
+                    and chip_y - params.quadrant_size / 2 <= hit[1] <= chip_y + params.quadrant_size / 2
                     for chip_x, chip_y in [
                         (
-                            -params.quadrant_size * 4
-                            + params.quadrant_size * (j - params.first_chip[1] + 0.5),
-                            params.quadrant_size * 4
-                            - params.quadrant_size * (i - params.first_chip[0] + 0.5),
+                            -params.quadrant_size * 4 + params.quadrant_size * (j - 1 + 0.5),
+                            params.quadrant_size * 4 - params.quadrant_size * (i - 1 + 0.5),
                         )
                         for (i, j) in [(3, 3), (4, 4), (5, 4), (6, 4)]
                     ]
@@ -130,21 +107,15 @@ def cut_chips(hit_df):
                 or (
                     hit[0] * np.power(-1, params.flip_x)
                     + params.quadrant_size * 4
-                    - params.quadrant_size * (2 - params.first_chip[1])
+                    - params.quadrant_size
                     + hit[1]
                     - params.quadrant_size * 4
-                    + params.quadrant_size * (4 - params.first_chip[0] + 1)
-                    <= params.quadrant_size
-                    and 0
-                    <= hit[0] * np.power(-1, params.flip_x)
                     + params.quadrant_size * 4
-                    - params.quadrant_size * (2 - params.first_chip[1])
                     <= params.quadrant_size
                     and 0
-                    <= hit[1]
-                    - params.quadrant_size * 4
-                    + params.quadrant_size * (4 - params.first_chip[0] + 1)
+                    <= hit[0] * np.power(-1, params.flip_x) + params.quadrant_size * 4 - params.quadrant_size
                     <= params.quadrant_size
+                    and 0 <= hit[1] - params.quadrant_size * 4 + params.quadrant_size * 4 <= params.quadrant_size
                 )
             )
         ]
