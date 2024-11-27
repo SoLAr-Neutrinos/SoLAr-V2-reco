@@ -18,7 +18,7 @@ def get_translation():
             * 2.0
             * params.simulate_dead_area
         ),
-        (params.quadrant_size * 1.5 * params.simulate_dead_area),
+        (params.quadrant_size * 0.5 * params.simulate_dead_area),
         -155,
     )
     return translation
@@ -127,9 +127,9 @@ def cut_chips(hit_df):
                     for chip_x, chip_y in [
                         (
                             -params.quadrant_size * 4
-                            + params.quadrant_size * (j - params.first_chip[1] + 0.5),
+                            + params.quadrant_size * (j - 1 + 0.5),
                             params.quadrant_size * 4
-                            - params.quadrant_size * (i - params.first_chip[0] + 0.5),
+                            - params.quadrant_size * (i - 1 + 0.5),
                         )
                         for (i, j) in [(3, 3), (4, 4), (5, 4), (6, 4)]
                     ]
@@ -137,20 +137,18 @@ def cut_chips(hit_df):
                 or (
                     hit[0] * np.power(-1, params.flip_x)
                     + params.quadrant_size * 4
-                    - params.quadrant_size * (2 - params.first_chip[1])
+                    - params.quadrant_size
                     + hit[1]
                     - params.quadrant_size * 4
-                    + params.quadrant_size * (4 - params.first_chip[0] + 1)
+                    + params.quadrant_size * 4
                     <= params.quadrant_size
                     and 0
                     <= hit[0] * np.power(-1, params.flip_x)
                     + params.quadrant_size * 4
-                    - params.quadrant_size * (2 - params.first_chip[1])
+                    - params.quadrant_size
                     <= params.quadrant_size
                     and 0
-                    <= hit[1]
-                    - params.quadrant_size * 4
-                    + params.quadrant_size * (4 - params.first_chip[0] + 1)
+                    <= hit[1] - params.quadrant_size * 4 + params.quadrant_size * 4
                     <= params.quadrant_size
                 )
             )
