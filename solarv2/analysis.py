@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-from tools import *
+from .tools import *
 
 from argparse import ArgumentParser
 import inspect
 
 
-def main(metrics, **kwargs):
+def analysis(metrics, **kwargs):
     warnings.filterwarnings("ignore", category=Warning, module="numpy")
 
     methods = [
@@ -108,39 +108,15 @@ def main(metrics, **kwargs):
     warnings.filterwarnings("default", category=Warning)
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument(
-        "folder",
-        help="Folder name for specific metrics file",
-        default="combined",
-        nargs="?",
-    )
-    parser.add_argument(
-        "-f", "--filter", help="Tag number of filter file within folder", default=None
-    )
-    # parser.add_argument("--save", "-s", help="Save images", action="store_true")
-    parser.add_argument(
-        "-d", "--display", help="Display images (not recomended)", action="store_true"
-    )
-    parser.add_argument(
-        "-p",
-        "--parameters",
-        action="append",
-        help="Key=value pairs for aditional parameters or json file containing parameters",
-        required=False,
-    )
-
-    args = parser.parse_args()
-
+def main(folder, filter=None, display=False, save=True, parameters=None):
     print("\nAnalysis started...")
 
-    params.output_folder = args.folder
-    filter_tag = args.filter
-    params.show_figures = args.display
-    params.save_figures = True  # args.save
+    params.output_folder = folder
+    filter_tag = filter
+    params.show_figures = display
+    params.save_figures = save
 
-    kwargs = load_params(args.parameters)
+    kwargs = load_params(parameters)
 
     search_path = os.path.join(params.work_path, f"{params.output_folder}")
 
@@ -168,6 +144,32 @@ if __name__ == "__main__":
     print(len(metrics), "metrics loaded")
     metrics = filter_metrics(metrics)
 
-    main(metrics, **kwargs)
+    analysis(metrics, **kwargs)
 
     print("\nAnalysis finished.\n")
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument(
+        "folder",
+        help="Folder name for specific metrics file",
+        default="combined",
+        nargs="?",
+    )
+    parser.add_argument(
+        "-f", "--filter", help="Tag number of filter file within folder", default=None
+    )
+    # parser.add_argument("--save", "-s", help="Save images", action="store_true")
+    parser.add_argument(
+        "-d", "--display", help="Display images (not recomended)", action="store_true"
+    )
+    parser.add_argument(
+        "-p",
+        "--parameters",
+        action="append",
+        help="Key=value pairs for aditional parameters or json file containing parameters",
+        required=False,
+    )
+
+    args = parser.parse_args()

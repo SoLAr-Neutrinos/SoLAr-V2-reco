@@ -19,13 +19,13 @@ do
   echo Folder: "$folder"
   
   # Run the reconstruction script again without simulating dead areas
-  ./reconstruction.py -f "$folder"
+  python -m solarv2 reco -f "$folder"
 
-  ./display_events.py "$folder" -s -n
+  python -m solarv2 display "$folder" -s -n
   
   # Run the analysis script again on the output folder
-  ./analysis.py "$folder"
-  ./analysis.py "$folder" -p min_track_length=160
+  python -m solarv2 ana "$folder"
+  python -m solarv2 ana "$folder" -p min_track_length=160
 done
 
 # If pushd was executed, return to the original directory

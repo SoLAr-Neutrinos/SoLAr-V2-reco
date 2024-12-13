@@ -3,9 +3,7 @@
 import sys
 from argparse import ArgumentParser
 
-sys.path.append("..")
-
-from tools import (
+from ..tools import (
     os,
     event_display,
     load_data,
@@ -43,35 +41,15 @@ def display_events(
             plt.close("all")
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument("file", help="Folder name for specific data file")
-    parser.add_argument("-e", "--events", help="Event number", type=int, nargs="+")
-    parser.add_argument("-s", "--save", help="Save images", action="store_true")
-    parser.add_argument(
-        "-n", "--no-display", help="Don't display images", action="store_false"
-    )
-    parser.add_argument(
-        "-d", "--dead-areas", help="Simulate dead areas", action="store_true"
-    )
-    parser.add_argument(
-        "-p",
-        "--parameters",
-        action="append",
-        help="Key=value pairs for aditional parameters or json file containing parameters",
-        required=False,
-    )
-
-    args = parser.parse_args()
-
+def main(folder, events, no_display=True, save=False, dead_areas=False, parameters=None):
     print("\nEvent display started...")
 
-    params.show_figures = args.no_display
-    params.output_folder = args.file
-    params.save_figures = args.save
-    params.simulate_dead_area = args.dead_areas
-    if args.events:
-        params.individual_plots = args.events
+    params.show_figures = no_display
+    params.output_folder = folder
+    params.save_figures = save
+    params.simulate_dead_area = dead_areas
+    if events:
+        params.individual_plots = events
 
     if params.simulate_dead_area:
         params.detector_x = params.quadrant_size * 4
@@ -93,10 +71,10 @@ if __name__ == "__main__":
             f"Not simulating dead areas. Detector x and y dimensions reset to ({params.detector_x}, {params.detector_y})"
         )
 
-    if args.events:
-        params.individual_plots = args.events
+    if events:
+        params.individual_plots = events
 
-    kwargs = load_params(args.parameters)
+    kwargs = load_params(parameters)
 
     recal_params()
 
@@ -111,3 +89,27 @@ if __name__ == "__main__":
     )
 
     print("\nEvent display finished.\n")
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("folder", help="Folder name for specific data file")
+    parser.add_argument("-e", "--events", help="Event number", type=int, nargs="+")
+    parser.add_argument("-s", "--save", help="Save images", action="store_true")
+    parser.add_argument(
+        "-n", "--no-display", help="Don't display images", action="store_false"
+    )
+    parser.add_argument(
+        "-d", "--dead-areas", help="Simulate dead areas", action="store_true"
+    )
+    parser.add_argument(
+        "-p",
+        "--parameters",
+        action="append",
+        help="Key=value pairs for aditional parameters or json file containing parameters",
+        required=False,
+    )
+
+    args = parser.parse_args()
+
+    main(**vars(args))

@@ -1,0 +1,16 @@
+awkward>=2.6.6
+itables>=2.1.4
+matplotlib>=3.4.3
+numpy>=1.23.5
+pandas>=2.2.2
+pylandau>=2.2.1
+scikit-learn>=1.5.1
+scipy>=1.11.3
+scikit-image>=0.21.0
+scikit-spatial
+tqdm>=4.66.3
+uproot>=5.3.10
+ipykernel>=6.29.4
+nbstripout
+papermill
+

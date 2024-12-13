@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 import inspect
-import sys
 from argparse import ArgumentParser
 
-sys.path.append("..")
+from .montecarlo import *
+from ..tools import *
 
-from tools import *
 
-
-def main(metrics, **kwargs):
+def analysis(metrics, **kwargs):
     warnings.filterwarnings("ignore", category=Warning, module="numpy")
 
     methods = [
@@ -57,41 +55,16 @@ def main(metrics, **kwargs):
                         plt.close("all")
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument(
-        "folder",
-        help="Folder name for specific metrics file",
-        default="combined",
-        nargs="?",
-    )
-    parser.add_argument(
-        "--filter", help="Tag number of filter file within folder", default=None
-    )
-    parser.add_argument("--save", "-s", help="Save images", action="store_true")
-    parser.add_argument(
-        "--display", help="Display images (not recomended)", action="store_true"
-    )
-    parser.add_argument(
-        "--dead-areas", "-d", help="Simulate dead areas", action="store_true"
-    )
-    parser.add_argument(
-        "-p",
-        "--parameters",
-        action="append",
-        help="Key=value pairs for aditional parameters or json file containing parameters",
-        required=False,
-    )
-
-    args = parser.parse_args()
-
+def main(
+    folder, filter=None, save=False, display=False, dead_areas=False, parameters=None
+):
     print("\nAnalysis started...")
 
-    params.output_folder = args.folder
-    filter_tag = args.filter
-    params.show_figures = args.display
-    params.save_figures = args.save
-    params.simulate_dead_area = args.dead_areas
+    params.output_folder = folder
+    filter_tag = filter
+    params.show_figures = display
+    params.save_figures = save
+    params.simulate_dead_area = dead_areas
 
     if params.simulate_dead_area:
         params.detector_x = params.quadrant_size * 4
@@ -113,7 +86,7 @@ if __name__ == "__main__":
             f"Not simulating dead areas. Detector x and y dimensions reset to ({params.detector_x}, {params.detector_y})"
         )
 
-    kwargs = load_params(args.parameters)
+    kwargs = load_params(parameters)
 
     search_path = os.path.join(params.work_path, f"{params.output_folder}")
 
@@ -141,6 +114,36 @@ if __name__ == "__main__":
     print(len(metrics), "metrics loaded")
     metrics = filter_metrics(metrics)
 
-    main(metrics, **kwargs)
+    analysis(metrics, **kwargs)
 
     print("\nAnalysis finished.\n")
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument(
+        "folder",
+        help="Folder name for specific metrics file",
+        default="combined",
+        nargs="?",
+    )
+    parser.add_argument(
+        "--filter", help="Tag number of filter file within folder", default=None
+    )
+    parser.add_argument("--save", "-s", help="Save images", action="store_true")
+    parser.add_argument(
+        "--display", help="Display images (not recomended)", action="store_true"
+    )
+    parser.add_argument(
+        "--dead-areas", "-d", help="Simulate dead areas", action="store_true"
+    )
+    parser.add_argument(
+        "-p",
+        "--parameters",
+        action="append",
+        help="Key=value pairs for aditional parameters or json file containing parameters",
+        required=False,
+    )
+
+    args = parser.parse_args()
+    main(**vars(args))
