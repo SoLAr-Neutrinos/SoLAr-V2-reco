@@ -4,7 +4,7 @@ Welcome to the SoLAr-V2-reco repository! This repository contains scripts, tools
 
 To get started, follow these steps to install the required dependencies:
 
-1. Clone the repository: `git clone https://github.com/dune/solar.git`
+1. Clone the repository: `git clone https://github.com/SoLAr-Neutrinos/SoLAr-V2-reco.git`
 2. Navigate to the `SoLAr-V2-reco` directory: `cd SoLAr-V2-reco/`
 3. Install on LXPLUS: `sh install_lxplus.sh` 
     or
