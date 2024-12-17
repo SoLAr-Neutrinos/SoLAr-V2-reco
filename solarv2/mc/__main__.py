@@ -45,7 +45,7 @@ def main():
         "-p",
         "--parameters",
         action="append",
-        help="Key=value pairs for aditional parameters or json file containing parameters",
+        help="Key=value pairs for additional parameters or json file containing parameters",
         required=False,
     )
 
