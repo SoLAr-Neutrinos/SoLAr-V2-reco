@@ -87,6 +87,7 @@ def get_dr(rmse):
 
 
 def prepare_event(event, charge_df, light_df=None, match_dict=None):
+
     if event not in charge_df.index:
         tqdm.write(f"Event {event} not found in {params.output_folder}")
         return None, None, None
@@ -98,9 +99,7 @@ def prepare_event(event, charge_df, light_df=None, match_dict=None):
         if event in match_dict:
             light_event = match_dict.get(event)[0]
             light_matches = light_indices[light_indices == light_event].index
-            light_event = light_df.loc[light_matches].dropna(
-                subset=params.light_variable
-            )
+            light_event = light_df.loc[light_matches].dropna(subset=params.light_variable)
         else:
             print(f"No light event found for event {event} in {params.output_folder}")
 
@@ -133,13 +132,9 @@ def prepare_event(event, charge_df, light_df=None, match_dict=None):
                 "event_hits_channelid",
             ]
         )
-        non_zero_mask = (charge_event["x"] != 0) * (
-            charge_event["y"] != 0
-        )  # Remove (0,0) entries
+        non_zero_mask = (charge_event["x"] != 0) * (charge_event["y"] != 0)  # Remove (0,0) entries
 
-        noisy_channels_mask = ~channel_ids.isin(
-            [ch[0] for ch in params.channel_disable_list]
-        )  # Disable channel 7
+        noisy_channels_mask = ~channel_ids.isin([ch[0] for ch in params.channel_disable_list])  # Disable channel 7
 
         mask = non_zero_mask * noisy_channels_mask  # Full hits mask
 
@@ -159,22 +154,15 @@ def match_events(charge_df, light_df, window=10):
     charge_events = charge_df[["event_unix_ts", "event_start_t"]].drop_duplicates()
     light_events = light_df[["tai_ns", "event"]].drop_duplicates()
 
-    for event, row in tqdm(
-        charge_events.iterrows(), total=len(charge_events), desc="Matching events"
-    ):
-        charge_ts = (float(row["event_unix_ts"]) * 1e6) + (
-            float(row["event_start_t"]) * 1e-1
-        )
+    for event, row in tqdm(charge_events.iterrows(), total=len(charge_events), desc="Matching events"):
+        charge_ts = (float(row["event_unix_ts"]) * 1e6) + (float(row["event_start_t"]) * 1e-1)
         light_matches = light_events.where(
-            abs(light_events["tai_ns"].astype(float) * 1e-3 - 36000000 - charge_ts)
-            <= window
+            abs(light_events["tai_ns"].astype(float) * 1e-3 - 36000000 - charge_ts) <= window
         ).dropna()
 
         if not light_matches.empty:
             if event in match_dict:
-                match_dict[event].append(
-                    light_matches["event"].unique().astype(int).tolist()
-                )
+                match_dict[event].append(light_matches["event"].unique().astype(int).tolist())
             else:
                 match_dict[event] = light_matches["event"].unique().astype(int).tolist()
 
@@ -237,22 +225,12 @@ def generate_dead_area(z_range, buffer=1):
                     z_range,
                 )
 
-                mask1 = (temp_y - params.quadrant_size / 2) - (
-                    temp_x - params.quadrant_size / 2
-                ) >= 0
-                mask2 = (temp_y <= params.quadrant_size / 2 + buffer) & (
-                    temp_y >= params.quadrant_size / 2 - buffer
-                )
-                mask3 = (temp_x <= params.quadrant_size / 2 + buffer) & (
-                    temp_x >= params.quadrant_size / 2 - buffer
-                )
+                mask1 = (temp_y - params.quadrant_size / 2) - (temp_x - params.quadrant_size / 2) >= 0
+                mask2 = (temp_y <= params.quadrant_size / 2 + buffer) & (temp_y >= params.quadrant_size / 2 - buffer)
+                mask3 = (temp_x <= params.quadrant_size / 2 + buffer) & (temp_x >= params.quadrant_size / 2 - buffer)
                 mask = mask1 | (mask2 & mask3)
-                temp_x = (
-                    temp_x[mask] - params.detector_x / 2 + params.quadrant_size * (k)
-                )
-                temp_y = (
-                    -temp_y[mask] + params.detector_y / 2 - params.quadrant_size * (l)
-                )
+                temp_x = temp_x[mask] - params.detector_x / 2 + params.quadrant_size * (k)
+                temp_y = -temp_y[mask] + params.detector_y / 2 - params.quadrant_size * (l)
                 temp_z = temp_z[mask]
 
                 fake_x.extend(temp_x)
@@ -319,13 +297,20 @@ def generate_dead_area(z_range, buffer=1):
     return fake_data
 
 
+def lifetime_correction(z):
+    # z in mm, velocity in mm/ms, lifetime in ms
+    velocity = params.drift_velocity * 1000
+    if params.lifetime > 0:
+        return np.exp(z / (velocity * params.lifetime))
+    else:
+        return 1
+
+
 # Apply DBSCAN clustering
 def cluster_hits(hitArray):
     # First stage clustering
     z_intervals = []
-    first_stage = DBSCAN(eps=params.xy_epsilon, min_samples=params.min_samples).fit(
-        hitArray[:, 0:2]
-    )
+    first_stage = DBSCAN(eps=params.xy_epsilon, min_samples=params.min_samples).fit(hitArray[:, 0:2])
     for label in first_stage.labels_:
         if label > -1:
             mask = first_stage.labels_ == label
@@ -372,9 +357,7 @@ def cluster_hits(hitArray):
     # Second stage clustering
     # Combine fake to true data
     second_stage_data = np.concatenate([hitArray, fake_data])
-    second_stage = DBSCAN(eps=params.xy_epsilon, min_samples=1).fit(
-        second_stage_data[:, 0:2]
-    )
+    second_stage = DBSCAN(eps=params.xy_epsilon, min_samples=1).fit(second_stage_data[:, 0:2])
 
     # Third stage clustering
     # Create a new array with z and labels
@@ -383,9 +366,7 @@ def cluster_hits(hitArray):
     flag = labels > -1
 
     third_stage_data = third_stage_z[flag].copy()
-    third_stage = DBSCAN(
-        eps=params.z_epsilon, min_samples=params.min_samples, metric="chebyshev"
-    ).fit(third_stage_data)
+    third_stage = DBSCAN(eps=params.z_epsilon, min_samples=params.min_samples, metric="chebyshev").fit(third_stage_data)
 
     # Shift labels by 1 so that negative values are reserved for outliers
     labels[flag] = third_stage.labels_ + 1
@@ -422,9 +403,7 @@ def ransacFit(
 
         # Check it enouth inliers
         if sum(inliers) > params.ransac_min_samples:
-            score = estimator.score(
-                hitArray[:, 0:last_column], hitArray[:, last_column]
-            )
+            score = estimator.score(hitArray[:, 0:last_column], hitArray[:, last_column])
         else:
             score = np.nan
     else:
@@ -494,9 +473,7 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
     dh_i = pd.Series(np.zeros(len(steps), dtype=float), index=steps)
 
     for step_idx, step in enumerate(steps):
-        cyl_origin = line_fit.to_point(
-            step - target_dh / 2 - h / 2
-        )  # centering the step in the base of the cylinder
+        cyl_origin = line_fit.to_point(step - target_dh / 2 - h / 2)  # centering the step in the base of the cylinder
         cyl_height = line_fit.direction.unit() * target_dh
         cylinder_fit = Cylinder(
             cyl_origin,
@@ -526,26 +503,16 @@ def dqdx(hitArray, q, line_fit, target_dh, dr, h, ax=None):
             # Sum up the live areas (intervals <= limit_pitch) and correct by the pixel pitch
             live_intervals = intervals[intervals <= limit_pitch]
             dead_intervals_count = np.sum(intervals > limit_pitch)
-            boundary_intervals = (
-                (intervals[0] > limit_pitch) + (intervals[-1] > limit_pitch)
-            ) / 2
+            boundary_intervals = ((intervals[0] > limit_pitch) + (intervals[-1] > limit_pitch)) / 2
             total_live_distance = (
-                np.sum(live_intervals)
-                + (dead_intervals_count * projected_pitch)
-                - boundary_intervals * projected_pitch
+                np.sum(live_intervals) + (dead_intervals_count * projected_pitch) - boundary_intervals * projected_pitch
             )
 
             # Calculate max_distance based on live areas
-            max_distance = min(
-                abs(point_distances[-1] - point_distances[0]), total_live_distance
-            )
+            max_distance = min(abs(point_distances[-1] - point_distances[0]), total_live_distance)
 
             # Calculate step_length based on conditions
-        step_length = (
-            max_distance
-            if max_distance > 0
-            else (projected_pitch if dq_i.loc[step] > 0 else 0)
-        )
+        step_length = max_distance if max_distance > 0 else (projected_pitch if dq_i.loc[step] > 0 else 0)
 
         # Assign the minimum of step_length and target_dh to dh_i.loc[step]
         dh_i.loc[step] = min(step_length, target_dh)
@@ -594,9 +561,7 @@ def fit_hit_clusters(
                 last_label = max(labels) + 1
                 # Assign positive labels to clustered outliers and negative labels to unlclustered outliers
                 for i, j in enumerate(level_3):
-                    labels[j] = (outlier_labels[i] + last_label) * (
-                        1 if outlier_labels[i] > 0 else -1
-                    )
+                    labels[j] = (outlier_labels[i] + last_label) * (1 if outlier_labels[i] > 0 else -1)
             else:
                 # Assign negative labels to outliers
                 for j in level_3:
@@ -681,6 +646,9 @@ def voxelize_hits(
         )
         voxel_charge = charge_df["q"][voxel_mask]
         voxel_z = charge_df["z"][voxel_mask]
+
+        voxel_charge = voxel_charge * lifetime_correction(voxel_z)
+
         xyzl = sipm[["x", "y", light_variable]].copy()
 
         if len(voxel_charge) > 0:
@@ -699,11 +667,7 @@ def voxelize_hits(
                 point = Point([sipm["x"], sipm["y"], 0])
                 plane = Plane(point=point, normal=[0, 0, 1])
                 line_distances = [
-                    (
-                        line.distance_point(point)
-                        if not plane.normal.is_parallel(line.direction)
-                        else np.inf
-                    )
+                    (line.distance_point(point) if not plane.normal.is_parallel(line.direction) else np.inf)
                     for line in charge_lines
                 ]
                 if line_distances and min(line_distances) < np.inf:
@@ -711,12 +675,8 @@ def voxelize_hits(
                     projection = plane.project_line(charge_line)
                     projected_point = projection.project_point(point)
                     v_line = Line(point=projected_point, direction=[0, 0, 1])
-                    intersection = charge_line.intersect_line(
-                        v_line, check_coplanar=False
-                    )
-                    if all(
-                        abs(projected_point - point)[:2] <= params.quadrant_size / 2
-                    ):
+                    intersection = charge_line.intersect_line(v_line, check_coplanar=False)
+                    if all(abs(projected_point - point)[:2] <= params.quadrant_size / 2):
                         xyzl["z"] = intersection[2]
 
         xyzl_df = pd.concat([xyzl_df, xyzl], axis=1)
@@ -745,9 +705,7 @@ def voxelize_hits(
                 sipm_voxels_metrics["Fit_line"] = light_fit
                 sipm_voxels_metrics["RANSAC_score"] = score
                 sipm_voxels_metrics["Fit_mse"] = mse
-                sipm_voxels_metrics["Fit_threshold"] = xyzl[light_variable][
-                    inliers
-                ].min()
+                sipm_voxels_metrics["Fit_threshold"] = xyzl[light_variable][inliers].min()
 
     return sipm_voxels_metrics
 
@@ -785,6 +743,9 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
 
     empty_count = 0
     short_count = 0
+
+    print(rf"Using lifetime correction with tau = {params.lifetime} ms")
+
     for event, entry in metrics.items():
         for track, values in entry.items():
             if isinstance(track, str) or track <= 0:
@@ -806,9 +767,9 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
                 track_points.append(np.nan)
                 continue
 
-            empty_ratio = sum(
-                dQ.iloc[non_zero_mask[0] : non_zero_mask[-1] + 1] == 0
-            ) / (non_zero_mask[-1] - non_zero_mask[0] + 1)
+            empty_ratio = sum(dQ.iloc[non_zero_mask[0] : non_zero_mask[-1] + 1] == 0) / (
+                non_zero_mask[-1] - non_zero_mask[0] + 1
+            )
 
             if empty_ratio > empty_ratio_lims[1] or empty_ratio < empty_ratio_lims[0]:
                 empty_count += 1
@@ -819,11 +780,11 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
             dQdx = (dQ / dx).rename("dQdx")
             dQdx = dQdx.iloc[non_zero_mask[0] : non_zero_mask[-1] + 1]
 
-            position = [
-                values["Fit_line"].to_point(t=-values["Fit_norm"] / 2 + t)
-                for t in dQ.index
-            ]
+            position = [values["Fit_line"].to_point(t=-values["Fit_norm"] / 2 + t) for t in dQ.index]
             position = position[non_zero_mask[0] : non_zero_mask[-1] + 1]
+
+            z = np.array([x[2] for x in position])
+            dQdx *= lifetime_correction(z)
 
             track_dQdx.append(dQdx)
             track_points.append(pd.Series(position, index=dQdx.index, name="position"))
@@ -882,39 +843,25 @@ def load_params(parameters):
     kwargs = {}
     if parameters is not None:
         # Check if parameters are provided in a JSON file
-        if (
-            len(parameters) == 1
-            and parameters[0].endswith(".json")
-            and os.path.isfile(parameters[0])
-        ):
+        if len(parameters) == 1 and parameters[0].endswith(".json") and os.path.isfile(parameters[0]):
             with open(parameters[0], "r") as f:
                 param = json.load(f)
         else:
             # Convert command line parameters to dictionary
             param = {
-                key: value
-                for param in parameters
-                for key, value in [param.split("=") if "=" in param else (param, None)]
+                key: value for param in parameters for key, value in [param.split("=") if "=" in param else (param, None)]
             }
 
         # Now process the parameters in a single for loop
         for key, value in param.items():
             if key in params.__dict__:
                 try:
-                    params.__dict__[key] = (
-                        literal_eval(value)
-                        if not isinstance(params.__dict__[key], str)
-                        else value
-                    )
+                    params.__dict__[key] = literal_eval(value) if not isinstance(params.__dict__[key], str) else value
                 except ValueError:
                     params.__dict__[key] = value
             else:
                 try:
-                    kwargs[key] = (
-                        literal_eval(value)
-                        if not isinstance(params.__dict__[key], str)
-                        else value
-                    )
+                    kwargs[key] = literal_eval(value) if not isinstance(params.__dict__[key], str) else value
                 except ValueError:
                     kwargs[key] = value
 
@@ -923,9 +870,7 @@ def load_params(parameters):
 
 def recal_params():
     params.dh_unit = params.xy_unit if params.xy_unit == params.z_unit else "?"
-    params.light_unit = (
-        "p.e." if params.light_variable == "integral" else f"p.e./{params.time_unit}"
-    )
+    params.light_unit = "p.e." if params.light_variable == "integral" else f"p.e./{params.time_unit}"
     if params.simulate_dead_area:
         params.detector_x = params.quadrant_size * 4
         params.detector_y = params.quadrant_size * 5
@@ -958,16 +903,8 @@ def max_std(array, ax=None, array_max=None, min_count_ratio=0.9, max_std_ratio=0
 
     std = np.array(std)
     count = np.array(count)
-    condition = ((count / max_count).round(3) >= min_count_ratio) & (
-        (std / max_std).round(3) <= max_std_ratio
-    )
-    vline = x_range[
-        (
-            np.where(condition)[0][-1]
-            if np.any(condition)
-            else (count / max_count > min_count_ratio).argmax()
-        )
-    ]
+    condition = ((count / max_count).round(3) >= min_count_ratio) & ((std / max_std).round(3) <= max_std_ratio)
+    vline = x_range[(np.where(condition)[0][-1] if np.any(condition) else (count / max_count > min_count_ratio).argmax())]
 
     print(
         "Max STD ratio",
@@ -983,9 +920,7 @@ def max_std(array, ax=None, array_max=None, min_count_ratio=0.9, max_std_ratio=0
         ax.plot(count / max_count, label="Event count ratio")
         ax.axvline(vline, ls="--", c="r", label=f"{min_count_ratio*100}% of events")
         ax.legend()
-        ax.tick_params(
-            axis="both", direction="inout", which="major", top=True, right=True
-        )
+        ax.tick_params(axis="both", direction="inout", which="major", top=True, right=True)
         ax.xaxis.set_minor_locator(AutoMinorLocator())
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.yaxis.set_minor_locator(AutoMinorLocator())
@@ -1000,23 +935,19 @@ def cluster_hot_bins(min_n_ratio, n, x_edges, y_edges, scale=(1, 1), eps=8):
     filtered_n2 = n[n >= min_n]
     bin_centers_x = 0.5 * (x_edges[1:] + x_edges[:-1])
     bin_centers_y = 0.5 * (y_edges[1:] + y_edges[:-1])
-    filtered_centers_x, filtered_centers_y = np.array(
-        np.meshgrid(bin_centers_x, bin_centers_y)
-    )
+    filtered_centers_x, filtered_centers_y = np.array(np.meshgrid(bin_centers_x, bin_centers_y))
     filtered_centers_x = filtered_centers_x[n.T > min_n]
     filtered_centers_y = filtered_centers_y[n.T > min_n]
-    dbscan = DBSCAN(
-        eps=eps, min_samples=int(np.sqrt(len(filtered_centers_y))), metric="chebyshev"
-    ).fit(np.c_[filtered_centers_x / scale[0], filtered_centers_y / scale[1]])
+    dbscan = DBSCAN(eps=eps, min_samples=int(np.sqrt(len(filtered_centers_y))), metric="chebyshev").fit(
+        np.c_[filtered_centers_x / scale[0], filtered_centers_y / scale[1]]
+    )
     return filtered_centers_x, filtered_centers_y, dbscan.labels_
 
 
 # Peak finding algorithm for integration
 def integrate_peaks(waveform, buffer_size=10, height=0.1, prominence=0.05):
     # Find peaks in the filtered waveform
-    peaks, properties = signal.find_peaks(
-        waveform, height=height, prominence=prominence
-    )
+    peaks, properties = signal.find_peaks(waveform, height=height, prominence=prominence)
 
     integration_result = 0
     start_index = 0  # Initialize the start index
@@ -1075,10 +1006,7 @@ def filter_metrics(metrics, **kwargs):
 
         # Filter based on the number of tracks and light metrics, if applicable
         if len(metric) <= max_tracks + non_track_keys:
-            if (
-                "Total_light" in metric
-                and min_light <= metric["Total_light"] <= max_light
-            ) or "Total_light" not in metric:
+            if ("Total_light" in metric and min_light <= metric["Total_light"] <= max_light) or "Total_light" not in metric:
                 candidate_metric = {
                     track_idx: values
                     for track_idx, values in metric.items()
@@ -1094,11 +1022,7 @@ def filter_metrics(metrics, **kwargs):
                 }
 
                 # Check if the filtered candidate metrics meet the criteria
-                if (
-                    non_track_keys
-                    < len(candidate_metric)
-                    <= max_tracks + non_track_keys
-                ):
+                if non_track_keys < len(candidate_metric) <= max_tracks + non_track_keys:
                     filtered_metrics[event_idx] = candidate_metric
 
     print(f"{len(filtered_metrics)} metrics remaining")
@@ -1143,9 +1067,7 @@ def combine_metrics():
     output_path = os.path.join(params.work_path, params.output_folder)
     os.makedirs(output_path, exist_ok=True)
 
-    with open(
-        os.path.join(output_path, f"metrics_{params.output_folder}.pkl"), "wb"
-    ) as o:
+    with open(os.path.join(output_path, f"metrics_{params.output_folder}.pkl"), "wb") as o:
         pickle.dump(combined_metrics, o)
 
     print("Done\n")

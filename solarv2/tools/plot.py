@@ -107,17 +107,8 @@ def create_ed_axes(event_idx, charge, light):
         x = np.array([0, params.quadrant_size])
         y = -np.array([0, params.quadrant_size])
         ax2d.plot(
-            np.power(-1, params.flip_x)
-            * (
-                x
-                - params.detector_x / 2
-                + params.quadrant_size * (j - params.first_chip[1])
-            ),
-            (
-                y
-                + params.detector_y / 2
-                - params.quadrant_size * (i - params.first_chip[0])
-            ),
+            np.power(-1, params.flip_x) * (x - params.detector_x / 2 + params.quadrant_size * (j - params.first_chip[1])),
+            (y + params.detector_y / 2 - params.quadrant_size * (i - params.first_chip[0])),
             c=grid_color,
             lw=1,
         )
@@ -126,16 +117,8 @@ def create_ed_axes(event_idx, charge, light):
             y = -np.array([params.quadrant_size, params.quadrant_size / 2])
         ax2d.plot(
             np.power(-1, params.flip_x)
-            * (
-                x[::-1]
-                - params.detector_x / 2
-                + params.quadrant_size * (j - params.first_chip[1])
-            ),
-            (
-                y
-                + params.detector_y / 2
-                - params.quadrant_size * (i - params.first_chip[0])
-            ),
+            * (x[::-1] - params.detector_x / 2 + params.quadrant_size * (j - params.first_chip[1])),
+            (y + params.detector_y / 2 - params.quadrant_size * (i - params.first_chip[0])),
             c=grid_color,
             lw=1,
         )
@@ -198,9 +181,7 @@ def event_display(
     ax3d = axes[1]
 
     # Group by x and y coordinates and sum the z values
-    unique_points, indices = np.unique(
-        charge_df[["x", "y"]], axis=0, return_inverse=True
-    )
+    unique_points, indices = np.unique(charge_df[["x", "y"]], axis=0, return_inverse=True)
     q_sum = np.bincount(indices, weights=charge_df["q"])
 
     # Plot the hits
@@ -282,9 +263,7 @@ def event_display(
     vertices_x = np.array([1, 1, -1, -1, 1]) * side_size / 2
     vertices_y = np.array([1, -1, -1, 1, 1]) * side_size / 2
     light_xy = light_df[["x", "y"]].apply(tuple, axis=1)
-    for missing_index in range(
-        params.detector_x * params.detector_y // (params.quadrant_size**2)
-    ):
+    for missing_index in range(params.detector_x * params.detector_y // (params.quadrant_size**2)):
         col = (
             -params.detector_x / 2
             + params.quadrant_size / 2
@@ -303,9 +282,7 @@ def event_display(
             ax3d.add_collection3d(
                 Poly3DCollection(
                     square,
-                    facecolors=sipm_plot.to_rgba(
-                        light_df[params.light_variable][light_xy == (col, row)]
-                    ),
+                    facecolors=sipm_plot.to_rgba(light_df[params.light_variable][light_xy == (col, row)]),
                     linewidths=0.5,
                     edgecolors=grid_color,
                 )
@@ -322,9 +299,7 @@ def event_display(
     fig.tight_layout()
 
     if params.save_figures:
-        output_path = os.path.join(
-            params.work_path, params.output_folder, str(event_idx)
-        )
+        output_path = os.path.join(params.work_path, params.output_folder, str(event_idx))
         os.makedirs(output_path, exist_ok=True)
         fig.savefig(
             os.path.join(output_path, f"event_{event_idx}.pdf"),
@@ -359,9 +334,7 @@ def plot_fake_data(z_range, buffer=1, **kwargs):
 
     output_path = os.path.join(params.work_path, params.output_folder)
     os.makedirs(output_path, exist_ok=True)
-    fig.savefig(
-        os.path.join(output_path, "fake_data_map.pdf"), dpi=300, bbox_inches="tight"
-    )
+    fig.savefig(os.path.join(output_path, "fake_data_map.pdf"), dpi=300, bbox_inches="tight")
 
 
 # ### Tracks
@@ -375,9 +348,7 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwa
     ax_twinx = ax.twinx()
 
     target_dx = dx_series.index.diff()[-1]
-    fig.suptitle(
-        rf"Event {event_idx} - Track {track_idx} - $dx = {round(target_dx,2)}$ {params.dh_unit}"
-    )
+    fig.suptitle(rf"Event {event_idx} - Track {track_idx} - $dx = {round(target_dx,2)}$ {params.dh_unit}")
 
     non_zero_indices = np.where(dQ_series > 0)[0]
     mean_dQ = np.mean(dQ_series.iloc[non_zero_indices])
@@ -436,14 +407,10 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwa
 
     fig.tight_layout()
     if params.save_figures:
-        output_path = os.path.join(
-            params.work_path, params.output_folder, str(event_idx)
-        )
+        output_path = os.path.join(params.work_path, params.output_folder, str(event_idx))
         os.makedirs(output_path, exist_ok=True)
         fig.savefig(
-            os.path.join(
-                output_path, f"dQ_E{event_idx}_T{track_idx}_{round(target_dx,2)}.pdf"
-            ),
+            os.path.join(output_path, f"dQ_E{event_idx}_T{track_idx}_{round(target_dx,2)}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
@@ -463,15 +430,9 @@ def plot_track_angles(metrics, **kwargs):
                 if "Fit_norm" in track and track["Fit_norm"] < 1:
                     continue
                 if "Fit_line" in track:
-                    cos_x.append(
-                        track["Fit_line"].direction.cosine_similarity([1, 0, 0])
-                    )
-                    cos_y.append(
-                        track["Fit_line"].direction.cosine_similarity([0, 1, 0])
-                    )
-                    cos_z.append(
-                        track["Fit_line"].direction.cosine_similarity([0, 0, 1])
-                    )
+                    cos_x.append(track["Fit_line"].direction.cosine_similarity([1, 0, 0]))
+                    cos_y.append(track["Fit_line"].direction.cosine_similarity([0, 1, 0]))
+                    cos_z.append(track["Fit_line"].direction.cosine_similarity([0, 0, 1]))
                     vectors.append(track["Fit_line"].direction.to_array())
 
     vectors = np.array(vectors)
@@ -502,15 +463,9 @@ def plot_track_angles(metrics, **kwargs):
     if params.save_figures:
         output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
-        label = (
-            f"_{params.filter_label}"
-            if params.filter_label is not None
-            else f"_{len(cos_x)}"
-        )
+        label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(cos_x)}"
         fig.savefig(
-            os.path.join(
-                output_path, f"track_angles_{params.output_folder}{label}.pdf"
-            ),
+            os.path.join(output_path, f"track_angles_{params.output_folder}{label}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
@@ -529,9 +484,7 @@ def plot_track_stats(
     **kwargs,
 ):
     plt.style.use(params.style)
-    df = get_track_stats(
-        metrics, empty_ratio_lims=empty_ratio_lims, min_entries=min_entries
-    )
+    df = get_track_stats(metrics, empty_ratio_lims=empty_ratio_lims, min_entries=min_entries)
     if dropna:
         df = df.dropna(subset=["track_dQdx"])
 
@@ -539,9 +492,7 @@ def plot_track_stats(
     track_length = df["track_length"].astype(float)
     track_score = df["track_score"].astype(float)
     track_z = df["track_z"].astype(float)
-    track_cv_dQdx = (
-        track_dQdx.dropna().apply(lambda x: x.std() / x.mean()).astype(float)
-    )
+    track_cv_dQdx = track_dQdx.dropna().apply(lambda x: x.std() / x.mean()).astype(float)
     track_mean_dQdx = track_dQdx.dropna().apply(lambda x: x.mean()).astype(float)
 
     score_mask = (track_score >= min_score).to_numpy()
@@ -577,9 +528,7 @@ def plot_track_stats(
         dQdx_series[dQdx_series <= limit].values, bins=bins[0], label="All tracks"
     )
 
-    n_all12, bins_all12, patches_all12 = ax12.hist(
-        track_length, bins=bins[0], label="All tracks"
-    )
+    n_all12, bins_all12, patches_all12 = ax12.hist(track_length, bins=bins[0], label="All tracks")
 
     if score_bool:
         n11, edges11, patches11 = ax11.hist(
@@ -597,18 +546,18 @@ def plot_track_stats(
     p0 = (
         bin_centers_all11[n_all11.argmax()],
         np.std(bin_centers_all11) / 30,
-        np.std(bin_centers_all11) / 15,
+        np.std(bin_centers_all11) ,
         max(n_all11),
     )
     bounds = (
         (
-            bin_centers_all11[max(n_all11.argmax() - 3, 0)],
+            bin_centers_all11[max(n_all11.argmax() - 5, 0)],
             0,
             0,
             0,
         ),
         (
-            bin_centers_all11[min(n_all11.argmax() + 3, len(bin_centers_all11) - 1)],
+            bin_centers_all11[min(n_all11.argmax() + 10, len(bin_centers_all11) - 1)],
             np.inf,
             np.std(bin_centers_all11) * 2,
             np.inf,
@@ -628,8 +577,7 @@ def plot_track_stats(
             fit_x := np.linspace(bins_all11[0], bins_all11[-1], 1000),
             pylandau.langau(fit_x, *popt),
             "r-",
-            label=r"fit: $\mu$=%5.1f, $\eta$=%5.1f, $\sigma$=%5.1f, A=%5.1f"
-            % tuple(popt),
+            label=r"fit: $\mu$=%5.1f, $\eta$=%5.1f, $\sigma$=%5.1f, A=%5.1f" % tuple(popt),
         )
     except:
         print("\nCould not fit Landau to dQ/dx")
@@ -648,18 +596,10 @@ def plot_track_stats(
         if profile:
             hist, x_edges, y_edges = np.histogram2d(x, y, bins=bins)
 
-            y_means = [
-                np.mean(y[(x >= x_edges[i]) & (x < x_edges[i + 1])])
-                for i in range(len(x_edges) - 1)
-            ]
-            y_stds = [
-                np.std(y[(x >= x_edges[i]) & (x < x_edges[i + 1])])
-                for i in range(len(x_edges) - 1)
-            ]
+            y_means = [np.mean(y[(x >= x_edges[i]) & (x < x_edges[i + 1])]) for i in range(len(x_edges) - 1)]
+            y_stds = [np.std(y[(x >= x_edges[i]) & (x < x_edges[i + 1])]) for i in range(len(x_edges) - 1)]
             x_values = (x_edges[1:] + x_edges[:-1]) / 2
-            bin_widths = [
-                (x_edges[i + 1] - x_edges[i]) / 2 for i in range(len(x_edges) - 1)
-            ]
+            bin_widths = [(x_edges[i + 1] - x_edges[i]) / 2 for i in range(len(x_edges) - 1)]
             ax.errorbar(x_values, y_means, yerr=y_stds, xerr=bin_widths, fmt="o")
 
         else:
@@ -755,9 +695,7 @@ def plot_track_stats(
         rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
         fontsize=params.label_font_size,
     )
-    ax51.set_xlabel(
-        rf"Residual range [{params.dh_unit}]", fontsize=params.label_font_size
-    )
+    ax51.set_xlabel(rf"Residual range [{params.dh_unit}]", fontsize=params.label_font_size)
     ax51.set_title(rf"{len(track_dQdx)} tracks", fontsize=params.title_font_size)
 
     hist2d(
@@ -776,9 +714,7 @@ def plot_track_stats(
         rf"Mean $dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
         fontsize=params.label_font_size,
     )
-    ax61.set_xlabel(
-        rf"Mean anode distance [{params.z_unit}]", fontsize=params.label_font_size
-    )
+    ax61.set_xlabel(rf"Mean anode distance [{params.z_unit}]", fontsize=params.label_font_size)
     ax61.set_title(rf"{len(track_z)} tracks", fontsize=params.title_font_size)
 
     hist2d(
@@ -875,9 +811,7 @@ def plot_track_stats(
             rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
             fontsize=params.label_font_size,
         )
-        ax52.set_xlabel(
-            rf"Residual range [{params.dh_unit}]", fontsize=params.label_font_size
-        )
+        ax52.set_xlabel(rf"Residual range [{params.dh_unit}]", fontsize=params.label_font_size)
         ax52.set_title(
             rf"Fit score $\geq {min_score}$ ({round(sum(score_mask)/len(score_mask)*100)}% of tracks)",
             fontsize=params.title_font_size,
@@ -900,16 +834,12 @@ def plot_track_stats(
             rf"Mean $dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
             fontsize=params.label_font_size,
         )
-        ax62.set_xlabel(
-            rf"Mean anode distance [{params.z_unit}]", fontsize=params.label_font_size
-        )
+        ax62.set_xlabel(rf"Mean anode distance [{params.z_unit}]", fontsize=params.label_font_size)
         ax62.set_title(
             rf"Fit score $\geq {min_score}$ ({round(sum(score_mask)/len(score_mask)*100)}% of tracks)",
             fontsize=params.title_font_size,
         )
-        fig6.suptitle(
-            "Mean dQ/dx vs. Mean anode distance", fontsize=params.title_font_size
-        )
+        fig6.suptitle("Mean dQ/dx vs. Mean anode distance", fontsize=params.title_font_size)
 
         hist2d(
             track_z[score_mask * nan_mask],
@@ -945,9 +875,7 @@ def plot_track_stats(
         #     profile=profile,
         # )
 
-    max_track_legth = np.sqrt(
-        params.detector_x**2 + params.detector_y**2 + params.detector_z**2
-    )
+    max_track_legth = np.sqrt(params.detector_x**2 + params.detector_y**2 + params.detector_z**2)
     max_track_legth_xy = np.sqrt(params.detector_x**2 + params.detector_y**2)
     print("\nMax possible track length", round(max_track_legth, 2), "mm")
     print("Max possible track length on xy plane", round(max_track_legth_xy, 2), "mm")
@@ -965,13 +893,9 @@ def plot_track_stats(
             ):
                 ax.set_xlabel(f"Track length [{params.dh_unit}]")
             if max(track_length) > params.detector_y:
-                ax.axvline(
-                    params.detector_y, c="g", ls="--", label="Max vertical length"
-                )
+                ax.axvline(params.detector_y, c="g", ls="--", label="Max vertical length")
             if max(track_length) > max_track_legth_xy:
-                ax.axvline(
-                    max_track_legth_xy, c="orange", ls="--", label=r"Max length in $xy$"
-                )
+                ax.axvline(max_track_legth_xy, c="orange", ls="--", label=r"Max length in $xy$")
             if max(track_length) > max_track_legth:
                 ax.axvline(max_track_legth, c="r", ls="--", label="Max length")
 
@@ -992,18 +916,12 @@ def plot_track_stats(
         fig.tight_layout()
 
     if params.save_figures:
-        label = (
-            f"_{params.filter_label}"
-            if params.filter_label is not None
-            else f"_{len(track_length)}"
-        )
+        label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(track_length)}"
         output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
 
         fig1.savefig(
-            os.path.join(
-                output_path, f"track_stats_1D_hist_{params.output_folder}{label}.pdf"
-            ),
+            os.path.join(output_path, f"track_stats_1D_hist_{params.output_folder}{label}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
@@ -1074,9 +992,7 @@ def plot_light_geo_stats(
     sipm_light = []
 
     for metric in metrics.values():
-        if single_track and len(metric.keys()) > (
-            1 + sum(1 for key in metric if isinstance(key, str))
-        ):
+        if single_track and len(metric.keys()) > (1 + sum(1 for key in metric if isinstance(key, str))):
             continue
         for track_idx, values in metric.items():
             if not isinstance(track_idx, str) and track_idx > 0:
@@ -1090,9 +1006,7 @@ def plot_light_geo_stats(
     sipm_angle = np.array(sipm_angle)
     sipm_light = np.array(sipm_light)
 
-    max_distance = np.sqrt(
-        params.detector_x**2 + params.detector_y**2 + params.detector_z**2
-    )
+    max_distance = np.sqrt(params.detector_x**2 + params.detector_y**2 + params.detector_z**2)
     print("Max possible distance to track", round(max_distance, 2), "mm")
     print("Drift distance", params.detector_z, "mm\n")
 
@@ -1198,9 +1112,7 @@ def plot_light_geo_stats(
     cbar30 = plt.colorbar(hist30[3])
     cbar30.set_label(rf"Counts [Log]")
 
-    hist31 = axes3[1].hist2d(
-        sipm_angle, sipm_light, bins=bins, cmin=1, norm=LogNorm() if lognorm else None
-    )
+    hist31 = axes3[1].hist2d(sipm_angle, sipm_light, bins=bins, cmin=1, norm=LogNorm() if lognorm else None)
     axes3[1].set_xlabel(f"SiPM opening angle to track [deg]")
     axes3[1].set_ylabel(f"Light {params.light_variable} [{params.light_unit}]")
     cbar31 = plt.colorbar(hist31[3])
@@ -1215,9 +1127,7 @@ def plot_light_geo_stats(
                 xlim = ax.get_xlim()
                 ax.set_xlim(xlim[0], min(max_distance + 10, xlim[1]))
             if max(sipm_distance) > params.detector_z:
-                ax.axvline(
-                    params.detector_z, c="orange", ls="--", label="Drift distance"
-                )
+                ax.axvline(params.detector_z, c="orange", ls="--", label="Drift distance")
             if max(sipm_distance) > max_distance:
                 ax.axvline(max_distance, c="r", ls="--", label="Max distance")
 
@@ -1231,11 +1141,7 @@ def plot_light_geo_stats(
     if params.save_figures:
         output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
-        label = (
-            f"_{params.filter_label}"
-            if params.filter_label is not None
-            else f"_{len(sipm_light)}"
-        )
+        label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(sipm_light)}"
         fig1.savefig(
             os.path.join(
                 output_path,
@@ -1245,16 +1151,12 @@ def plot_light_geo_stats(
             bbox_inches="tight",
         )
         fig2.savefig(
-            os.path.join(
-                output_path, f"light_geo_2D_hist_{params.output_folder}{label}.pdf"
-            ),
+            os.path.join(output_path, f"light_geo_2D_hist_{params.output_folder}{label}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
         fig3.savefig(
-            os.path.join(
-                output_path, f"light_geo_1D_hist_{params.output_folder}{label}.pdf"
-            ),
+            os.path.join(output_path, f"light_geo_1D_hist_{params.output_folder}{label}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
@@ -1272,9 +1174,7 @@ def plot_light_fit_stats(metrics, **kwargs):
                     continue
                 charge_track = track["Fit_line"]
                 cross = charge_track.direction.cross(light_track.direction)
-                cosine = abs(
-                    charge_track.direction.cosine_similarity(light_track.direction)
-                )
+                cosine = abs(charge_track.direction.cosine_similarity(light_track.direction))
                 cosine_df.loc[event] = [
                     cosine,
                     metric["SiPM"]["Fit_threshold"],
@@ -1302,11 +1202,7 @@ def plot_light_fit_stats(metrics, **kwargs):
     ax.legend()
     fig.tight_layout()
     if params.save_figures:
-        label = (
-            f"_{params.filter_label}"
-            if params.filter_label is not None
-            else f"_{len(cosine_df)}"
-        )
+        label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(cosine_df)}"
         output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
         fig.savefig(
@@ -1316,9 +1212,7 @@ def plot_light_fit_stats(metrics, **kwargs):
         )
 
 
-def plot_voxel_data(
-    metrics, bins=50, log=(False, False, False), lognorm=False, **kwargs
-):
+def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False, **kwargs):
     if not isinstance(bins, int):
         bins = 50
 
@@ -1371,9 +1265,7 @@ def plot_voxel_data(
     fig1 = plt.figure(figsize=(10, 6))
     ax1 = fig1.add_subplot(111)
 
-    hist = ax1.hist2d(
-        z, l, bins=[bins_z, bins_l], cmin=1, norm=LogNorm() if lognorm else None
-    )
+    hist = ax1.hist2d(z, l, bins=[bins_z, bins_l], cmin=1, norm=LogNorm() if lognorm else None)
     cbar1 = plt.colorbar(hist[3])
     ax1.set_title("Light vs. z distance")
     cbar1.set_label(rf"Counts - log" if lognorm else rf"Counts")
@@ -1395,25 +1287,17 @@ def plot_voxel_data(
     figs = [fig1, fig2]
     axes = [ax1, *axes2]
 
-    hist21 = axes2[0].hist2d(
-        z, q, bins=[bins_z, bins_q], cmin=1, norm=LogNorm() if lognorm else None
-    )
+    hist21 = axes2[0].hist2d(z, q, bins=[bins_z, bins_q], cmin=1, norm=LogNorm() if lognorm else None)
     cbar21 = plt.colorbar(hist21[3])
     axes2[0].set_title(rf"Charge vs. Anode distance")
     cbar21.set_label(rf"Counts - log" if lognorm else rf"Counts")
     set_common_ax_options(cbar=cbar21)
 
-    hist22 = axes2[1].hist2d(
-        q, l, bins=[bins_q, bins_l], cmin=1, norm=LogNorm() if lognorm else None
-    )
+    hist22 = axes2[1].hist2d(q, l, bins=[bins_q, bins_l], cmin=1, norm=LogNorm() if lognorm else None)
     cbar22 = plt.colorbar(hist22[3])
     axes2[1].set(
         title=rf"Light vs. Charge",
-        xlabel=(
-            rf"Charge [{params.q_unit} - log]"
-            if log[1]
-            else rf"Charge [{params.q_unit}]"
-        ),
+        xlabel=(rf"Charge [{params.q_unit} - log]" if log[1] else rf"Charge [{params.q_unit}]"),
         xscale="log" if log[1] else "linear",
     )
     cbar22.set_label(rf"Counts - log" if lognorm else rf"Counts")
@@ -1440,11 +1324,7 @@ def plot_voxel_data(
 
     for idx, ax in enumerate(axes):
         if not idx == 2:
-            ax.set_xlabel(
-                f"Anode distance [{params.z_unit} - log]"
-                if log[0]
-                else f"Anode distance [{params.z_unit}]"
-            )
+            ax.set_xlabel(f"Anode distance [{params.z_unit} - log]" if log[0] else f"Anode distance [{params.z_unit}]")
             ax.set_xscale("log" if log[0] else "linear")
         if idx % 2 == 0:
             ax.set_ylabel(
@@ -1454,11 +1334,7 @@ def plot_voxel_data(
             )
             ax.set_yscale("log" if log[2] else "linear")
         else:
-            ax.set_ylabel(
-                rf"Charge [{params.q_unit} - log] "
-                if log[1]
-                else rf"Charge [{params.q_unit}]"
-            )
+            ax.set_ylabel(rf"Charge [{params.q_unit} - log] " if log[1] else rf"Charge [{params.q_unit}]")
             ax.set_yscale("log" if log[1] else "linear")
 
         set_common_ax_options(ax=ax)
@@ -1469,15 +1345,9 @@ def plot_voxel_data(
     if params.save_figures:
         output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
-        label = (
-            f"_{params.filter_label}"
-            if params.filter_label is not None
-            else f"_{sum(mask)}"
-        )
+        label = f"_{params.filter_label}" if params.filter_label is not None else f"_{sum(mask)}"
         fig1.savefig(
-            os.path.join(
-                output_path, f"voxel_light_vs_z_{params.output_folder}{label}.pdf"
-            ),
+            os.path.join(output_path, f"voxel_light_vs_z_{params.output_folder}{label}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
@@ -1564,9 +1434,7 @@ def plot_light_vs_charge(
             bin_peaks[np.isnan(bin_peaks)] = 0
             x_bin_centers = 0.5 * (x_edges[1:] + x_edges[:-1])
             y_bin_centers = 0.5 * (y_edges[1:] + y_edges[:-1])
-            x_bin_centers, y_bin_centers = np.array(
-                np.meshgrid(x_bin_centers, y_bin_centers)
-            )
+            x_bin_centers, y_bin_centers = np.array(np.meshgrid(x_bin_centers, y_bin_centers))
             x_bin_centers = x_bin_centers.ravel()
             y_bin_centers = y_bin_centers.ravel()
 
@@ -1650,9 +1518,7 @@ def plot_light_vs_charge(
             print("Fit failed\n")
 
         ax.set_xlabel(f"Total charge [{params.q_unit}{' - Log' if log else ''}]")
-        ax.set_ylabel(
-            f"Total Light {params.light_variable} [{params.light_unit}{' - Log' if log else ''}]"
-        )
+        ax.set_ylabel(f"Total Light {params.light_variable} [{params.light_unit}{' - Log' if log else ''}]")
         cbar = plt.colorbar(image)
         cbar.set_label(rf"Counts")
         set_common_ax_options(ax)
@@ -1664,17 +1530,11 @@ def plot_light_vs_charge(
         array = array[array < upper_bound]
         if log:
             ax.set_xscale("log")
-            bins = np.exp(
-                np.linspace(
-                    np.log(min(array) - 1), np.log(upper_bound), int(50 * bin_density)
-                )
-            )
+            bins = np.exp(np.linspace(np.log(min(array) - 1), np.log(upper_bound), int(50 * bin_density)))
         else:
             bins = np.linspace(min(array), upper_bound, int(50 * bin_density))
 
-        n, edges, patches = ax.hist(
-            array, bins=bins, fill=False, ec="C0", histtype="bar"
-        )
+        n, edges, patches = ax.hist(array, bins=bins, fill=False, ec="C0", histtype="bar")
 
         peak_y = n.max()
         peak_x = edges[n.argmax() : n.argmax() + 1].mean()
@@ -1708,12 +1568,7 @@ def plot_light_vs_charge(
 
                 print(
                     "Parameters:\n",
-                    "\n ".join(
-                        [
-                            f"{name}: {value}"
-                            for name, value in zip(["μ", "ρ", "σ", "A"], parameters)
-                        ]
-                    ),
+                    "\n ".join([f"{name}: {value}" for name, value in zip(["μ", "ρ", "σ", "A"], parameters)]),
                     "\n",
                 )
                 ax.plot(
@@ -1737,9 +1592,7 @@ def plot_light_vs_charge(
     fig2 = plt.figure(figsize=(8, 6))
     ax2 = plt.subplot(111)
     print("Light vs. Charge plot\n")
-    n2d, xedges2d, yedges2d, image2d = hist2d(
-        charge_array, light_array, ax2, bins, log[0]
-    )
+    n2d, xedges2d, yedges2d, image2d = hist2d(charge_array, light_array, ax2, bins, log[0])
     fig2.suptitle(f"Event level Light vs. Charge - {len(charge_array)} events")
 
     fig3 = plt.figure(figsize=(8, 6))
@@ -1747,31 +1600,23 @@ def plot_light_vs_charge(
     ratio = charge_array / light_array
     print("Light / Charge ratio plot\n")
     hist1d(ratio, ax3, bin_density, log[1], p0)
-    ax3.set_xlabel(
-        f"Event total charge / Light [{params.q_unit}/{params.light_unit}{' - Log' if log[1] else ''}]"
-    )
+    ax3.set_xlabel(f"Event total charge / Light [{params.q_unit}/{params.light_unit}{' - Log' if log[1] else ''}]")
     fig3.suptitle(f"Event level Charge vs. Light - {len(charge_array)} events")
 
     fig4, axes4 = plt.subplots(1, 2, figsize=(14, 6))
 
     print("Charge plot\n")
     hist1d(charge_array, axes4[0], bin_density, log[1], p0)
-    axes4[0].set_xlabel(
-        f"Event total charge [{params.q_unit}{' - Log' if log[1] else ''}]"
-    )
+    axes4[0].set_xlabel(f"Event total charge [{params.q_unit}{' - Log' if log[1] else ''}]")
     print("Light plot\n")
     hist1d(light_array, axes4[1], bin_density, log[1], p0)
-    axes4[1].set_xlabel(
-        f"Event total Light [{params.light_unit}{' - Log' if log[1] else ''}]"
-    )
+    axes4[1].set_xlabel(f"Event total Light [{params.light_unit}{' - Log' if log[1] else ''}]")
     fig4.suptitle(f"Event level Charge and Light - {len(charge_array)} events")
 
     figs = [fig1, fig2, fig3, fig4]
     if clusters is None:
         if log[0]:
-            temp_x, temp_y, cluster_labels = cluster_hot_bins(
-                0.3, n2d, np.log(xedges2d), np.log(yedges2d), eps=1
-            )
+            temp_x, temp_y, cluster_labels = cluster_hot_bins(0.3, n2d, np.log(xedges2d), np.log(yedges2d), eps=1)
         else:
             temp_x, temp_y, cluster_labels = cluster_hot_bins(
                 0.3,
@@ -1790,13 +1635,9 @@ def plot_light_vs_charge(
         labels = kmeans.predict(data) + 1
         populations = np.unique(labels)
 
-        fig22, axes22 = plt.subplots(
-            len(populations), 1, figsize=(8, 6 * len(populations))
-        )
+        fig22, axes22 = plt.subplots(len(populations), 1, figsize=(8, 6 * len(populations)))
 
-        fig32, axes32 = plt.subplots(
-            len(populations), 1, figsize=(10, 6 * len(populations))
-        )
+        fig32, axes32 = plt.subplots(len(populations), 1, figsize=(10, 6 * len(populations)))
 
         figs.extend([fig22, fig32])
 
@@ -1825,11 +1666,7 @@ def plot_light_vs_charge(
     if params.save_figures:
         output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
-        label = (
-            f"_{params.filter_label}"
-            if params.filter_label is not None
-            else f"_{len(ratio)}"
-        )
+        label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(ratio)}"
         fig1.savefig(
             os.path.join(
                 output_path,

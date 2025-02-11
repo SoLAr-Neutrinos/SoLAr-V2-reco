@@ -4,9 +4,7 @@ import os
 
 import numpy as np
 
-sipm_map_file = os.path.abspath(
-    os.path.join(__file__, os.pardir, "sipm_sn_ch_to_xy.json")
-)
+sipm_map_file = os.path.abspath(os.path.join(__file__, os.pardir, "sipm_sn_ch_to_xy.json"))
 
 # Load options
 reload_files = True
@@ -47,6 +45,7 @@ light_unit = "p.e."
 
 
 # Conversion factors
+lifetime = 0  # Disabled
 drift_velocity = 1.6  # mm/us
 integration_window = 1  # us
 charge_gain = 245  # mV to e
