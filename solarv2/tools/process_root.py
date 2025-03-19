@@ -15,16 +15,16 @@ def process_root(input_charge, input_light):
     charge_df = load_charge(input_charge)
 
     # Remove events with no charge hits or triggers
-    charge_mask = (
-        charge_df["event_hits_q"].apply(tuple).explode().groupby("eventID").min() > 0
-    ) * (charge_df["trigID"].apply(len) > 0)
+    charge_mask = (charge_df["event_hits_q"].apply(tuple).explode().groupby("eventID").min() > 0) * (
+        charge_df["trigID"].apply(len) > 0
+    )
     charge_df = charge_df[charge_mask]
 
     print("\nLoading light file...")
     light_df = load_light(input_light)
 
     print("\nMatching events...")
-    match_dict = match_events(charge_df, light_df)
+    match_dict, dt = match_events(charge_df, light_df, return_dt=True)
 
     # Remove light events without charge event match
     light_events = np.unique(ak.flatten(match_dict.values()))
@@ -34,9 +34,7 @@ def process_root(input_charge, input_light):
     charge_df = charge_df.loc[list(match_dict.keys())]
 
     # Flip x axis
-    charge_df["event_hits_x"] = charge_df["event_hits_x"].apply(
-        lambda x: [np.power(-1, params.flip_x) * i for i in x]
-    )
+    charge_df["event_hits_x"] = charge_df["event_hits_x"].apply(lambda x: [np.power(-1, params.flip_x) * i for i in x])
     light_df["x"] = light_df["x"].apply(lambda x: np.power(-1, params.flip_x) * x)
 
     # Save files
@@ -57,6 +55,7 @@ if __name__ == "__main__":
     from methods import (
         ak,
         json,
+        pickle,
         load_charge,
         load_light,
         match_events,

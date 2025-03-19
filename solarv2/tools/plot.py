@@ -545,7 +545,7 @@ def plot_track_stats(
     bin_centers_all11 = (bins_all11[1:] + bins_all11[:-1]) / 2
     p0 = (
         bin_centers_all11[n_all11.argmax()],
-        np.std(bin_centers_all11) / 30,
+        np.std(bin_centers_all11) / 2,
         np.std(bin_centers_all11) ,
         max(n_all11),
     )

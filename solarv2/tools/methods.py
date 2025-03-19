@@ -148,23 +148,29 @@ def prepare_event(event, charge_df, light_df=None, match_dict=None):
     return charge_event, light_event, mask
 
 
-def match_events(charge_df, light_df, window=10):
+def match_events(charge_df, light_df, window=10, return_dt=False):
     match_dict = {}
+    dt_dict = {}
 
     charge_events = charge_df[["event_unix_ts", "event_start_t"]].drop_duplicates()
     light_events = light_df[["tai_ns", "event"]].drop_duplicates()
 
     for event, row in tqdm(charge_events.iterrows(), total=len(charge_events), desc="Matching events"):
         charge_ts = (float(row["event_unix_ts"]) * 1e6) + (float(row["event_start_t"]) * 1e-1)
-        light_matches = light_events.where(
-            abs(light_events["tai_ns"].astype(float) * 1e-3 - 36000000 - charge_ts) <= window
-        ).dropna()
+        dt = light_events["tai_ns"].astype(float) * 1e-3 - 36000000 - charge_ts
+        light_matches = light_events.where(abs(dt) <= window).dropna()
+
+        if return_dt:
+            dt_dict[event] = dt[abs(dt) == min(abs(dt))].values[0]
 
         if not light_matches.empty:
             if event in match_dict:
                 match_dict[event].append(light_matches["event"].unique().astype(int).tolist())
             else:
                 match_dict[event] = light_matches["event"].unique().astype(int).tolist()
+
+    if return_dt:
+        return match_dict, dt_dict
 
     return match_dict
 
