@@ -60,13 +60,17 @@ def set_common_ax_options(ax=None, cbar=None):
             which="major",
             top=True,
             right=True,
+            size=10,
             labelsize=params.tick_font_size,
         )
+        ax.tick_params(axis="both", direction="inout", which="minor", top=True, right=True, size=6)
         ax.set_axisbelow(True)
         ax.grid(alpha=0.25)
         ax.set_title(ax.get_title(), fontsize=params.title_font_size)
         ax.set_ylabel(ax.get_ylabel(), fontsize=params.label_font_size)
         ax.set_xlabel(ax.get_xlabel(), fontsize=params.label_font_size)
+        ax.yaxis.offsetText.set_fontsize(params.label_font_size)
+        ax.xaxis.offsetText.set_fontsize(params.label_font_size)
         if hasattr(ax, "get_zlabel"):
             ax.set_zlabel(ax.get_zlabel(), fontsize=params.label_font_size)
 
@@ -87,6 +91,12 @@ def set_common_ax_options(ax=None, cbar=None):
     if cbar is not None:
         cbar.ax.tick_params(labelsize=params.tick_font_size)
         cbar.set_label(cbar.ax.get_ylabel(), fontsize=params.label_font_size)
+        if not cbar.ax.get_yscale() == "log":
+            cbar.ax.yaxis.set_minor_locator(AutoMinorLocator())
+            if cbar.ax.get_ylim()[1] > 1.1:
+                cbar.ax.yaxis.set_major_locator(MaxNLocator(integer=(cbar.ax.get_ylim()[1] > 2)))
+                if cbar.ax.get_ylim()[1] > 1e3:
+                    cbar.ax.yaxis.set_major_formatter(OOMFormatter(3, "%1.1f"))
 
 
 # ### Event display
@@ -99,7 +109,7 @@ def create_ed_axes(event_idx, charge, light):
     if light > 0:
         title += f" - Light = {'%.2E' % light} {params.light_unit}"
 
-    fig.suptitle(title)
+    fig.suptitle(title, fontsize=params.title_font_size)
     grid_color = plt.rcParams["grid.color"]
 
     # Draw dead areas
@@ -128,8 +138,9 @@ def create_ed_axes(event_idx, charge, light):
         ax.set_aspect("equal", adjustable="box")
         ax.set_xlim([-params.detector_x / 2, params.detector_x / 2])
         ax.set_ylim([-params.detector_y / 2, params.detector_y / 2])
-        ax.set_xlabel(f"x [{params.xy_unit}]")
-        ax.set_ylabel(f"y [{params.xy_unit}]")
+        ax.set_xlabel(f"x [{params.xy_unit}]", fontsize=params.label_font_size)
+        ax.set_ylabel(f"y [{params.xy_unit}]", fontsize=params.label_font_size)
+        ax.tick_params(axis="both", which="both", labelsize=params.tick_font_size)
         ax.set_xticks(
             np.linspace(
                 -params.detector_x / 2,
@@ -151,7 +162,7 @@ def create_ed_axes(event_idx, charge, light):
     ax2d.tick_params(axis="both", which="both", right=True, top=True)
 
     # Adjust z-axis
-    ax3d.set_zlabel(f"z [{params.z_unit}]")
+    ax3d.set_zlabel(f"z [{params.z_unit}]", fontsize=params.label_font_size)
     # ax3d.zaxis.set_major_locator(MaxNLocator(integer=True))
 
     return fig, (ax2d, ax3d)
@@ -206,7 +217,8 @@ def event_display(
         zorder=9,
     )
     cbar = plt.colorbar(plot2d)
-    cbar.set_label(f"charge [{params.q_unit}]")
+    cbar.set_label(f"charge [{params.q_unit}]", fontsize=params.label_font_size)
+    cbar.ax.tick_params(labelsize=params.tick_font_size)
 
     # Cluster the hits
     labels = cluster_hits(charge_df[["x", "y", "z"]].to_numpy())
@@ -289,7 +301,8 @@ def event_display(
             )
     if not light_df.empty:
         sipm_cbar = plt.colorbar(sipm_plot)
-        sipm_cbar.set_label(rf"Light {params.light_variable} [{params.light_unit}]")
+        sipm_cbar.set_label(rf"Light {params.light_variable} [{params.light_unit}]", fontsize=params.label_font_size)
+        sipm_cbar.ax.tick_params(labelsize=params.tick_font_size)
 
     ax3d.set_zlim([0, ax3d.get_zlim()[1]])
     # ax3d.view_init(160, 110, -85)
@@ -416,47 +429,40 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwa
         )
 
 
-def plot_track_angles(metrics, **kwargs):
+def plot_track_angles(metrics, cuts=[16, 64, 160], **kwargs):
     plt.style.use(params.style)
-    cos_x = []
-    cos_y = []
-    cos_z = []
+    cuts_dict = {}
     vectors = []
     for idx, metric in metrics.items():
         for track_idx, track in metric.items():
-            if type(track) is dict:
-                if "RANSAC_score" in track and track["RANSAC_score"] < 0.5:
+            if type(track) is dict and not type(track_idx) is str:
+                if "RANSAC_score" in track and track["RANSAC_score"] < 0:
                     continue
-                if "Fit_norm" in track and track["Fit_norm"] < 1:
-                    continue
-                if "Fit_line" in track:
-                    cos_x.append(track["Fit_line"].direction.cosine_similarity([1, 0, 0]))
-                    cos_y.append(track["Fit_line"].direction.cosine_similarity([0, 1, 0]))
-                    cos_z.append(track["Fit_line"].direction.cosine_similarity([0, 0, 1]))
-                    vectors.append(track["Fit_line"].direction.to_array())
+                if "Fit_norm" in track and "Fit_line" in track:
+                    for cut in cuts:
+                        if track["Fit_norm"] > cut:
+                            if cut not in cuts_dict:
+                                cuts_dict[cut] = []
+                            cuts_dict[cut].append(track["Fit_line"].direction.to_array())
 
-    vectors = np.array(vectors)
-    cos_x = np.array(cos_x)
-    cos_y = np.array(cos_y)
-    cos_z = np.array(cos_z)
+    fig, ax = plt.subplots(1, 3, figsize=(18, 6))
+    bins = np.arange(0, 1.05, 0.05)
+    for cut, vectors in cuts_dict.items():
+        vectors = np.array(vectors)
 
-    fig, ax = plt.subplots(2, 3, figsize=(18, 12))
+        ax[0].hist(abs(vectors[:, 0]), bins=bins)
+        ax[1].hist(abs(vectors[:, 1]), bins=bins, label=f"> {cut} mm")
+        ax[2].hist(abs(vectors[:, 2]), bins=bins)
 
-    ax[0, 0].hist(vectors[:, 0], bins=20)
-    ax[0, 0].set_xlabel("X vector component")
-    ax[0, 1].hist(vectors[:, 1], bins=20)
-    ax[0, 1].set_xlabel("Y vector component")
-    ax[0, 2].hist(vectors[:, 2], bins=20)
-    ax[0, 2].set_xlabel("Z vector component")
+    ax[0].set_xlabel("Cosine similarity to x-axis")
+    ax[1].set_xlabel("Cosine similarity to y-axis")
+    ax[2].set_xlabel("Cosine similarity to z-axis")
+    ax[1].legend(
+        title="Track length cuts", fontsize=params.legend_font_size, loc="upper left", title_fontsize=params.legend_font_size
+    )
 
-    ax[1, 0].hist(abs(cos_x), bins=20)
-    ax[1, 0].set_xlabel("Cosine similarity to x-axis")
-    ax[1, 1].hist(abs(cos_y), bins=20)
-    ax[1, 1].set_xlabel("Cosine similarity to y-axis")
-    ax[1, 2].hist(abs(cos_z), bins=20)
-    ax[1, 2].set_xlabel("Cosine similarity to z-axis")
-
-    for axes in ax.flatten():
+    for axes in ax:
+        axes.set_ylabel("# Tracks")
         set_common_ax_options(axes)
 
     fig.tight_layout()
@@ -523,16 +529,15 @@ def plot_track_stats(
     ax12 = fig1.add_subplot(122)
 
     limit = np.percentile(dQdx_series.values, 99) if limit_xrange else np.inf
-
     n_all11, bins_all11, patches_all11 = ax11.hist(
-        dQdx_series[dQdx_series <= limit].values, bins=bins[0], label="All tracks"
+        dQdx_series.values, bins=int(bins[0] / limit * dQdx_series.max()), label="All tracks"
     )
 
     n_all12, bins_all12, patches_all12 = ax12.hist(track_length, bins=bins[0], label="All tracks")
 
     if score_bool:
         n11, edges11, patches11 = ax11.hist(
-            cut_dQdx_series[cut_dQdx_series <= limit].values,
+            cut_dQdx_series.values,
             bins=bins_all11,
             label=rf"Score $\geq {min_score}$",
         )
@@ -545,8 +550,8 @@ def plot_track_stats(
     bin_centers_all11 = (bins_all11[1:] + bins_all11[:-1]) / 2
     p0 = (
         bin_centers_all11[n_all11.argmax()],
-        np.std(bin_centers_all11) / 2,
-        np.std(bin_centers_all11) ,
+        np.std(bin_centers_all11[bin_centers_all11 < limit]) / 2,
+        np.std(bin_centers_all11[bin_centers_all11 < limit]),
         max(n_all11),
     )
     bounds = (
@@ -559,15 +564,15 @@ def plot_track_stats(
         (
             bin_centers_all11[min(n_all11.argmax() + 10, len(bin_centers_all11) - 1)],
             np.inf,
-            np.std(bin_centers_all11) * 2,
+            np.std(bin_centers_all11[bin_centers_all11 < limit]) * 2,
             np.inf,
         ),
     )
     try:
         popt, pcov = curve_fit(
             pylandau.langau,
-            bin_centers_all11[bin_centers_all11 > 1500],
-            n_all11[bin_centers_all11 > 1500],
+            bin_centers_all11[(bin_centers_all11 > 2000) & (bin_centers_all11 < limit)],
+            n_all11[(bin_centers_all11 > 2000) & (bin_centers_all11 < limit)],
             absolute_sigma=True,
             p0=p0,
             bounds=bounds,
@@ -577,7 +582,7 @@ def plot_track_stats(
             fit_x := np.linspace(bins_all11[0], bins_all11[-1], 1000),
             pylandau.langau(fit_x, *popt),
             "r-",
-            label=r"fit: $\mu$=%5.1f, $\eta$=%5.1f, $\sigma$=%5.1f, A=%5.1f" % tuple(popt),
+            label=r"fit: $\mu$=%5.1f, $\eta$=%5.1f,$\sigma$=%5.1f, A=%5.1f" % tuple(popt),
         )
     except:
         print("\nCould not fit Landau to dQ/dx")
@@ -882,8 +887,12 @@ def plot_track_stats(
     print("Max possible vertical track length", params.detector_y, "mm")
 
     for ax in axes:
+        xlim = ax.get_xlim()
         if ax == ax11 or ax == ax12:
             ax.set_ylabel("Counts")
+            if ax == ax11:
+                ax.set_xlim(max(xlim[0], 0), min(limit, xlim[1]))
+                ax.set_ylim(0, max(n_all11) * 1.2)
         if ax != ax11:
             if not (
                 ax == ax51
@@ -901,14 +910,18 @@ def plot_track_stats(
 
             if ax != ax12:
                 if limit_xrange:
-                    xlim = ax.get_xlim()
                     ax.set_xlim(xlim[0], min(max_track_legth + 10, xlim[1]))
 
                 cbar = ax.get_figure().colorbar(ax.collections[0])
                 cbar.set_label("Counts" + (" [log]" if lognorm else ""))
                 set_common_ax_options(cbar=cbar)
         if not (not score_bool and ax == ax11):
-            ax.legend(loc="lower right" if ax == ax4 else "upper right")
+            if ax == ax11:
+                ax.legend(loc="upper left", fontsize=params.legend_font_size)
+            elif ax == ax4:
+                ax.legend(loc="lower right", fontsize=params.legend_font_size)
+            else:
+                ax.legend(loc="upper right", fontsize=params.legend_font_size)
 
         set_common_ax_options(ax=ax)
 
