@@ -445,7 +445,7 @@ def plot_track_angles(metrics, cuts=[16, 64, 160], **kwargs):
                                 cuts_dict[cut] = []
                             cuts_dict[cut].append(track["Fit_line"].direction.to_array())
 
-    fig, ax = plt.subplots(1, 3, figsize=(18, 6))
+    fig, ax = plt.subplots(1, 3, figsize=(18, 5))
     bins = np.arange(0, 1.05, 0.05)
     for cut, vectors in cuts_dict.items():
         vectors = np.array(vectors)
@@ -888,12 +888,11 @@ def plot_track_stats(
 
     for ax in axes:
         xlim = ax.get_xlim()
-        if ax == ax11 or ax == ax12:
-            ax.set_ylabel("Counts")
-            if ax == ax11:
-                ax.set_xlim(max(xlim[0], 0), min(limit, xlim[1]))
-                ax.set_ylim(0, max(n_all11) * 1.2)
-        if ax != ax11:
+        if ax == ax11:
+            ax.set_ylabel("# Tracks")
+            ax.set_xlim(max(xlim[0], 0), min(limit, xlim[1]))
+            ax.set_ylim(0, max(n_all11) * 1.2)
+        else:
             if not (
                 ax == ax51
                 or ax == ax61
@@ -901,6 +900,7 @@ def plot_track_stats(
                 or (score_bool and (ax == ax52 or ax == ax62))  # or ax == ax72))
             ):
                 ax.set_xlabel(f"Track length [{params.dh_unit}]")
+
             if max(track_length) > params.detector_y:
                 ax.axvline(params.detector_y, c="g", ls="--", label="Max vertical length")
             if max(track_length) > max_track_legth_xy:
@@ -915,6 +915,9 @@ def plot_track_stats(
                 cbar = ax.get_figure().colorbar(ax.collections[0])
                 cbar.set_label("Counts" + (" [log]" if lognorm else ""))
                 set_common_ax_options(cbar=cbar)
+            else:
+                ax.set_ylabel("# Tracks")
+                ax.set_xlim(-10, min(max_track_legth + 10, xlim[1]))
         if not (not score_bool and ax == ax11):
             if ax == ax11:
                 ax.legend(loc="upper left", fontsize=params.legend_font_size)
