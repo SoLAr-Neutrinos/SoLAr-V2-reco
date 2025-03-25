@@ -530,7 +530,7 @@ def plot_track_stats(
 
     limit = np.percentile(dQdx_series.values, 99) if limit_xrange else np.inf
     n_all11, bins_all11, patches_all11 = ax11.hist(
-        dQdx_series.values, bins=int(bins[0] / limit * dQdx_series.max()), label="All tracks"
+        dQdx_series.values, bins=max(int(bins[0] / limit * dQdx_series.max()), 1), label="All tracks"
     )
 
     n_all12, bins_all12, patches_all12 = ax12.hist(track_length, bins=bins[0], label="All tracks")
@@ -1410,7 +1410,7 @@ def plot_light_vs_charge(
     ax1 = fig1.add_subplot(111)
     ax1.set_xlabel("Max light integral")
     ax1.set_ylabel("Normalized value")
-    fig1.suptitle("Light integral distribution", fontsize=params.title_size)
+    fig1.suptitle("Light integral distribution", fontsize=params.title_font_size)
     vline = max_std(
         light_array,
         ax1,
@@ -1610,7 +1610,7 @@ def plot_light_vs_charge(
     ax2 = plt.subplot(111)
     print("Light vs. Charge plot\n")
     n2d, xedges2d, yedges2d, image2d = hist2d(charge_array, light_array, ax2, bins, log[0])
-    fig2.suptitle(f"Event level Light vs. Charge - {len(charge_array)} events", fontsize=params.title_size)
+    fig2.suptitle(f"Event level Light vs. Charge - {len(charge_array)} events", fontsize=params.title_font_size)
 
     fig3 = plt.figure(figsize=(8, 6))
     ax3 = plt.subplot(111)
@@ -1618,7 +1618,7 @@ def plot_light_vs_charge(
     print("Light / Charge ratio plot\n")
     hist1d(ratio, ax3, bin_density, log[1], p0)
     ax3.set_xlabel(f"Event total charge / Light [{params.q_unit} / {params.light_unit}{' - Log' if log[1] else ''}]")
-    fig3.suptitle(f"Event level Charge vs. Light - {len(charge_array)} events", fontsize=params.title_size)
+    fig3.suptitle(f"Event level Charge vs. Light - {len(charge_array)} events", fontsize=params.title_font_size)
 
     fig4, axes4 = plt.subplots(1, 2, figsize=(14, 6))
 
@@ -1628,7 +1628,7 @@ def plot_light_vs_charge(
     print("Light plot\n")
     hist1d(light_array, axes4[1], bin_density, log[1], p0)
     axes4[1].set_xlabel(f"Event total Light [{params.light_unit}{' - Log' if log[1] else ''}]")
-    fig4.suptitle(f"Event level Charge and Light - {len(charge_array)} events", fontsize=params.title_size)
+    fig4.suptitle(f"Event level Charge and Light - {len(charge_array)} events", fontsize=params.title_font_size)
 
     figs = [fig1, fig2, fig3, fig4]
     if clusters is None:
