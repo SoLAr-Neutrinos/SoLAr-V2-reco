@@ -66,8 +66,6 @@ def analysis(metrics, **kwargs):
                         plt.show()
                     else:
                         plt.close("all")
-        else:
-            print("Event", event_idx, "not found in metrics")
 
     # 4 - Light geometrical properties to charge tracks statistics
     print("\nPlotting light geometrical properties to charge tracks statistics\n")
