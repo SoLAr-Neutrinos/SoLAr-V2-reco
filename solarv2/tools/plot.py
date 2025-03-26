@@ -69,8 +69,8 @@ def set_common_ax_options(ax=None, cbar=None):
         ax.set_title(ax.get_title(), fontsize=params.title_font_size)
         ax.set_ylabel(ax.get_ylabel(), fontsize=params.label_font_size)
         ax.set_xlabel(ax.get_xlabel(), fontsize=params.label_font_size)
-        ax.yaxis.offsetText.set_fontsize(params.label_font_size)
-        ax.xaxis.offsetText.set_fontsize(params.label_font_size)
+        ax.yaxis.offsetText.set_fontsize(params.tick_font_size)
+        ax.xaxis.offsetText.set_fontsize(params.tick_font_size)
         if hasattr(ax, "get_zlabel"):
             ax.set_zlabel(ax.get_zlabel(), fontsize=params.label_font_size)
 
@@ -216,9 +216,13 @@ def event_display(
         vmax=q_sum.max(),
         zorder=9,
     )
-    cbar = plt.colorbar(plot2d)
+    cbar = plt.colorbar(plot2d, format=OOMFormatter(3, "%1.1f"))
     cbar.set_label(f"charge [{params.q_unit}]", fontsize=params.label_font_size)
     cbar.ax.tick_params(labelsize=params.tick_font_size)
+    cbar.ax.yaxis.offsetText.set_fontsize(params.tick_font_size)
+    cbar.ax.yaxis.set_offset_position("right")
+    # cbar.ax.xaxis.get_offset_text().set_position((1, 0))
+    # cbar.ax.yaxis.offsetText.set_horizontalalignment("right")
 
     # Cluster the hits
     labels = cluster_hits(charge_df[["x", "y", "z"]].to_numpy())
@@ -361,7 +365,10 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwa
     ax_twinx = ax.twinx()
 
     target_dx = dx_series.index.diff()[-1]
-    fig.suptitle(rf"Event {event_idx} - Track {track_idx} - $dx = {round(target_dx,2)}$ {params.dh_unit}")
+    fig.suptitle(
+        rf"Event {event_idx} - Track {track_idx} - $dx = {round(target_dx,2)}$ {params.dh_unit}",
+        fontsize=params.title_font_size,
+    )
 
     non_zero_indices = np.where(dQ_series > 0)[0]
     mean_dQ = np.mean(dQ_series.iloc[non_zero_indices])
@@ -413,10 +420,10 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwa
     for axes in [ax, ax_twinx]:
         set_common_ax_options(axes)
 
-    h1, l1 = ax.get_legend_handles_labels()
-    ax_twinx.legend(h1, l1, loc="lower center")
+    ax.tick_params(axis="y", which="both", right=False)
 
-    ax.legend(loc="lower center")
+    h1, l1 = ax.get_legend_handles_labels()
+    ax_twinx.legend(h1, l1, loc="lower center", fontsize=params.legend_font_size)
 
     fig.tight_layout()
     if params.save_figures:
@@ -445,7 +452,7 @@ def plot_track_angles(metrics, cuts=[16, 64, 160], **kwargs):
                                 cuts_dict[cut] = []
                             cuts_dict[cut].append(track["Fit_line"].direction.to_array())
 
-    fig, ax = plt.subplots(1, 3, figsize=(18, 5))
+    fig, ax = plt.subplots(1, 3, figsize=(12, 3))
     bins = np.arange(0, 1.05, 0.05)
     for cut, vectors in cuts_dict.items():
         vectors = np.array(vectors)
@@ -582,7 +589,7 @@ def plot_track_stats(
             fit_x := np.linspace(bins_all11[0], bins_all11[-1], 1000),
             pylandau.langau(fit_x, *popt),
             "r-",
-            label=r"fit: $\mu$=%5.1f, $\eta$=%5.1f,$\sigma$=%5.1f, A=%5.1f" % tuple(popt),
+            label=r"fit: $\mu$=%5.1f, $\eta$=%5.1f, $\sigma$=%5.1f, A=%5.1f" % tuple(popt),
         )
     except:
         print("\nCould not fit Landau to dQ/dx")

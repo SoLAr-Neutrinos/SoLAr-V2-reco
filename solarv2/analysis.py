@@ -48,9 +48,7 @@ def analysis(metrics, **kwargs):
 
     # 3 - Individual dQ/dx plots
     print("\nPlotting individual dQ/dx plots\n")
-    for event_idx in tqdm(
-        params.individual_plots, leave=False, desc="Individual dQ/dx"
-    ):
+    for event_idx in tqdm(params.individual_plots, leave=False, desc="Individual dQ/dx"):
         if event_idx in metrics:
             for track_idx, values in metrics[event_idx].items():
                 if not isinstance(track_idx, str) and track_idx > 0:
@@ -68,6 +66,8 @@ def analysis(metrics, **kwargs):
                         plt.show()
                     else:
                         plt.close("all")
+        else:
+            print("Event", event_idx, "not found in metrics")
 
     # 4 - Light geometrical properties to charge tracks statistics
     print("\nPlotting light geometrical properties to charge tracks statistics\n")
@@ -157,13 +157,9 @@ if __name__ == "__main__":
         default="combined",
         nargs="?",
     )
-    parser.add_argument(
-        "-f", "--filter", help="Tag number of filter file within folder", default=None
-    )
+    parser.add_argument("-f", "--filter", help="Tag number of filter file within folder", default=None)
     # parser.add_argument("--save", "-s", help="Save images", action="store_true")
-    parser.add_argument(
-        "-d", "--display", help="Display images (not recomended)", action="store_true"
-    )
+    parser.add_argument("-d", "--display", help="Display images (not recomended)", action="store_true")
     parser.add_argument(
         "-p",
         "--parameters",
