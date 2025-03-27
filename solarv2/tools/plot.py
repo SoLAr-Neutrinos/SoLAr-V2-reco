@@ -449,7 +449,7 @@ def plot_track_angles(metrics, cuts=[16, 64, 160], **kwargs):
                                 cuts_dict[cut] = []
                             cuts_dict[cut].append(track["Fit_line"].direction.to_array())
 
-    fig, ax = plt.subplots(1, 3, figsize=(12, 3))
+    fig, ax = plt.subplots(1, 3, figsize=(14, 4))
     bins = np.arange(0, 1.05, 0.05)
     for cut, vectors in cuts_dict.items():
         vectors = np.array(vectors)
@@ -563,13 +563,13 @@ def plot_track_stats(
             bin_centers_all11[max(n_all11.argmax() - 5, 0)],
             0,
             0,
-            0,
+            n_all11.max() / 2,
         ),
         (
             bin_centers_all11[min(n_all11.argmax() + 10, len(bin_centers_all11) - 1)],
-            np.inf,
             np.std(bin_centers_all11[bin_centers_all11 < limit]) * 2,
-            np.inf,
+            np.std(bin_centers_all11[bin_centers_all11 < limit]) * 2,
+            n_all11.max() * 2,
         ),
     )
     try:
@@ -581,12 +581,20 @@ def plot_track_stats(
             p0=p0,
             bounds=bounds,
         )
+        print(
+            "\nFit Parameters:\n",
+            "\n ".join([f"{name}: {value}" for name, value in zip(["μ", "ρ", "σ", "A"], popt)]),
+        )
+        print(
+            "\nUncertainties:\n",
+            "\n ".join([f"{name}: {value}" for name, value in zip(["μ", "ρ", "σ", "A"], np.sqrt(np.diag(pcov)))]),
+        )
 
         ax11.plot(
             fit_x := np.linspace(bins_all11[0], bins_all11[-1], 1000),
             pylandau.langau(fit_x, *popt),
             "r-",
-            label=r"fit: $\mu$=%5.1f, $\eta$=%5.1f, $\sigma$=%5.1f, A=%5.1f" % tuple(popt),
+            label=rf"fit ($\mu={popt[0]:5.1f}$)",
         )
     except:
         print("\nCould not fit Landau to dQ/dx")
@@ -1391,6 +1399,7 @@ def plot_light_vs_charge(
     bin_density=1,
     log=(True, False),
     p0=True,
+    fit2D=False,
     **kwargs,
 ):
     if isinstance(log, bool):
@@ -1427,7 +1436,7 @@ def plot_light_vs_charge(
     charge_array = charge_array[(light_array <= vline)]
     light_array = light_array[(light_array <= vline)]
 
-    def hist2d(x, y, ax, bins, log):
+    def hist2d(x, y, ax, bins, log, fit):
         if log:
             log_bins_x = np.exp(np.linspace(np.log(min(x) - 1), np.log(max(x)), bins))
             log_bins_y = np.exp(np.linspace(np.log(min(y)), np.log(max(y)), bins))
@@ -1450,96 +1459,97 @@ def plot_light_vs_charge(
             )
             return gauss
 
-        try:
-            bin_peaks = n.ravel(order="F")
-            bin_peaks[np.isnan(bin_peaks)] = 0
-            x_bin_centers = 0.5 * (x_edges[1:] + x_edges[:-1])
-            y_bin_centers = 0.5 * (y_edges[1:] + y_edges[:-1])
-            x_bin_centers, y_bin_centers = np.array(np.meshgrid(x_bin_centers, y_bin_centers))
-            x_bin_centers = x_bin_centers.ravel()
-            y_bin_centers = y_bin_centers.ravel()
+        if fit:
+            try:
+                bin_peaks = n.ravel(order="F")
+                bin_peaks[np.isnan(bin_peaks)] = 0
+                x_bin_centers = 0.5 * (x_edges[1:] + x_edges[:-1])
+                y_bin_centers = 0.5 * (y_edges[1:] + y_edges[:-1])
+                x_bin_centers, y_bin_centers = np.array(np.meshgrid(x_bin_centers, y_bin_centers))
+                x_bin_centers = x_bin_centers.ravel()
+                y_bin_centers = y_bin_centers.ravel()
 
-            parameters, cov_matrix = curve_fit(
-                fit_function,
-                (
-                    x_bin_centers / max(x_bin_centers),
-                    y_bin_centers / max(y_bin_centers),
-                ),
-                bin_peaks,
-                bounds=(0, np.inf),
-            )
-            plot_mesh = np.array(
-                np.meshgrid(
-                    np.linspace(min(x) / max(x), 1, len(x_bin_centers) * 5),
-                    np.linspace(min(y) / max(y), 1, len(y_bin_centers) * 5),
+                plot_mesh = np.array(
+                    np.meshgrid(
+                        np.linspace(min(x) / max(x), 1, len(x_bin_centers) * 5),
+                        np.linspace(min(y) / max(y), 1, len(y_bin_centers) * 5),
+                    )
                 )
-            )
-
-            z_plot = fit_function(plot_mesh, *parameters)
-
-            # print(latexify.get_latex(fit_function))
-            print(
-                "Parameters:\n",
-                "\n ".join(
-                    [
-                        f"{name}: {value}"
-                        for name, value in zip(
-                            [
-                                "A",
-                                "μ_x",
-                                "μ_y",
-                                "σ_x",
-                                "σ_y",
-                                "θ",
-                            ],
-                            parameters,
-                        )
-                    ]
-                ),
-                "\n",
-            )
-            contour = ax.contour(
-                plot_mesh[0] * max(x),
-                plot_mesh[1] * max(y),
-                z_plot,
-                norm="log",
-                cmap="autumn",
-                linewidths=1,
-                levels=[
-                    fit_function(
-                        (
-                            parameters[1] - 3 * parameters[3],
-                            parameters[2] - 3 * parameters[4],
-                        ),
-                        *parameters,
+                parameters, cov_matrix = curve_fit(
+                    fit_function,
+                    (
+                        x_bin_centers / max(x_bin_centers),
+                        y_bin_centers / max(y_bin_centers),
                     ),
-                    fit_function(
-                        (
-                            parameters[1] - 2 * parameters[3],
-                            parameters[2] - 2 * parameters[4],
-                        ),
-                        *parameters,
-                    ),
-                    fit_function(
-                        (
-                            parameters[1] - 1 * parameters[3],
-                            parameters[2] - 1 * parameters[4],
-                        ),
-                        *parameters,
-                    ),
-                ],
-            )
-            fmt = {}
-            strs = [r"$3\sigma$", r"$2\sigma$", r"$1\sigma$"]
-            for l, s in zip(contour.levels, strs):
-                fmt[l] = s
+                    bin_peaks,
+                    bounds=(0, np.inf),
+                )
 
-            ax.clabel(contour, contour.levels, inline=True, fmt=fmt, fontsize=10)
-        except:
-            print("Fit failed\n")
+                z_plot = fit_function(plot_mesh, *parameters)
+
+                # print(latexify.get_latex(fit_function))
+                print(
+                    "Parameters:\n",
+                    "\n ".join(
+                        [
+                            f"{name}: {value}"
+                            for name, value in zip(
+                                [
+                                    "A",
+                                    "μ_x",
+                                    "μ_y",
+                                    "σ_x",
+                                    "σ_y",
+                                    "θ",
+                                ],
+                                parameters,
+                            )
+                        ]
+                    ),
+                    "\n",
+                )
+                contour = ax.contour(
+                    plot_mesh[0] * max(x),
+                    plot_mesh[1] * max(y),
+                    z_plot,
+                    norm="log",
+                    cmap="autumn",
+                    linewidths=1,
+                    levels=[
+                        fit_function(
+                            (
+                                parameters[1] - 3 * parameters[3],
+                                parameters[2] - 3 * parameters[4],
+                            ),
+                            *parameters,
+                        ),
+                        fit_function(
+                            (
+                                parameters[1] - 2 * parameters[3],
+                                parameters[2] - 2 * parameters[4],
+                            ),
+                            *parameters,
+                        ),
+                        fit_function(
+                            (
+                                parameters[1] - 1 * parameters[3],
+                                parameters[2] - 1 * parameters[4],
+                            ),
+                            *parameters,
+                        ),
+                    ],
+                )
+                fmt = {}
+                strs = [r"$3\sigma$", r"$2\sigma$", r"$1\sigma$"]
+                for l, s in zip(contour.levels, strs):
+                    fmt[l] = s
+
+                ax.clabel(contour, contour.levels, inline=True, fmt=fmt, fontsize=10)
+            except:
+                print("Fit failed\n")
 
         ax.set_xlabel(f"Total charge [{params.q_unit}{' - Log' if log else ''}]")
-        ax.set_ylabel(f"Total Light {params.light_variable} [{params.light_unit}{' - Log' if log else ''}]")
+        ax.set_ylabel(f"Total Light [{params.light_unit}{' - Log' if log else ''}]")
         cbar = plt.colorbar(image)
         cbar.set_label(rf"Counts")
         set_common_ax_options(ax, cbar=cbar)
@@ -1555,7 +1565,8 @@ def plot_light_vs_charge(
         else:
             bins = np.linspace(min(array), upper_bound, int(50 * bin_density))
 
-        n, edges, patches = ax.hist(array, bins=bins, fill=False, ec="C0", histtype="bar")
+        # n, edges, patches = ax.hist(array, bins=bins, fill=False, ec="C0", histtype="bar")
+        n, edges, patches = ax.hist(array, bins=bins)
 
         peak_y = n.max()
         peak_x = edges[n.argmax() : n.argmax() + 1].mean()
@@ -1573,7 +1584,7 @@ def plot_light_vs_charge(
                 if p0 is True:
                     p0 = [
                         peak_x,
-                        std / 5,
+                        std / 2,
                         std / 2,
                         peak_y,
                     ]
@@ -1582,7 +1593,7 @@ def plot_light_vs_charge(
                     bin_centers,
                     bin_peaks,
                     p0=p0,
-                    bounds=(0, np.inf),
+                    bounds=((peak_x / 2, 0, 0, 0), (peak_x * 1.5, np.inf, np.inf, np.inf)),
                 )
                 x_plot = np.linspace(min(array), max(array), len(bins) * 10)
                 y_plot = pylandau.langau(x_plot, *parameters)
@@ -1592,11 +1603,18 @@ def plot_light_vs_charge(
                     "\n ".join([f"{name}: {value}" for name, value in zip(["μ", "ρ", "σ", "A"], parameters)]),
                     "\n",
                 )
+                print(
+                    "Uncertainty:\n",
+                    "\n ".join(
+                        [f"{name}: {value}" for name, value in zip(["μ", "ρ", "σ", "A"], np.sqrt(np.diag(cov_matrix)))]
+                    ),
+                    "\n",
+                )
                 ax.plot(
                     x_plot,
                     y_plot,
                     "m",
-                    label=rf"Fit ($\mu={parameters[0]:.2f}$)",
+                    label=rf"Fit ($\mu={parameters[0]:5.1f}$)",
                 )
             except:
                 print("Fit failed\n")
@@ -1605,15 +1623,15 @@ def plot_light_vs_charge(
         ax.axvline(median, c="orange", ls="--", label=f"Median: {median:.2f}")
         ax.axvline(mean, c="g", ls="--", label=f"Mean: {mean:.2f}")
 
-        ax.set_ylabel(f"Events")
+        ax.set_ylabel(f"# Events", fontsize=params.label_font_size)
         # ax.set_xlim(min(array) - 2, edges3[(edges3 < upper_bound).argmin()])
         ax.set_ylim(0, peak_y * 1.1)
-        ax.legend()
+        ax.legend(fontsize=params.legend_font_size)
 
     fig2 = plt.figure(figsize=(8, 6))
     ax2 = plt.subplot(111)
     print("Light vs. Charge plot\n")
-    n2d, xedges2d, yedges2d, image2d = hist2d(charge_array, light_array, ax2, bins, log[0])
+    n2d, xedges2d, yedges2d, image2d = hist2d(charge_array, light_array, ax2, bins, log[0], fit=fit2D)
     fig2.suptitle(f"Event level Light vs. Charge - {len(charge_array)} events", fontsize=params.title_font_size)
 
     fig3 = plt.figure(figsize=(8, 6))

@@ -7,7 +7,7 @@ from .methods import ak, json, literal_eval, np, os, pd, pickle
 def load_data(folder, return_metrics=False):
     label = os.path.split(folder)[-1]
     charge_input = os.path.join(folder, f"charge_df_{label}.pkl")
-    charge_df = pd.read_pickle(charge_input).set_index("eventID")
+    charge_df = pd.read_pickle(charge_input)
 
     # Load light file
     light_input = os.path.join(folder, f"light_df_{label}.pkl")

@@ -47,18 +47,12 @@ def load_light(file_name, deco=True, events=None, mask=True, keep_rwf=False):
             df[["sn", "ch"]] = df[["sn", "ch"]].astype(int)
 
             if mask:
-                df = df[
-                    df[["sn", "ch"]].apply(
-                        lambda x: get_sipm_mask(x.iloc[0], x.iloc[1]), axis=1
-                    )
-                ]
+                df = df[df[["sn", "ch"]].apply(lambda x: get_sipm_mask(x.iloc[0], x.iloc[1]), axis=1)]
 
             if df.empty:
                 continue
 
-            df[["x", "y"]] = df[["sn", "ch"]].apply(
-                lambda x: pd.Series(sipm_to_xy(x.iloc[0], x.iloc[1])), axis=1
-            )
+            df[["x", "y"]] = df[["sn", "ch"]].apply(lambda x: pd.Series(sipm_to_xy(x.iloc[0], x.iloc[1])), axis=1)
 
             if deco:
                 df["rwf"] = df["decwfm"]
@@ -66,16 +60,10 @@ def load_light(file_name, deco=True, events=None, mask=True, keep_rwf=False):
             df["rwf"] = df["rwf"].apply(lambda x: x / scaling_par)
 
             df[["integral", "properties"]] = df["rwf"].apply(
-                lambda x: pd.Series(
-                    (np.nan, {}) if any(np.isnan(x)) else integrate_peaks(x)
-                )
+                lambda x: pd.Series((np.nan, {}) if any(np.isnan(x)) else integrate_peaks(x))
             )
             df["peak"] = df["properties"].apply(
-                lambda x: (
-                    max(x["peak_heights"])
-                    if "peak_heights" in x and len(x["peak_heights"]) > 0
-                    else np.nan
-                )
+                lambda x: (max(x["peak_heights"]) if "peak_heights" in x and len(x["peak_heights"]) > 0 else np.nan)
             )
 
             columns = ["event", "tai_ns", "sn", "ch", "peak", "integral", "x", "y"]
