@@ -81,9 +81,9 @@ if __name__ == "__main__":
 
     # Load charge file
     charge_df = pd.read_pickle(
-        os.path.join(params.work_path, params.output_folder, "charge_df_{params.output_folder}.pkl"),
-        index_col="eventID",
-    )
+        os.path.join(params.work_path, params.output_folder, "charge_df_{params.output_folder}.pkl")
+        
+    ).set_index("eventID")
 
     # Load light file
     light_df = pd.read_pickle(
@@ -91,8 +91,7 @@ if __name__ == "__main__":
             params.work_path,
             params.output_folder,
             f"light_df_{params.output_folder}.pkl",
-        ),
-        index_col=0,
+        )
     )
 
     # Load match dictionary

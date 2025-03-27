@@ -7,13 +7,13 @@ from .methods import ak, json, literal_eval, np, os, pd, pickle
 def load_data(folder, return_metrics=False):
     label = os.path.split(folder)[-1]
     charge_input = os.path.join(folder, f"charge_df_{label}.pkl")
-    charge_df = pd.read_pickle(charge_input, index_col="eventID")
+    charge_df = pd.read_pickle(charge_input).set_index("eventID")
 
     # Load light file
     light_input = os.path.join(folder, f"light_df_{label}.pkl")
     light_df = None
     if os.path.isfile(light_input):
-        light_df = pd.read_pickle(light_input, index_col=0)
+        light_df = pd.read_pickle(light_input)
 
     # Load match dictionary
     match_input = os.path.join(folder, f"match_dict_{label}.json")

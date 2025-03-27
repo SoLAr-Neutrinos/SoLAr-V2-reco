@@ -1541,8 +1541,8 @@ def plot_light_vs_charge(
         ax.set_xlabel(f"Total charge [{params.q_unit}{' - Log' if log else ''}]")
         ax.set_ylabel(f"Total Light {params.light_variable} [{params.light_unit}{' - Log' if log else ''}]")
         cbar = plt.colorbar(image)
-        cbar.set_label(rf"Events")
-        set_common_ax_options(ax)
+        cbar.set_label(rf"Events", fontsize=params.label_font_size)
+        set_common_ax_options(ax, cbar=cbar)
 
         return n, x_edges, y_edges, image
 

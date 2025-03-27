@@ -18,7 +18,7 @@ def main(charge, dead_areas, parameters=None):
 
     input_charge = charge
     params.simulate_dead_area = dead_areas
-    params.output_folder = input_charge.split("_")[-1].split(".")[0]
+    params.output_folder = input_charge.split("_")[-2]
 
     kwargs = load_params(parameters)
 
