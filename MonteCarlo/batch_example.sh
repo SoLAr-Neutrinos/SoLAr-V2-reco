@@ -21,33 +21,33 @@ echo "Processing" $file
 folder=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\_thrs3800.root/\1/p')
 
 # Run the reconstruction script simulating dead areas and dh set to 30
-python -m solarv2-mc reconstruction "$file" -d
+solarv2-mc reco "$file" -d
 
 # Make event displays
-python -m solarv2-mc $folder -n -s -d
+solarv2-mc display $folder -n -s -d
 
 # Run the analysis script on the output folder
-python -m solarv2-mc ana $folder -d -s
-python -m solarv2-mc ana $folder -d -s -p min_track_length=160
+solarv2-mc ana $folder -d -s
+solarv2-mc ana $folder -d -s -p min_track_length=160
 
 # Run the reconstruction script again without simulating dead areas
-python -m solarv2-mc reco "$file"
+solarv2-mc reco "$file"
 
 # Make event displays
-python -m solarv2-mc display $folder -n -s
+solarv2-mc display $folder -n -s
 
 # Run the analysis script again on the output folder
-python -m solarv2-mc ana $folder -s
-python -m solarv2-mc ana -s -p min_track_length=160
+solarv2-mc ana $folder -s
+solarv2-mc ana -s -p min_track_length=160
 
 done
 
 # Run the analysis script on combined metrics
-python -m solarv2-mc ana -s -d
+solarv2-mc ana -s -d
 ./analysis.py -s -d -p min_track_length=160
 
-python -m solarv2-mc ana -s
-python -m solarv2-mc ana -s -p min_track_length=160
+solarv2-mc ana -s
+solarv2-mc ana -s -p min_track_length=160
 
 # If pushd was executed, return to the original directory
 if [ "$PARENT_DIR" == "Examples" ]; then

@@ -6,21 +6,14 @@ from .methods import ak, json, literal_eval, np, os, pd, pickle
 # Load charge and light files, match dictionary and optionally metrics
 def load_data(folder, return_metrics=False):
     label = os.path.split(folder)[-1]
-    charge_input = os.path.join(folder, f"charge_df_{label}.bz2")
-    charge_df = pd.read_csv(charge_input, index_col="eventID")
-    charge_df[charge_df.columns] = charge_df[charge_df.columns].map(
-        lambda x: (
-            literal_eval(x)
-            if isinstance(x, str) and (x[0] == "[" or x[0] == "(")
-            else x
-        )
-    )
+    charge_input = os.path.join(folder, f"charge_df_{label}.pkl")
+    charge_df = pd.read_pickle(charge_input).set_index("eventID")
 
     # Load light file
-    light_input = os.path.join(folder, f"light_df_{label}.bz2")
+    light_input = os.path.join(folder, f"light_df_{label}.pkl")
     light_df = None
     if os.path.isfile(light_input):
-        light_df = pd.read_csv(light_input, index_col=0)
+        light_df = pd.read_pickle(light_input)
 
     # Load match dictionary
     match_input = os.path.join(folder, f"match_dict_{label}.json")

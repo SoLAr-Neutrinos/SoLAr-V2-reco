@@ -18,7 +18,7 @@ def main(charge, dead_areas, parameters=None):
 
     input_charge = charge
     params.simulate_dead_area = dead_areas
-    params.output_folder = input_charge.split("_")[-1].split(".")[0]
+    params.output_folder = input_charge.split("_")[-2]
 
     kwargs = load_params(parameters)
 
@@ -28,15 +28,10 @@ def main(charge, dead_areas, parameters=None):
     if params.simulate_dead_area:
         params.detector_x = params.quadrant_size * 4
         params.detector_y = params.quadrant_size * 5
-        print(
-            f"Simulating dead areas. Detector x and y dimensions reset to ({params.detector_x}, {params.detector_y})"
-        )
+        print(f"Simulating dead areas. Detector x and y dimensions reset to ({params.detector_x}, {params.detector_y})")
         if not params.output_folder.endswith("DA"):
             params.output_folder += "_DA"
-        if (
-            params.simulate_dead_area
-            and not os.path.split(params.work_path)[-1] == "DA"
-        ):
+        if params.simulate_dead_area and not os.path.split(params.work_path)[-1] == "DA":
             params.work_path = os.path.join(params.work_path, "DA")
 
         # Cut SiPMs from the anode
@@ -47,9 +42,7 @@ def main(charge, dead_areas, parameters=None):
     else:
         params.detector_x = params.quadrant_size * 8
         params.detector_y = params.quadrant_size * 8
-        print(
-            f"Not simulating dead areas. Detector x and y dimensions reset to ({params.detector_x}, {params.detector_y})"
-        )
+        print(f"Not simulating dead areas. Detector x and y dimensions reset to ({params.detector_x}, {params.detector_y})")
 
     recal_params()
 
@@ -64,7 +57,7 @@ def main(charge, dead_areas, parameters=None):
     output_path = os.path.join(params.work_path, f"{params.output_folder}")
     output_charge = os.path.join(
         output_path,
-        f"charge_df_{params.output_folder}.bz2",
+        f"charge_df_{params.output_folder}.pkl",
     )
     metrics_file = os.path.join(
         output_path,
@@ -73,7 +66,7 @@ def main(charge, dead_areas, parameters=None):
 
     # Save files
     os.makedirs(output_path, exist_ok=True)
-    charge_df.to_csv(output_charge)
+    charge_df.to_pickle(output_charge)
 
     with open(metrics_file, "wb") as f:
         pickle.dump(metrics, f)
@@ -82,9 +75,7 @@ def main(charge, dead_areas, parameters=None):
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("charge", help="Path to charge file")
-    parser.add_argument(
-        "--dead-areas", "-d", help="Simulate dead areas", action="store_true"
-    )
+    parser.add_argument("--dead-areas", "-d", help="Simulate dead areas", action="store_true")
     parser.add_argument(
         "-p",
         "--parameters",

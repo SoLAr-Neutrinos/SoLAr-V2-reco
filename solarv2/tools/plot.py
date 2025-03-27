@@ -220,9 +220,6 @@ def event_display(
     cbar.set_label(f"charge [{params.q_unit}]", fontsize=params.label_font_size)
     cbar.ax.tick_params(labelsize=params.tick_font_size)
     cbar.ax.yaxis.offsetText.set_fontsize(params.tick_font_size)
-    cbar.ax.yaxis.set_offset_position("right")
-    # cbar.ax.xaxis.get_offset_text().set_position((1, 0))
-    # cbar.ax.yaxis.offsetText.set_horizontalalignment("right")
 
     # Cluster the hits
     labels = cluster_hits(charge_df[["x", "y", "z"]].to_numpy())
@@ -476,7 +473,7 @@ def plot_track_angles(metrics, cuts=[16, 64, 160], **kwargs):
     if params.save_figures:
         output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
-        label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(cos_x)}"
+        label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(vectors[:,0])}"
         fig.savefig(
             os.path.join(output_path, f"track_angles_{params.output_folder}{label}.pdf"),
             dpi=300,
@@ -1205,7 +1202,7 @@ def plot_light_fit_stats(metrics, **kwargs):
                     light_track.direction,
                 ]
 
-    fig = plt.figure(figsize=(12, 6))
+    fig = plt.figure(figsize=(10, 5))
     ax = fig.add_subplot(111)
     for i in range(0, int(cosine_df["threshold"].max()), 10):
         data = cosine_df[cosine_df["threshold"] > i]
@@ -1576,7 +1573,7 @@ def plot_light_vs_charge(
                 if p0 is True:
                     p0 = [
                         peak_x,
-                        std / 10,
+                        std / 5,
                         std / 2,
                         peak_y,
                     ]
@@ -1608,7 +1605,7 @@ def plot_light_vs_charge(
         ax.axvline(median, c="orange", ls="--", label=f"Median: {median:.2f}")
         ax.axvline(mean, c="g", ls="--", label=f"Mean: {mean:.2f}")
 
-        ax.set_ylabel(f"Counts")
+        ax.set_ylabel(f"Events")
         # ax.set_xlim(min(array) - 2, edges3[(edges3 < upper_bound).argmin()])
         ax.set_ylim(0, peak_y * 1.1)
         ax.legend()
