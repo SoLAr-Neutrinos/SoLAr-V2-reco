@@ -142,6 +142,9 @@ def main(folder, filter=None, display=False, save=True, parameters=None):
     print(len(metrics), "metrics loaded")
     metrics = filter_metrics(metrics)
 
+    if params.lifetime_correction>0:
+        metrics = apply_lifetime(metrics)
+
     analysis(metrics, **kwargs)
 
     print("\nAnalysis finished.\n")
