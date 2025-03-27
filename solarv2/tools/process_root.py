@@ -5,9 +5,9 @@ def process_root(input_charge, input_light):
     params.output_folder = "_".join(input_light.split("_")[-2:]).split(".")[0]
 
     output_path = os.path.join(params.work_path, f"{params.output_folder}")
-    output_charge = os.path.join(output_path, f"charge_df_{params.output_folder}.bz2")
+    output_charge = os.path.join(output_path, f"charge_df_{params.output_folder}.pkl")
 
-    output_light = os.path.join(output_path, f"light_df_{params.output_folder}.bz2")
+    output_light = os.path.join(output_path, f"light_df_{params.output_folder}.pkl")
 
     output_match = os.path.join(output_path, f"match_dict_{params.output_folder}.json")
 
@@ -39,8 +39,8 @@ def process_root(input_charge, input_light):
 
     # Save files
     os.makedirs(output_path, exist_ok=True)
-    charge_df.to_csv(output_charge)
-    light_df.to_csv(output_light)
+    charge_df.to_pickle(output_charge)
+    light_df.to_pickle(output_light)
     with open(output_match, "w") as f:
         json.dump(match_dict, f)
 

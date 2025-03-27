@@ -8,9 +8,7 @@ import pickle
 def fit_events(charge_df, light_df, match_dict):
     metrics = {}
     for event in tqdm(charge_df.index, desc="Fitting events"):
-        charge_event, light_event, mask = prepare_event(
-            event, charge_df, light_df, match_dict
-        )
+        charge_event, light_event, mask = prepare_event(event, charge_df, light_df, match_dict)
 
         if charge_event is None and light_event is None:
             continue
@@ -47,9 +45,7 @@ def fit_events(charge_df, light_df, match_dict):
             charge_lines=track_lines,
         )
 
-        metrics[event][
-            "Pixel_mask"
-        ] = mask.to_numpy()  # Save masks to original dataframe for reference
+        metrics[event]["Pixel_mask"] = mask.to_numpy()  # Save masks to original dataframe for reference
         metrics[event]["Total_light"] = light_event[params.light_variable].sum()
         metrics[event]["Total_charge"] = charge_event["q"].sum()
     return metrics
@@ -84,22 +80,17 @@ if __name__ == "__main__":
     recal_params()
 
     # Load charge file
-    charge_df = pd.read_csv(
-        os.path.join(
-            params.work_path, params.output_folder, "charge_df_{params.output_folder}.bz2"
-        ),
+    charge_df = pd.read_pickle(
+        os.path.join(params.work_path, params.output_folder, "charge_df_{params.output_folder}.pkl"),
         index_col="eventID",
-    )
-    charge_df[charge_df.columns[9:]] = charge_df[charge_df.columns[9:]].map(
-        lambda x: literal_eval(x) if isinstance(x, str) else x
     )
 
     # Load light file
-    light_df = pd.read_csv(
+    light_df = pd.read_pickle(
         os.path.join(
             params.work_path,
             params.output_folder,
-            f"light_df_{params.output_folder}.bz2",
+            f"light_df_{params.output_folder}.pkl",
         ),
         index_col=0,
     )
