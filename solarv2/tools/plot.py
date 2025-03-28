@@ -449,7 +449,7 @@ def plot_track_angles(metrics, cuts=[16, 64, 160], **kwargs):
                                 cuts_dict[cut] = []
                             cuts_dict[cut].append(track["Fit_line"].direction.to_array())
 
-    fig, ax = plt.subplots(1, 3, figsize=(12, 3))
+    fig, ax = plt.subplots(1, 3, figsize=(14, 4))
     bins = np.arange(0, 1.05, 0.05)
     for cut, vectors in cuts_dict.items():
         vectors = np.array(vectors)
@@ -555,7 +555,7 @@ def plot_track_stats(
     p0 = (
         bin_centers_all11[n_all11.argmax()],
         np.std(bin_centers_all11[bin_centers_all11 < limit]) / 2,
-        np.std(bin_centers_all11[bin_centers_all11 < limit]) / 2,
+        np.std(bin_centers_all11[bin_centers_all11 < limit]),
         max(n_all11),
     )
     bounds = (
@@ -575,18 +575,26 @@ def plot_track_stats(
     try:
         popt, pcov = curve_fit(
             pylandau.langau,
-            bin_centers_all11[(bin_centers_all11 > 2000) & (bin_centers_all11 < limit)],
-            n_all11[(bin_centers_all11 > 2000) & (bin_centers_all11 < limit)],
+            bin_centers_all11[(bin_centers_all11 > 1500) & (bin_centers_all11 < limit)],
+            n_all11[(bin_centers_all11 > 1500) & (bin_centers_all11 < limit)],
             absolute_sigma=True,
             p0=p0,
             bounds=bounds,
+        )
+        print(
+            "\nFit Parameters:\n",
+            "\n ".join([f"{name}: {value}" for name, value in zip(["μ", "ρ", "σ", "A"], popt)]),
+        )
+        print(
+            "\nUncertainties:\n",
+            "\n ".join([f"{name}: {value}" for name, value in zip(["μ", "ρ", "σ", "A"], np.sqrt(np.diag(pcov)))]),
         )
 
         ax11.plot(
             fit_x := np.linspace(bins_all11[0], bins_all11[-1], 1000),
             pylandau.langau(fit_x, *popt),
             "r-",
-            label=r"fit: $\mu$=%5.1f, $\eta$=%5.1f, $\sigma$=%5.1f, A=%5.1f" % tuple(popt),
+            label=rf"fit ($\mu={popt[0]:5.1f}$)",
         )
     except:
         print("\nCould not fit Landau to dQ/dx")
@@ -917,7 +925,7 @@ def plot_track_stats(
                     ax.set_xlim(xlim[0], min(max_track_legth + 10, xlim[1]))
 
                 cbar = ax.get_figure().colorbar(ax.collections[0])
-                cbar.set_label("Counts" + (" [log]" if lognorm else ""))
+                cbar.set_label("Tracks" + (" [log]" if lognorm else ""))
                 set_common_ax_options(cbar=cbar)
             else:
                 ax.set_ylabel("# Tracks")
@@ -1438,20 +1446,20 @@ def plot_light_vs_charge(
 
         n, x_edges, y_edges, image = ax.hist2d(x, y, bins=bins, cmin=1)
 
-        if fit:
-            # fit peak with curve_fit
-            # @latexify.function(use_math_symbols=True)
-            def fit_function(xy, amplitude, xo, yo, sigma_x, sigma_y):
-                x, y = xy
-                gauss = (
-                    amplitude
-                    * np.exp(-0.5 * ((x - xo) / sigma_x) ** 2)
-                    / (sigma_x * np.sqrt(2 * np.pi))
-                    * np.exp(-0.5 * ((y - yo) / sigma_y) ** 2)
-                    / (sigma_y * np.sqrt(2 * np.pi))
-                )
-                return gauss
+        # fit peak with curve_fit
+        # @latexify.function(use_math_symbols=True)
+        def fit_function(xy, amplitude, xo, yo, sigma_x, sigma_y):
+            x, y = xy
+            gauss = (
+                amplitude
+                * np.exp(-0.5 * ((x - xo) / sigma_x) ** 2)
+                / (sigma_x * np.sqrt(2 * np.pi))
+                * np.exp(-0.5 * ((y - yo) / sigma_y) ** 2)
+                / (sigma_y * np.sqrt(2 * np.pi))
+            )
+            return gauss
 
+        if fit:
             try:
                 bin_peaks = n.ravel(order="F")
                 bin_peaks[np.isnan(bin_peaks)] = 0
@@ -1461,6 +1469,12 @@ def plot_light_vs_charge(
                 x_bin_centers = x_bin_centers.ravel()
                 y_bin_centers = y_bin_centers.ravel()
 
+                plot_mesh = np.array(
+                    np.meshgrid(
+                        np.linspace(min(x) / max(x), 1, len(x_bin_centers) * 5),
+                        np.linspace(min(y) / max(y), 1, len(y_bin_centers) * 5),
+                    )
+                )
                 parameters, cov_matrix = curve_fit(
                     fit_function,
                     (
@@ -1469,12 +1483,6 @@ def plot_light_vs_charge(
                     ),
                     bin_peaks,
                     bounds=(0, np.inf),
-                )
-                plot_mesh = np.array(
-                    np.meshgrid(
-                        np.linspace(min(x) / max(x), 1, len(x_bin_centers) * 5),
-                        np.linspace(min(y) / max(y), 1, len(y_bin_centers) * 5),
-                    )
                 )
 
                 z_plot = fit_function(plot_mesh, *parameters)
@@ -1541,10 +1549,9 @@ def plot_light_vs_charge(
                 print("Fit failed\n")
 
         ax.set_xlabel(f"Total charge [{params.q_unit}{' - Log' if log else ''}]")
-        ax.set_ylabel(f"Total Light {params.light_variable} [{params.light_unit}{' - Log' if log else ''}]")
+        ax.set_ylabel(f"Total Light [{params.light_unit}{' - Log' if log else ''}]")
         cbar = plt.colorbar(image)
-        cbar.set_label(rf"Counts", fontsize=params.label_font_size)
-        cbar.ax.tick_params(labelsize=params.label_font_size)
+        cbar.set_label(rf"# Events")
         set_common_ax_options(ax, cbar=cbar)
 
         return n, x_edges, y_edges, image
@@ -1558,7 +1565,8 @@ def plot_light_vs_charge(
         else:
             bins = np.linspace(min(array), upper_bound, int(50 * bin_density))
 
-        n, edges, patches = ax.hist(array, bins=bins, fill=False, ec="C0", histtype="bar")
+        # n, edges, patches = ax.hist(array, bins=bins, fill=False, ec="C0", histtype="bar")
+        n, edges, patches = ax.hist(array, bins=bins)
 
         peak_y = n.max()
         peak_x = edges[n.argmax() : n.argmax() + 1].mean()
@@ -1575,7 +1583,7 @@ def plot_light_vs_charge(
             try:
                 if p0 is True:
                     p0 = [
-                        peak_x / 2,
+                        peak_x,
                         std / 2,
                         std / 2,
                         peak_y,
@@ -1595,28 +1603,35 @@ def plot_light_vs_charge(
                     "\n ".join([f"{name}: {value}" for name, value in zip(["μ", "ρ", "σ", "A"], parameters)]),
                     "\n",
                 )
+                print(
+                    "Uncertainty:\n",
+                    "\n ".join(
+                        [f"{name}: {value}" for name, value in zip(["μ", "ρ", "σ", "A"], np.sqrt(np.diag(cov_matrix)))]
+                    ),
+                    "\n",
+                )
                 ax.plot(
                     x_plot,
                     y_plot,
                     "m",
-                    label=rf"Fit ($\mu={parameters[0]:.2f}$)",
+                    label=rf"Fit ($\mu={parameters[0]:5.1f}$)",
                 )
             except:
                 print("Fit failed\n")
 
-        ax.axvline(peak_x, c="r", ls="--", label=f"Peak: {peak_x:.2f}")
-        ax.axvline(median, c="orange", ls="--", label=f"Median: {median:.2f}")
-        ax.axvline(mean, c="g", ls="--", label=f"Mean: {mean:.2f}")
+        ax.axvline(peak_x, c="r", ls="--", label=f"Peak: {peak_x:.1f}")
+        ax.axvline(median, c="orange", ls="--", label=f"Median: {median:.1f}")
+        ax.axvline(mean, c="g", ls="--", label=f"Mean: {mean:.1f}")
 
-        ax.set_ylabel(f"Events")
+        ax.set_ylabel(f"# Events", fontsize=params.label_font_size)
         # ax.set_xlim(min(array) - 2, edges3[(edges3 < upper_bound).argmin()])
         ax.set_ylim(0, peak_y * 1.1)
-        ax.legend()
+        ax.legend(fontsize=params.legend_font_size)
 
     fig2 = plt.figure(figsize=(8, 6))
     ax2 = plt.subplot(111)
     print("Light vs. Charge plot\n")
-    n2d, xedges2d, yedges2d, image2d = hist2d(charge_array, light_array, ax2, bins, log[0], fit=False)
+    n2d, xedges2d, yedges2d, image2d = hist2d(charge_array, light_array, ax2, bins, log[0], fit=fit2D)
     fig2.suptitle(f"Event level Light vs. Charge - {len(charge_array)} events", fontsize=params.title_font_size)
 
     fig3 = plt.figure(figsize=(8, 6))
