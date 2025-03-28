@@ -473,7 +473,7 @@ def plot_track_angles(metrics, cuts=[16, 64, 160], **kwargs):
     if params.save_figures:
         output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
-        label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(cos_x)}"
+        label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(vectors[:,0])}"
         fig.savefig(
             os.path.join(output_path, f"track_angles_{params.output_folder}{label}.pdf"),
             dpi=300,
@@ -1541,7 +1541,7 @@ def plot_light_vs_charge(
         ax.set_xlabel(f"Total charge [{params.q_unit}{' - Log' if log else ''}]")
         ax.set_ylabel(f"Total Light {params.light_variable} [{params.light_unit}{' - Log' if log else ''}]")
         cbar = plt.colorbar(image)
-        cbar.set_label(rf"Events", fontsize=params.label_font_size)
+        cbar.set_label(rf"Counts")
         set_common_ax_options(ax, cbar=cbar)
 
         return n, x_edges, y_edges, image
