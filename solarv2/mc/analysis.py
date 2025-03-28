@@ -114,6 +114,9 @@ def main(
     print(len(metrics), "metrics loaded")
     metrics = filter_metrics(metrics)
 
+    if params.lifetime>0:
+        metrics = apply_lifetime(metrics)
+
     analysis(metrics, **kwargs)
 
     print("\nAnalysis finished.\n")
