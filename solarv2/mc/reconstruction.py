@@ -64,6 +64,9 @@ def main(charge, dead_areas, parameters=None):
         f"metrics_{params.output_folder}.pkl",
     )
 
+    if params.lifetime > 0:
+        metrics_file = metrics_file.replace(".pkl", f"_lt{params.lifetime:.3}.pkl")
+
     # Save files
     os.makedirs(output_path, exist_ok=True)
     charge_df.to_pickle(output_charge)

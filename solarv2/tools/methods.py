@@ -1,6 +1,6 @@
 ######### Imports #########
 
-import glob
+from glob import glob
 import json
 import os
 import pickle
@@ -143,7 +143,7 @@ def prepare_event(event, charge_df, light_df=None, match_dict=None):
     else:
         mask = np.full(len(charge_event["q"]), True)
 
-    charge_event["q"] = charge_event["q"] * params.charge_gain  # Convert mV to ke
+    charge_event["q"] = charge_event["q"] * params.charge_gain * lifetime_correction(charge_event["z"])  # Convert mV to ke
 
     return charge_event, light_event, mask
 
@@ -653,8 +653,6 @@ def voxelize_hits(
         voxel_charge = charge_df["q"][voxel_mask]
         voxel_z = charge_df["z"][voxel_mask]
 
-        voxel_charge = voxel_charge * lifetime_correction(voxel_z)
-
         xyzl = sipm[["x", "y", light_variable]].copy()
 
         if len(voxel_charge) > 0:
@@ -750,8 +748,6 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
     empty_count = 0
     short_count = 0
 
-    print(rf"Using lifetime correction with tau = {params.lifetime} ms")
-
     for event, entry in metrics.items():
         for track, values in entry.items():
             if isinstance(track, str) or track <= 0:
@@ -790,7 +786,6 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
             position = position[non_zero_mask[0] : non_zero_mask[-1] + 1]
 
             z = np.array([x[2] for x in position])
-            dQdx *= lifetime_correction(z)
 
             track_dQdx.append(dQdx)
             track_points.append(pd.Series(position, index=dQdx.index, name="position"))
@@ -1061,8 +1056,11 @@ def filter_metrics(metrics, **kwargs):
 def combine_metrics():
     combined_metrics = {}
 
-    search_path = glob.glob(f"{params.work_path}/**/*metrics*.pkl")
-    for file in tqdm(search_path, leave=True, desc="Combining metrics"):
+    search_path = f"{params.work_path}/**/*metrics*.pkl"
+    if params.lifetime > 0:
+        search_path = search_path.replace(".pkl", f"_lt{params.lifetime:.3}.pkl")
+
+    for file in tqdm(sorted(glob(search_path)), leave=True, desc="Combining metrics"):
         folder = file.split("/")[-2]
         tqdm.write(folder)
         with open(file, "rb") as f:
@@ -1102,28 +1100,3 @@ def create_square(center, side_size):
     vertices = [(x[i], y[i], z[i]) for i in range(5)]
     square = [[vertices[0], vertices[1], vertices[2], vertices[3]]]
     return square
-
-def apply_lifetime(metrics):
-    search_path = os.path.join(params.work_path, f"{params.output_folder}")
-    events=pd.Series(metrics.keys())
-    if events.str.contains("_").sum()> 0:
-        
-        events = events.str.split("_",expand=True).astype(str).apply(lambda x: pd.Series([f"{x[0]}_{x[1]}", x[2]]), axis=1).rename(columns={0:"label",1:"event"})
-
-        for file in events["label"].unique():
-            temp_df = pd.read_pickle(f"{params.work_path}/charge_df_{file}.pkl")
-            for event_idx in events[events["label"]==file]["event"]:
-                selection, _,_ = prepare_event(int(event_idx), temp_df)
-                total_charge = sum(selection["q"].to_numpy() * lifetime_correction(selection["z"].to_numpy()))
-                # print(event_idx, total_charge, selection["q"].to_numpy().sum(), metrics[f"{file}_{event_idx}"]["Total_charge"])
-                metrics[f"{file}_{event_idx}"]["Total_charge"] = total_charge
-
-    else:
-        temp_df = pd.read_pickle(f"{params.work_path}/charge_df_{params.output_folder}.pkl")
-        for event_idx in events[events["label"]==file]["event"]:
-            selection, _,_ = prepare_event(int(event_idx), temp_df)
-            total_charge = sum(selection["q"].to_numpy() * lifetime_correction(selection["z"].to_numpy()))
-            # print(event_idx, total_charge, selection["q"].to_numpy().sum(), metrics[f"{file}_{event_idx}"]["Total_charge"])
-            metrics[f"{file}_{event_idx}"]["Total_charge"] = total_charge
-
-    return metrics

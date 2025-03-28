@@ -85,6 +85,8 @@ def main(folder, filter=None, save=False, display=False, dead_areas=False, param
         filter_file = os.path.join(search_path, f"filter_parameters_{filter_tag}.json")
 
     metrics_file = os.path.join(search_path, f"metrics_{params.output_folder}.pkl")
+    if params.lifetime > 0:
+        metrics_file = metrics_file.replace(".pkl", f"_lt{params.lifetime:.3}.pkl")
 
     recal_params()
 

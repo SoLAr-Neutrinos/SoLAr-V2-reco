@@ -34,7 +34,11 @@ def main(charge, light, folder, parameters=None):
 
     output_path = os.path.join(params.work_path, f"{params.output_folder}")
     os.makedirs(output_path, exist_ok=True)
+
     metrics_file = os.path.join(output_path, f"metrics_{params.output_folder}.pkl")
+    if params.lifetime > 0:
+        metrics_file = metrics_file.replace(".pkl", f"_lt{params.lifetime:.3}.pkl")
+
     with open(metrics_file, "wb") as f:
         pickle.dump(metrics, f)
 
@@ -59,13 +63,9 @@ if __name__ == "__main__":
     # Validate arguments
     if args.reload_files:
         if not args.charge or not args.light:
-            parser.error(
-                "Both '--charge' and '--light' arguments are required when not using the '--folder' argument."
-            )
+            parser.error("Both '--charge' and '--light' arguments are required when not using the '--folder' argument.")
     else:
         if not args.folder:
-            parser.error(
-                "The '--folder' argument is required when not using the '--charge' and '--light' arguments."
-            )
+            parser.error("The '--folder' argument is required when not using the '--charge' and '--light' arguments.")
 
     main(args)

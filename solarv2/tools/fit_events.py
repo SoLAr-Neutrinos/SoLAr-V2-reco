@@ -80,10 +80,7 @@ if __name__ == "__main__":
     recal_params()
 
     # Load charge file
-    charge_df = pd.read_pickle(
-        os.path.join(params.work_path, params.output_folder, "charge_df_{params.output_folder}.pkl")
-        
-    ).set_index("eventID")
+    charge_df = pd.read_pickle(os.path.join(params.work_path, params.output_folder, "charge_df_{params.output_folder}.pkl"))
 
     # Load light file
     light_df = pd.read_pickle(
@@ -108,12 +105,16 @@ if __name__ == "__main__":
 
     metrics = fit_events(charge_df, light_df, match_dict)
 
+    metrics_file = os.path.join(
+        params.work_path,
+        params.output_folder,
+        f"metrics_{params.output_folder}.pkl",
+    )
+    if params.lifetime > 0:
+        metrics_file = metrics_file.replace(".pkl", f"_lt{params.lifetime:.3}.pkl")
+
     with open(
-        os.path.join(
-            params.work_path,
-            params.output_folder,
-            f"metrics_{params.output_folder}.pkl",
-        ),
+        metrics_file,
         "wb",
     ) as f:
         pickle.dump(metrics, f)

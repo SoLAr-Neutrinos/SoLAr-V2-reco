@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from .methods import ak, json, literal_eval, np, os, pd, pickle
+from .methods import ak, json, literal_eval, np, os, pd, pickle, params
 
 
 # Load charge and light files, match dictionary and optionally metrics
@@ -30,9 +30,11 @@ def load_data(folder, return_metrics=False):
         light_df = light_df[light_df["event"].isin(light_events)]
 
     metrics_file = os.path.join(folder, f"metrics_{label}.pkl")
+    if params.lifetime > 0:
+        metrics_file = metrics_file.replace(".pkl", f"_lt{params.lifetime:.3}.pkl")
+
     metrics = None
     if return_metrics and os.path.isfile(metrics_file):
-        metrics_file = f"{folder}/metrics_{label}.pkl"
         with open(metrics_file, "rb") as f:
             metrics = pickle.load(f)
 
