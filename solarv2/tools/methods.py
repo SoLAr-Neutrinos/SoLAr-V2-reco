@@ -1103,25 +1103,31 @@ def create_square(center, side_size):
     square = [[vertices[0], vertices[1], vertices[2], vertices[3]]]
     return square
 
+
 def apply_lifetime(metrics):
     search_path = os.path.join(params.work_path, f"{params.output_folder}")
-    events=pd.Series(metrics.keys())
-    if events.str.contains("_").sum()> 0:
-        
-        events = events.str.split("_",expand=True).astype(str).apply(lambda x: pd.Series([f"{x[0]}_{x[1]}", x[2]]), axis=1).rename(columns={0:"label",1:"event"})
+    events = pd.Series(metrics.keys())
+    if events.str.contains("_").sum() > 0:
+
+        events = (
+            events.str.split("_", expand=True)
+            .astype(str)
+            .apply(lambda x: pd.Series([f"{x[0]}_{x[1]}", x[2]]), axis=1)
+            .rename(columns={0: "label", 1: "event"})
+        )
 
         for file in events["label"].unique():
-            temp_df = pd.read_pickle(f"{params.work_path}/charge_df_{file}.pkl")
-            for event_idx in events[events["label"]==file]["event"]:
-                selection, _,_ = prepare_event(int(event_idx), temp_df)
+            temp_df = pd.read_pickle(f"{params.work_path}/{file}/charge_df_{file}.pkl")
+            for event_idx in events[events["label"] == file]["event"]:
+                selection, _, _ = prepare_event(int(event_idx), temp_df)
                 total_charge = sum(selection["q"].to_numpy() * lifetime_correction(selection["z"].to_numpy()))
                 # print(event_idx, total_charge, selection["q"].to_numpy().sum(), metrics[f"{file}_{event_idx}"]["Total_charge"])
                 metrics[f"{file}_{event_idx}"]["Total_charge"] = total_charge
 
     else:
         temp_df = pd.read_pickle(f"{params.work_path}/charge_df_{params.output_folder}.pkl")
-        for event_idx in events[events["label"]==file]["event"]:
-            selection, _,_ = prepare_event(int(event_idx), temp_df)
+        for event_idx in events[events["label"] == file]["event"]:
+            selection, _, _ = prepare_event(int(event_idx), temp_df)
             total_charge = sum(selection["q"].to_numpy() * lifetime_correction(selection["z"].to_numpy()))
             # print(event_idx, total_charge, selection["q"].to_numpy().sum(), metrics[f"{file}_{event_idx}"]["Total_charge"])
             metrics[f"{file}_{event_idx}"]["Total_charge"] = total_charge
