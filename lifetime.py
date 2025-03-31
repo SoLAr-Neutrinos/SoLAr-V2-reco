@@ -48,8 +48,7 @@ def get_lifetime(metrics):
             std.append(np.std(data))
 
     dt = np.array([(i / (params.drift_velocity * 100)) for i in dz])
-    popt, _ = scipy.optimize.curve_fit(exp_decay, dt, mediandQdx, p0=[2.3, 5000])
-    fit_tau, fit_init = popt
+    popt, pcov = scipy.optimize.curve_fit(exp_decay, dt, mediandQdx, p0=[2.3, 5000])
 
     plt.plot(dz, mediandQdx, "o")
     dz = np.linspace(0, 30, 100)
@@ -67,12 +66,15 @@ def get_lifetime(metrics):
     plt.savefig("dqdx_binnedInZ.pdf", bbox_inches="tight")
     plt.close()
 
-    return fit_tau, fit_init
+    return popt, pcov
 
 
 if __name__ == "__main__":
     metrics_file = sys.argv[1]
     with open(metrics_file, "rb") as input_file:
         metrics = pickle.load(input_file)
-    fit_tau, fit_init = get_lifetime(metrics)
+    popt, pcov = get_lifetime(metrics)
+    fit_tau, fit_init = popt
+    uncertainties = np.sqrt(np.diag(pcov))
     print("Measured Lifetime:", fit_tau, "ms", fit_init)
+    print("Uncertainties:", uncertainties)
