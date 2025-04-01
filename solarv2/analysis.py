@@ -151,6 +151,8 @@ def main(folder, filter=None, display=False, save=True, parameters=None):
 
     print("\nAnalysis finished.\n")
 
+    print(f"Plots saved with label {params.filter_tag} in folder {params.output_folder}")
+
 
 if __name__ == "__main__":
     parser = ArgumentParser()

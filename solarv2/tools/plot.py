@@ -1407,9 +1407,16 @@ def plot_light_vs_charge(
 
     light_array = []
     charge_array = []
+    length_array = []
     for event, metric in metrics.items():
         light_array.append(metric["Total_light"])
         charge_array.append(metric["Total_charge"])
+        track_length = [0]
+        for track_idx, track in metric.items():
+            if type(track) is dict and not type(track_idx) is str:
+                if "Fit_norm" in track and "Fit_line" in track:
+                    track_length.append(track["Fit_norm"])
+        length_array.append(max(track_length))
 
     light_array = np.array(light_array)
     charge_array = np.array(charge_array)
@@ -1417,6 +1424,9 @@ def plot_light_vs_charge(
     mask = (charge_array > 0) & (light_array > 0)
     charge_array = charge_array[mask]
     light_array = light_array[mask]
+    length_array = np.array(length_array)[mask]
+
+    print(len(charge_array), len(light_array), len(length_array))
 
     plt.style.use(params.style)
     fig1 = plt.figure(figsize=(8, 6))
@@ -1433,8 +1443,17 @@ def plot_light_vs_charge(
     )
     bins = int(vline / 20)
 
+    length_array = length_array[(light_array <= vline)]
     charge_array = charge_array[(light_array <= vline)]
     light_array = light_array[(light_array <= vline)]
+
+    ratio = charge_array / light_array
+
+    r_upper_bound = np.percentile(ratio, 95)
+    length_array = length_array[ratio < r_upper_bound]
+    charge_array = charge_array[ratio < r_upper_bound]
+    light_array = light_array[ratio < r_upper_bound]
+    ratio = ratio[ratio < r_upper_bound]
 
     def hist2d(x, y, ax, bins, log, fit):
         if log:
@@ -1551,22 +1570,20 @@ def plot_light_vs_charge(
         ax.set_xlabel(f"Total charge [{params.q_unit}{' - Log' if log else ''}]")
         ax.set_ylabel(f"Total Light [{params.light_unit}{' - Log' if log else ''}]")
         cbar = plt.colorbar(image)
-        cbar.set_label(rf"Counts")
+        cbar.set_label(rf"# Events")
         set_common_ax_options(ax, cbar=cbar)
 
         return n, x_edges, y_edges, image
 
-    def hist1d(array, ax, bin_density, log, p0):
-        upper_bound = np.percentile(array, 95)
-        array = array[array < upper_bound]
-        if log:
+    def hist1d(array, ax, bin_density, logx, p0, stats=True, label=None):
+        if logx:
             ax.set_xscale("log")
-            bins = np.exp(np.linspace(np.log(min(array) - 1), np.log(upper_bound), int(50 * bin_density)))
+            bins = np.exp(np.linspace(np.log(min(array) - 1), np.log(max(array)), int(50 * bin_density)))
         else:
-            bins = np.linspace(min(array), upper_bound, int(50 * bin_density))
+            bins = np.linspace(min(array), max(array), int(50 * bin_density))
 
         # n, edges, patches = ax.hist(array, bins=bins, fill=False, ec="C0", histtype="bar")
-        n, edges, patches = ax.hist(array, bins=bins)
+        n, edges, patches = ax.hist(array, bins=bins, label=label)
 
         peak_y = n.max()
         peak_x = edges[n.argmax() : n.argmax() + 1].mean()
@@ -1575,7 +1592,7 @@ def plot_light_vs_charge(
         std = np.std(array)
 
         set_common_ax_options(ax)
-        if not log:
+        if not logx:
             bin_centers = 0.5 * (edges[1:] + edges[:-1])
             bin_centers = bin_centers[n > 0]
             bin_peaks = n[n > 0]
@@ -1593,7 +1610,7 @@ def plot_light_vs_charge(
                     bin_centers,
                     bin_peaks,
                     p0=p0,
-                    bounds=((peak_x / 2, 0, 0, 0), (peak_x * 1.5, np.inf, np.inf, np.inf)),
+                    bounds=((peak_x / 2, 0, 0, peak_y / 2), (peak_x * 2, np.inf, np.inf, peak_y * 2)),
                 )
                 x_plot = np.linspace(min(array), max(array), len(bins) * 10)
                 y_plot = pylandau.langau(x_plot, *parameters)
@@ -1610,22 +1627,24 @@ def plot_light_vs_charge(
                     ),
                     "\n",
                 )
-                ax.plot(
+                fit_plot = ax.plot(
                     x_plot,
                     y_plot,
-                    "m",
+                    # "m",
                     label=rf"Fit ($\mu={parameters[0]:5.1f}$)",
                 )
+                if not stats:
+                    ax.axvline(parameters[0], c=fit_plot[0].get_color(), ls="--")
             except:
                 print("Fit failed\n")
-
-        ax.axvline(peak_x, c="r", ls="--", label=f"Peak: {peak_x:.2f}")
-        ax.axvline(median, c="orange", ls="--", label=f"Median: {median:.2f}")
-        ax.axvline(mean, c="g", ls="--", label=f"Mean: {mean:.2f}")
+        if stats:
+            ax.axvline(peak_x, c="r", ls="--", label=f"Peak: {peak_x:.1f}")
+            ax.axvline(median, c="orange", ls="--", label=f"Median: {median:.1f}")
+            ax.axvline(mean, c="g", ls="--", label=f"Mean: {mean:.1f}")
 
         ax.set_ylabel(f"# Events", fontsize=params.label_font_size)
         # ax.set_xlim(min(array) - 2, edges3[(edges3 < upper_bound).argmin()])
-        ax.set_ylim(0, peak_y * 1.1)
+        # ax.set_ylim(0, peak_y * 1.1)
         ax.legend(fontsize=params.legend_font_size)
 
     fig2 = plt.figure(figsize=(8, 6))
@@ -1636,9 +1655,27 @@ def plot_light_vs_charge(
 
     fig3 = plt.figure(figsize=(8, 6))
     ax3 = plt.subplot(111)
-    ratio = charge_array / light_array
+
     print("Light / Charge ratio plot\n")
-    hist1d(ratio, ax3, bin_density, log[1], p0)
+
+    second_cut = False
+    if min(length_array) < 160 and (length_array >= 160).any():
+        second_cut = True
+
+    hist1d(
+        ratio,
+        ax3,
+        bin_density,
+        log[1],
+        p0,
+        label=f"Length > {int(min(length_array))} mm" if second_cut else None,
+        stats=not second_cut,
+    )
+    if second_cut:
+        hist1d(ratio[length_array >= 160], ax3, bin_density, log[1], p0, stats=False, label="Length > 160 mm")
+        ax3.legend(fontsize=params.legend_font_size, ncols=2)
+        # ax3.set_yscale("log")
+
     ax3.set_xlabel(f"Event total charge / Light [{params.q_unit} / {params.light_unit}{' - Log' if log[1] else ''}]")
     fig3.suptitle(f"Event level Charge vs. Light - {len(charge_array)} events", fontsize=params.title_font_size)
 
@@ -1706,14 +1743,14 @@ def plot_light_vs_charge(
         output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
         label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(ratio)}"
-        fig1.savefig(
-            os.path.join(
-                output_path,
-                f"light_vs_charge_optmization_{params.output_folder}{label}.pdf",
-            ),
-            dpi=300,
-            bbox_inches="tight",
-        )
+        # fig1.savefig(
+        #     os.path.join(
+        #         output_path,
+        #         f"light_vs_charge_optmization_{params.output_folder}{label}.pdf",
+        #     ),
+        #     dpi=300,
+        #     bbox_inches="tight",
+        # )
         fig2.savefig(
             os.path.join(
                 output_path,
@@ -1730,3 +1767,11 @@ def plot_light_vs_charge(
             dpi=300,
             bbox_inches="tight",
         )
+        # fig4.savefig(
+        #     os.path.join(
+        #         output_path,
+        #         f"light_vs_charge_{params.output_folder}{label}.pdf",
+        #     ),
+        #     dpi=300,
+        #     bbox_inches="tight",
+        # )
