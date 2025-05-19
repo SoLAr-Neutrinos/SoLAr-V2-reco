@@ -11,6 +11,7 @@ def analysis(metrics, **kwargs):
 
     methods = [
         plot_track_stats,
+        plot_track_angles,
         plot_dQ,
     ]
     method_kwargs = {}
@@ -33,7 +34,15 @@ def analysis(metrics, **kwargs):
     else:
         plt.close("all")
 
-    # 2 - Individual dQ/dx plots
+    # 2 - Track angular distribution plots
+    print("\nPlotting track angular distribution\n")
+    plot_track_angles(metrics, **method_kwargs["plot_track_angles"])
+    if params.show_figures:
+        plt.show()
+    else:
+        plt.close("all")
+
+    # 3 - Individual dQ/dx plots
     print("\nPlotting individual dQ/dx plots")
     for event_idx in tqdm(params.individual_plots):
         if event_idx in metrics:
@@ -55,9 +64,7 @@ def analysis(metrics, **kwargs):
                         plt.close("all")
 
 
-def main(
-    folder, filter=None, save=False, display=False, dead_areas=False, parameters=None
-):
+def main(folder, filter=None, save=False, display=False, dead_areas=False, parameters=None):
     print("\nAnalysis started...")
 
     params.output_folder = folder
@@ -69,22 +76,15 @@ def main(
     if params.simulate_dead_area:
         params.detector_x = params.quadrant_size * 4
         params.detector_y = params.quadrant_size * 5
-        print(
-            f"Simulating dead areas. Detector x and y dimensions reset to ({params.detector_x}, {params.detector_y})"
-        )
+        print(f"Simulating dead areas. Detector x and y dimensions reset to ({params.detector_x}, {params.detector_y})")
         if params.simulate_dead_area and not params.output_folder.endswith("DA"):
             params.output_folder += "_DA"
-        if (
-            params.simulate_dead_area
-            and not os.path.split(params.work_path)[-1] == "DA"
-        ):
+        if params.simulate_dead_area and not os.path.split(params.work_path)[-1] == "DA":
             params.work_path = os.path.join(params.work_path, "DA")
     else:
         params.detector_x = params.quadrant_size * 8
         params.detector_y = params.quadrant_size * 8
-        print(
-            f"Not simulating dead areas. Detector x and y dimensions reset to ({params.detector_x}, {params.detector_y})"
-        )
+        print(f"Not simulating dead areas. Detector x and y dimensions reset to ({params.detector_x}, {params.detector_y})")
 
     kwargs = load_params(parameters)
 
@@ -114,7 +114,7 @@ def main(
     print(len(metrics), "metrics loaded")
     metrics = filter_metrics(metrics)
 
-    if params.lifetime>0:
+    if params.lifetime > 0:
         metrics = apply_lifetime(metrics)
 
     analysis(metrics, **kwargs)
@@ -130,16 +130,10 @@ if __name__ == "__main__":
         default="combined",
         nargs="?",
     )
-    parser.add_argument(
-        "--filter", help="Tag number of filter file within folder", default=None
-    )
+    parser.add_argument("--filter", help="Tag number of filter file within folder", default=None)
     parser.add_argument("--save", "-s", help="Save images", action="store_true")
-    parser.add_argument(
-        "--display", help="Display images (not recomended)", action="store_true"
-    )
-    parser.add_argument(
-        "--dead-areas", "-d", help="Simulate dead areas", action="store_true"
-    )
+    parser.add_argument("--display", help="Display images (not recomended)", action="store_true")
+    parser.add_argument("--dead-areas", "-d", help="Simulate dead areas", action="store_true")
     parser.add_argument(
         "-p",
         "--parameters",
