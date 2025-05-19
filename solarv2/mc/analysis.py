@@ -11,6 +11,7 @@ def analysis(metrics, **kwargs):
 
     methods = [
         plot_track_stats,
+        plot_track_angles,
         plot_dQ,
     ]
     method_kwargs = {}
@@ -33,7 +34,15 @@ def analysis(metrics, **kwargs):
     else:
         plt.close("all")
 
-    # 2 - Individual dQ/dx plots
+    # 2 - Track angular distribution plots
+    print("\nPlotting track angular distribution\n")
+    plot_track_angles(metrics, **method_kwargs["plot_track_angles"])
+    if params.show_figures:
+        plt.show()
+    else:
+        plt.close("all")
+
+    # 3 - Individual dQ/dx plots
     print("\nPlotting individual dQ/dx plots")
     for event_idx in tqdm(params.individual_plots):
         if event_idx in metrics:

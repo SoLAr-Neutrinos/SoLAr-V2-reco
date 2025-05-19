@@ -1170,14 +1170,14 @@ def plot_light_geo_stats(
         output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
         label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(sipm_light)}"
-        fig1.savefig(
-            os.path.join(
-                output_path,
-                f"light_geo_optimization_{params.output_folder}{label}.pdf",
-            ),
-            dpi=300,
-            bbox_inches="tight",
-        )
+        # fig1.savefig(
+        #     os.path.join(
+        #         output_path,
+        #         f"light_geo_optimization_{params.output_folder}{label}.pdf",
+        #     ),
+        #     dpi=300,
+        #     bbox_inches="tight",
+        # )
         fig2.savefig(
             os.path.join(output_path, f"light_geo_2D_hist_{params.output_folder}{label}.pdf"),
             dpi=300,

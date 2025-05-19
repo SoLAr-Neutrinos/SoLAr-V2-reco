@@ -149,7 +149,7 @@ def main(folder, filter=None, display=False, save=True, parameters=None):
 
     analysis(metrics, **kwargs)
 
-    print("\nAnalysis finished.\n")
+    print(f"\nAnalysis finished. Plots saved with label {params.filter_label}.\n")
 
     print(f"Plots saved with label {params.filter_tag} in folder {params.output_folder}")
 

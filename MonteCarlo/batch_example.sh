@@ -13,12 +13,12 @@ if [ "$PARENT_DIR" == "Examples" ]; then
 fi
 
 # Loop through all files matching the pattern in the specified directory
-for file in /eos/experiment/dune/solar/montecarlo/singlecube/cosmic_v0/singlecube_cry_hit_*thrs3800.root
+for file in /eos/experiment/dune/solar/montecarlo/singlecube/cosmic_v1/singlecube_cry_hits_*.root
 do
 
 echo "Processing" $file
 # Extract the numbers after 'hit_' and before '.root' using sed to get the output folder
-folder=$(echo $file | sed -n 's/.*hit_\([0-9]*\)\_thrs3800.root/\1/p')
+folder=$(echo $file | sed -n 's/.*hits_\([0-9]*\)\.root/\1/p')
 
 # Run the reconstruction script simulating dead areas and dh set to 30
 solarv2-mc reco "$file" -d
@@ -38,13 +38,13 @@ solarv2-mc display $folder -n -s
 
 # Run the analysis script again on the output folder
 solarv2-mc ana $folder -s
-solarv2-mc ana -s -p min_track_length=160
+solarv2-mc ana $folder -s -p min_track_length=160
 
 done
 
 # Run the analysis script on combined metrics
 solarv2-mc ana -s -d
-./analysis.py -s -d -p min_track_length=160
+solarv2-mc ana -s -d -p min_track_length=160
 
 solarv2-mc ana -s
 solarv2-mc ana -s -p min_track_length=160
