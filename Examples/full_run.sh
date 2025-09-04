@@ -13,7 +13,7 @@ if [ "$PARENT_DIR" == "Examples" ]; then
 fi
 
 # Full analysis
-for light_file in /eos/experiment/dune/solar/data/SoLAr_v2/Light/root/46v_12db_th950_deco/*
+for light_file in /eos/experiment/dune/solar/data/SoLAr_v2/Light/root/46v_12db_th950_deco/deco_v6*
 do
   # Print the current file name
   echo Light file: "$light_file"
@@ -26,7 +26,11 @@ do
 
   charge_file="/eos/experiment/dune/solar/data/SoLAr_v2/Charge/cosmics/root/evd_self_trigger-packets-${formatted_date}_CEST_validated.root"
   echo Charge file: "$charge_file"
-  
+
+  # if [ -d "/eos/experiment/dune/solar/scripts/SoLAr-V2-reco/$label" ]; then
+  #   continue
+  # fi
+
   # Run the reconstruction script again without simulating dead areas
   python -m solarv2 reco -c "$charge_file" -l "$light_file" 
 

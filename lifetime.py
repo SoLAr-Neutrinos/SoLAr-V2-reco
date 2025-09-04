@@ -58,7 +58,7 @@ def get_lifetime(metrics):
     plt.title("Median dQ/dx Measured Across Drift Distance", fontsize=14)
     plt.ylabel(r"Median dQ/dx [e mm$^{-1}$]", fontsize=14)
     plt.xticks(np.arange(0, 35, 5))
-    plt.xlabel("Drift distance [cm]", fontsize=14)
+    plt.xlabel("Drift Distance [cm]", fontsize=14)
     plt.tick_params(axis="both", which="major", direction="in", size=8, labelsize=12, right=True, top=True)
     plt.tick_params(axis="both", which="minor", direction="in", size=4, right=True, top=True)
     plt.grid(ls=":")

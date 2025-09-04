@@ -217,7 +217,7 @@ def event_display(
         zorder=9,
     )
     cbar = plt.colorbar(plot2d, format=OOMFormatter(3, "%1.1f"))
-    cbar.set_label(f"charge [{params.q_unit}]", fontsize=params.label_font_size)
+    cbar.set_label(f"Charge [{params.q_unit}]", fontsize=params.label_font_size)
     cbar.ax.tick_params(labelsize=params.tick_font_size)
     cbar.ax.yaxis.offsetText.set_fontsize(params.tick_font_size)
 
@@ -302,7 +302,7 @@ def event_display(
             )
     if not light_df.empty:
         sipm_cbar = plt.colorbar(sipm_plot)
-        sipm_cbar.set_label(rf"Light {params.light_variable} [{params.light_unit}]", fontsize=params.label_font_size)
+        sipm_cbar.set_label(rf"Light [{params.light_unit}]", fontsize=params.label_font_size)
         sipm_cbar.ax.tick_params(labelsize=params.tick_font_size)
 
     ax3d.set_zlim([0, ax3d.get_zlim()[1]])
@@ -409,7 +409,7 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwa
     ax.step(dQ_series.index, (dQ_series / dx_series).fillna(0), where="mid")
     # ax.scatter(dQ_series.index, (dQ_series / dx_series).fillna(0))
     ax.set_xlabel(rf"$x$ [{params.dh_unit}]")
-    ax.set_ylabel(rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]")
+    ax.set_ylabel(rf"d$Q$/d$x$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]")
 
     ax_twinx.step(dQ_series.index, np.cumsum(dQ_series), color="C1", where="mid")
     ax_twinx.set_ylabel(f"Q [{params.q_unit}]")
@@ -458,15 +458,21 @@ def plot_track_angles(metrics, cuts=[16, 64, 160], **kwargs):
         ax[1].hist(abs(vectors[:, 1]), bins=bins, label=f"> {cut} mm")
         ax[2].hist(abs(vectors[:, 2]), bins=bins)
 
-    ax[0].set_xlabel("Cosine similarity to x-axis")
-    ax[1].set_xlabel("Cosine similarity to y-axis")
-    ax[2].set_xlabel("Cosine similarity to z-axis")
+    ax[0].set_xlabel("Cosine similarity", fontsize=params.label_font_size)
+    ax[0].set_title(r"x-Axis", fontsize=params.label_font_size)
+    ax[1].set_xlabel("Cosine similarity", fontsize=params.label_font_size)
+    ax[1].set_title(r"y-Axis", fontsize=params.label_font_size)
+    ax[2].set_xlabel("Cosine similarity", fontsize=params.label_font_size)
+    ax[2].set_title(r"z-Axis", fontsize=params.label_font_size)
+    ax[0].set_xlim([0, 1])
+    ax[1].set_xlim([0, 1])
+    ax[2].set_xlim([0, 1])
     ax[1].legend(
         title="Track length cuts", fontsize=params.legend_font_size, loc="upper left", title_fontsize=params.legend_font_size
     )
 
     for axes in ax:
-        axes.set_ylabel("# Tracks")
+        axes.set_ylabel("Tracks")
         set_common_ax_options(axes)
 
     fig.tight_layout()
@@ -602,11 +608,11 @@ def plot_track_stats(
         print(f"bounds: {bounds}")
 
     ax11.set_xlabel(
-        rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
+        rf"d$Q$/d$x$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
         fontsize=params.label_font_size,
     )
-    ax11.set_title(f"{len(track_dQdx)} tracks", fontsize=params.title_font_size)
-    ax12.set_title(f"{len(track_length)} tracks", fontsize=params.title_font_size)
+    ax11.set_title(f"{len(track_dQdx)} Tracks", fontsize=params.title_font_size)
+    ax12.set_title(f"{len(track_length)} Tracks", fontsize=params.title_font_size)
 
     # 2D histograms
     def hist2d(x, y, ax, bins, lognorm, fit="Log", profile=False):
@@ -662,14 +668,14 @@ def plot_track_stats(
     ax21 = fig2.add_subplot(121)
     ax22 = fig2.add_subplot(122)
 
-    fig2.suptitle(f"{len(track_dQdx)} tracks", fontsize=params.title_font_size)
+    fig2.suptitle(f"{len(track_dQdx)} Tracks", fontsize=params.title_font_size)
     ax21.set_ylabel(
-        rf"Mean $dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
+        rf"Mean d$Q$/d$x$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
         fontsize=params.label_font_size,
     )
-    ax21.set_title("Mean dQ/dx vs. Track length", fontsize=params.title_font_size)
-    ax22.set_ylabel(rf"$dQ/dx$ CV", fontsize=params.label_font_size)
-    ax22.set_title("dQ/dx CV vs. Track length", fontsize=params.title_font_size)
+    ax21.set_title("Mean dQ/dx vs. Track Length", fontsize=params.title_font_size)
+    ax22.set_ylabel(rf"d$Q$/d$x$ CV", fontsize=params.label_font_size)
+    ax22.set_title("dQ/dx CV vs. Track Length", fontsize=params.title_font_size)
 
     hist2d21 = hist2d(
         track_length[nan_mask],
@@ -693,8 +699,8 @@ def plot_track_stats(
 
     fig4 = plt.figure(figsize=(7, 6))
     ax4 = fig4.add_subplot(111)
-    ax4.set_ylabel(f"Fit score")
-    ax4.set_title("Fit score vs. Track length")
+    ax4.set_ylabel(f"Fit Score")
+    ax4.set_title("Fit Score vs. Track Length")
 
     hist2d4 = hist2d(
         track_length,
@@ -709,11 +715,11 @@ def plot_track_stats(
     fig5 = plt.figure(figsize=(7 + 7 * score_bool, 6))
     ax51 = fig5.add_subplot(111 + 10 * score_bool)
     ax51.set_ylabel(
-        rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
+        rf"d$Q$/d$x$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
         fontsize=params.label_font_size,
     )
     ax51.set_xlabel(rf"Residual range [{params.dh_unit}]", fontsize=params.label_font_size)
-    ax51.set_title(rf"{len(track_dQdx)} tracks", fontsize=params.title_font_size)
+    ax51.set_title(rf"{len(track_dQdx)} Tracks", fontsize=params.title_font_size)
 
     hist2d(
         dQdx_series.index,
@@ -728,11 +734,11 @@ def plot_track_stats(
     fig6 = plt.figure(figsize=(7 + 7 * score_bool, 6))
     ax61 = fig6.add_subplot(111 + 10 * score_bool)
     ax61.set_ylabel(
-        rf"Mean $dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
+        rf"Mean d$Q$/d$x$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
         fontsize=params.label_font_size,
     )
     ax61.set_xlabel(rf"Mean anode distance [{params.z_unit}]", fontsize=params.label_font_size)
-    ax61.set_title(rf"{len(track_z)} tracks", fontsize=params.title_font_size)
+    ax61.set_title(rf"{len(track_z)} Tracks", fontsize=params.title_font_size)
 
     hist2d(
         track_z[nan_mask],
@@ -746,9 +752,9 @@ def plot_track_stats(
 
     # fig7 = plt.figure(figsize=(7 + 7 * score_bool, 6))
     # ax71 = fig7.add_subplot(111 + 10 * score_bool)
-    # ax71.set_ylabel(rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]", fontsize=label_size)
+    # ax71.set_ylabel(rf"d$Q$/d$x$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]", fontsize=label_size)
     # ax71.set_xlabel(rf"Anode distance [{params.z_unit}]", fontsize=label_size)
-    # ax71.set_title(rf"{len(track_z)} tracks", fontsize=title_size)
+    # ax71.set_title(rf"{len(track_z)} Tracks", fontsize=title_size)
 
     # dq_z_series = pd.concat(dq_z_list)
     # dq_z_series = dq_z_series[dq_z_series > 0].dropna().sort_index()
@@ -790,10 +796,10 @@ def plot_track_stats(
         fig3 = plt.figure(figsize=(14, 6))
         ax31 = fig3.add_subplot(121)
         ax32 = fig3.add_subplot(122)
-        ax31.set_ylabel(rf"Mean $dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]")
-        ax31.set_title(rf"Mean dQ/dx vs. Track length")
-        ax32.set_ylabel(rf"$dQ/dx$ CV")
-        ax32.set_title(rf"dQ/dx CV vs. Track length")
+        ax31.set_ylabel(rf"Mean d$Q$/d$x$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]")
+        ax31.set_title(rf"Mean dQ/dx vs. Track Length")
+        ax32.set_ylabel(rf"d$Q$/d$x$ CV")
+        ax32.set_title(rf"dQ/dx CV vs. Track Length")
         fig3.suptitle(
             rf"Fit score $\geq {min_score}$ ({round(sum(score_mask)/len(score_mask)*100)}% of tracks)",
             fontsize=params.title_font_size,
@@ -825,7 +831,7 @@ def plot_track_stats(
         ax52 = fig5.add_subplot(122)
         axes.append(ax52)
         ax52.set_ylabel(
-            rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
+            rf"d$Q$/d$x$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
             fontsize=params.label_font_size,
         )
         ax52.set_xlabel(rf"Residual range [{params.dh_unit}]", fontsize=params.label_font_size)
@@ -848,7 +854,7 @@ def plot_track_stats(
         ax62 = fig6.add_subplot(122)
         axes.append(ax62)
         ax62.set_ylabel(
-            rf"Mean $dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
+            rf"Mean d$Q$/d$x$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]",
             fontsize=params.label_font_size,
         )
         ax62.set_xlabel(rf"Mean anode distance [{params.z_unit}]", fontsize=params.label_font_size)
@@ -870,7 +876,7 @@ def plot_track_stats(
 
         # ax72 = fig7.add_subplot(122)
         # axes.append(ax72)
-        # ax72.set_ylabel(rf"$dQ/dx$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]", fontsize=label_size)
+        # ax72.set_ylabel(rf"d$Q$/d$x$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]", fontsize=label_size)
         # ax72.set_xlabel(rf"Anode distance [{params.z_unit}]", fontsize=label_size)
         # ax72.set_title(
         #     rf"Fit score $\geq {min_score}$ ({round(sum(score_mask)/len(score_mask)*100)}% of tracks)", fontsize=title_size
@@ -901,7 +907,7 @@ def plot_track_stats(
     for ax in axes:
         xlim = ax.get_xlim()
         if ax == ax11:
-            ax.set_ylabel("# Tracks")
+            ax.set_ylabel("Tracks")
             ax.set_xlim(max(xlim[0], 0), min(limit, xlim[1]))
             ax.set_ylim(0, max(n_all11) * 1.2)
         else:
@@ -911,7 +917,7 @@ def plot_track_stats(
                 # or ax == ax71
                 or (score_bool and (ax == ax52 or ax == ax62))  # or ax == ax72))
             ):
-                ax.set_xlabel(f"Track length [{params.dh_unit}]")
+                ax.set_xlabel(f"Track Length [{params.dh_unit}]")
 
             if max(track_length) > params.detector_y:
                 ax.axvline(params.detector_y, c="g", ls="--", label="Max vertical length")
@@ -928,7 +934,7 @@ def plot_track_stats(
                 cbar.set_label("Tracks" + (" [log]" if lognorm else ""))
                 set_common_ax_options(cbar=cbar)
             else:
-                ax.set_ylabel("# Tracks")
+                ax.set_ylabel("Tracks")
                 ax.set_xlim(-10, min(max_track_legth + 10, xlim[1]))
         if not (not score_bool and ax == ax11):
             if ax == ax11:
@@ -1055,10 +1061,10 @@ def plot_light_geo_stats(
     )
     bins = vline
 
-    ax1.set_xlabel("Max light integral")
-    ax1.set_ylabel("Normalized value")
+    ax1.set_xlabel("Max Light Integral")
+    ax1.set_ylabel("Normalized Value")
 
-    fig1.suptitle("Light integral distribution")
+    fig1.suptitle("Light Integral Distribution")
 
     sipm_distance = sipm_distance[(sipm_light <= vline)]
     sipm_angle = sipm_angle[(sipm_light <= vline)]
@@ -1124,7 +1130,7 @@ def plot_light_geo_stats(
     cbar2 = plt.colorbar(image2)
     cbar2.set_label(rf"Light {params.light_variable} [{params.light_unit} - log]")
 
-    fig2.suptitle(f"SiPM level light distribution - {len(sipm_light)} entries")
+    fig2.suptitle(f"SiPM Level Light Distribution - {len(sipm_light)} Entries")
 
     fig3, axes3 = plt.subplots(1, 2, figsize=(14, 6))
     axes = np.append(axes, axes3)
@@ -1146,7 +1152,7 @@ def plot_light_geo_stats(
     cbar31 = plt.colorbar(hist31[3])
     cbar31.set_label(rf"Counts [Log]")
 
-    fig3.suptitle(f"SiPM level light distribution - {len(sipm_light)} entries")
+    fig3.suptitle(f"SiPM Level Light Distribution - {len(sipm_light)} Entries")
 
     for ax in axes:
         set_common_ax_options(ax)
@@ -1400,6 +1406,7 @@ def plot_light_vs_charge(
     log=(True, False),
     p0=True,
     fit2D=False,
+    bounds=[1, 99],
     **kwargs,
 ):
     if isinstance(log, bool):
@@ -1431,9 +1438,9 @@ def plot_light_vs_charge(
     plt.style.use(params.style)
     fig1 = plt.figure(figsize=(8, 6))
     ax1 = fig1.add_subplot(111)
-    ax1.set_xlabel("Max light integral")
-    ax1.set_ylabel("Normalized value")
-    fig1.suptitle("Light integral distribution", fontsize=params.title_font_size)
+    ax1.set_xlabel("Max Light Integral")
+    ax1.set_ylabel("Normalized Value")
+    fig1.suptitle("Light Integral Distribution", fontsize=params.title_font_size)
     vline = max_std(
         light_array,
         ax1,
@@ -1449,11 +1456,13 @@ def plot_light_vs_charge(
 
     ratio = charge_array / light_array
 
-    r_upper_bound = np.percentile(ratio, 95)
-    length_array = length_array[ratio < r_upper_bound]
-    charge_array = charge_array[ratio < r_upper_bound]
-    light_array = light_array[ratio < r_upper_bound]
-    ratio = ratio[ratio < r_upper_bound]
+    if bounds:
+        r_upper_bound = np.percentile(ratio, bounds[1])
+        r_lower_bound = np.percentile(ratio, bounds[0])
+        length_array = length_array[(ratio < r_upper_bound) & (ratio > r_lower_bound)]
+        charge_array = charge_array[(ratio < r_upper_bound) & (ratio > r_lower_bound)]
+        light_array = light_array[(ratio < r_upper_bound) & (ratio > r_lower_bound)]
+        ratio = ratio[(ratio < r_upper_bound) & (ratio > r_lower_bound)]
 
     def hist2d(x, y, ax, bins, log, fit):
         if log:
@@ -1567,10 +1576,10 @@ def plot_light_vs_charge(
             except:
                 print("Fit failed\n")
 
-        ax.set_xlabel(f"Total charge [{params.q_unit}{' - Log' if log else ''}]")
+        ax.set_xlabel(f"Total Charge [{params.q_unit}{' - Log' if log else ''}]")
         ax.set_ylabel(f"Total Light [{params.light_unit}{' - Log' if log else ''}]")
         cbar = plt.colorbar(image)
-        cbar.set_label(rf"# Events")
+        cbar.set_label(rf"Events")
         set_common_ax_options(ax, cbar=cbar)
 
         return n, x_edges, y_edges, image
@@ -1642,7 +1651,7 @@ def plot_light_vs_charge(
             ax.axvline(median, c="orange", ls="--", label=f"Median: {median:.1f}")
             ax.axvline(mean, c="g", ls="--", label=f"Mean: {mean:.1f}")
 
-        ax.set_ylabel(f"# Events", fontsize=params.label_font_size)
+        ax.set_ylabel(f"Events", fontsize=params.label_font_size)
         # ax.set_xlim(min(array) - 2, edges3[(edges3 < upper_bound).argmin()])
         # ax.set_ylim(0, peak_y * 1.1)
         ax.legend(fontsize=params.legend_font_size)
@@ -1651,7 +1660,7 @@ def plot_light_vs_charge(
     ax2 = plt.subplot(111)
     print("Light vs. Charge plot\n")
     n2d, xedges2d, yedges2d, image2d = hist2d(charge_array, light_array, ax2, bins, log[0], fit=fit2D)
-    fig2.suptitle(f"Event level Light vs. Charge - {len(charge_array)} events", fontsize=params.title_font_size)
+    fig2.suptitle(f"Event Light vs. Charge - {len(charge_array)} Events", fontsize=params.title_font_size)
 
     fig3 = plt.figure(figsize=(8, 6))
     ax3 = plt.subplot(111)
@@ -1676,18 +1685,18 @@ def plot_light_vs_charge(
         ax3.legend(fontsize=params.legend_font_size, ncols=2)
         # ax3.set_yscale("log")
 
-    ax3.set_xlabel(f"Event total charge / Light [{params.q_unit} / {params.light_unit}{' - Log' if log[1] else ''}]")
-    fig3.suptitle(f"Event level Charge vs. Light - {len(charge_array)} events", fontsize=params.title_font_size)
+    ax3.set_xlabel(f"Event Total Charge / Light [{params.q_unit} / {params.light_unit}{' - Log' if log[1] else ''}]")
+    fig3.suptitle(f"Event Charge vs. Light - {len(charge_array)} Events", fontsize=params.title_font_size)
 
     fig4, axes4 = plt.subplots(1, 2, figsize=(14, 6))
 
     print("Charge plot\n")
     hist1d(charge_array, axes4[0], bin_density, log[1], p0)
-    axes4[0].set_xlabel(f"Event total charge [{params.q_unit}{' - Log' if log[1] else ''}]")
+    axes4[0].set_xlabel(f"Event Total Charge [{params.q_unit}{' - Log' if log[1] else ''}]")
     print("Light plot\n")
     hist1d(light_array, axes4[1], bin_density, log[1], p0)
-    axes4[1].set_xlabel(f"Event total Light [{params.light_unit}{' - Log' if log[1] else ''}]")
-    fig4.suptitle(f"Event level Charge and Light - {len(charge_array)} events", fontsize=params.title_font_size)
+    axes4[1].set_xlabel(f"Event Total Light [{params.light_unit}{' - Log' if log[1] else ''}]")
+    fig4.suptitle(f"Event Charge and Light - {len(charge_array)} Events", fontsize=params.title_font_size)
 
     figs = [fig1, fig2, fig3, fig4]
     if clusters is None:
@@ -1725,16 +1734,16 @@ def plot_light_vs_charge(
                 bins,
                 log[0],
             )
-            axes22[idx].set_title(f"Population {label} - {sum(labels == label)} events")
+            axes22[idx].set_title(f"Population {label} - {sum(labels == label)} Events")
 
             print(f"population {label}:")
 
             ratio = charge_array[labels == label] / light_array[labels == label]
             hist1d(ratio, axes32[idx], bin_density, log[1], p0)
             axes32[idx].set_xlabel(
-                f"Event total charge / Light [{params.q_unit}/{params.light_unit}{' - Log' if log[1] else ''}]"
+                f"Event Total Charge / Light [{params.q_unit}/{params.light_unit}{' - Log' if log[1] else ''}]"
             )
-            axes32[idx].set_title(f"Population {label} - {sum(labels == label)} events")
+            axes32[idx].set_title(f"Population {label} - {sum(labels == label)} Events")
 
     for fig in figs:
         fig.tight_layout()
