@@ -589,11 +589,11 @@ def plot_track_stats(
         )
         print(
             "\nFit Parameters:\n",
-            "\n ".join([f"{name}: {value}" for name, value in zip(["μ", "ρ", "σ", "A"], popt)]),
+            "\n ".join([f"{name}: {value}" for name, value in zip(["μ", "η", "σ", "A"], popt)]),
         )
         print(
             "\nUncertainties:\n",
-            "\n ".join([f"{name}: {value}" for name, value in zip(["μ", "ρ", "σ", "A"], np.sqrt(np.diag(pcov)))]),
+            "\n ".join([f"{name}: {value}" for name, value in zip(["μ", "η", "σ", "A"], np.sqrt(np.diag(pcov)))]),
         )
 
         ax11.plot(
@@ -1626,13 +1626,13 @@ def plot_light_vs_charge(
 
                 print(
                     "Parameters:\n",
-                    "\n ".join([f"{name}: {value}" for name, value in zip(["μ", "ρ", "σ", "A"], parameters)]),
+                    "\n ".join([f"{name}: {value}" for name, value in zip(["μ", "η", "σ", "A"], parameters)]),
                     "\n",
                 )
                 print(
                     "Uncertainty:\n",
                     "\n ".join(
-                        [f"{name}: {value}" for name, value in zip(["μ", "ρ", "σ", "A"], np.sqrt(np.diag(cov_matrix)))]
+                        [f"{name}: {value}" for name, value in zip(["μ", "η", "σ", "A"], np.sqrt(np.diag(cov_matrix)))]
                     ),
                     "\n",
                 )

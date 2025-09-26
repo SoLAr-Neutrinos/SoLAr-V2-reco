@@ -1,11 +1,12 @@
 import pickle
 import sys
 import numpy as np
-import scipy.optimize
+from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
 from solarv2 import params
 import pandas as pd
+import pylandau
 
 
 def find_z_values(line, norm, dx):
@@ -41,28 +42,87 @@ def get_lifetime(metrics):
                     continue
                 totaldQdx_slices[bin_idx].append(dqdx[i])
 
+    fig, axes = plt.subplots(2, 3, figsize=(15, 10), sharex=True, sharey=True, tight_layout=True)
+    axes = axes.flatten()
     for j, data in enumerate(totaldQdx_slices):
         if len(data) >= 10:
-            dz.append(2.5 + j * 5)
-            mediandQdx.append(np.median(data))
-            std.append(np.std(data))
+            z = (2.5 + j * 5)*10
+            dz.append(z)
+            limit = np.percentile(data, 99)
+            n, edges, patches = axes[j].hist(
+                data,
+                bins=np.linspace(0, 20000, 80),
+            )
+            axes[j].set_title(f"Z = {z} mm")
+            if j // 3 == 1:
+                axes[j].set_xlabel(r"d$Q$/d$x$ [e mm$^{-1}$]", fontsize=12)
+            if j % 3 == 0:
+                axes[j].set_ylabel("Counts", fontsize=12)
 
-    dt = np.array([(i / (params.drift_velocity * 100)) for i in dz])
-    popt, pcov = scipy.optimize.curve_fit(exp_decay, dt, mediandQdx, p0=[2.3, 5000])
+            bin_centers = 0.5 * (edges[1:] + edges[:-1])
+            try:
+                bounds = (
+                    (
+                        bin_centers[n.argmax() - 2],
+                        0,
+                        1000,
+                        n.max() * 0.9,
+                    ),
+                    (
+                        bin_centers[n.argmax() + 2],
+                        150,
+                        2000,
+                        n.max() * 1.1,
+                    ),
+                )
+                popt, pcov = curve_fit(
+                    pylandau.langau,
+                    bin_centers[(bin_centers > 1500) & (bin_centers < limit)],
+                    n[(bin_centers > 1500) & (bin_centers < limit)],
+                    absolute_sigma=True,
+                    p0=[bin_centers[n.argmax()], 130, 1200, n.max()],
+                    bounds=bounds,
+                )
+                axes[j].plot(
+                    fit_x := np.linspace(bin_centers[0], bin_centers[-1], 100),
+                    pylandau.langau(fit_x, *popt),
+                    "r-",
+                    label=f"$\mu={popt[0]:5.1f}$\n$\eta={popt[1]:5.1f}$\n$\sigma={popt[2]:5.1f}$\n$A={popt[3]:5.1f}$",
+                )
+                axes[j].legend(fontsize=10, title="Fit")
+                mediandQdx.append(popt[0])
+                perr = np.sqrt(np.diag(pcov))
+                std.append(perr[0])
+                print(f"fit {z} (μ={popt[0]:5.1f}, η={popt[1]:5.1f}, σ={popt[2]:5.1f}, A={popt[3]:5.1f})")
+                # print(np.median(data))
+            except Exception as e:
+                print("Error occurred while fitting:", e)
+                mediandQdx.append(np.median(data))
+                std.append(np.std(data))
 
-    plt.plot(dz, mediandQdx, "o")
-    dz = np.linspace(0, 30, 100)
-    dt = np.array([(i / (params.drift_velocity * 100)) for i in dz])
+    fig.savefig(f"dqdx_binnedInZ_fit.pdf", bbox_inches="tight", dpi=300)
+    plt.close()
+
+    dt = np.array([(i / (params.drift_velocity * 1000)) for i in dz])
+    popt, pcov = curve_fit(exp_decay, dt, mediandQdx, p0=[2.3, 5000])
+
+    plt.close()
+    # plt.plot(dz, mediandQdx, "o")
+    plt.errorbar(dz, mediandQdx, yerr=std, marker="o", ls="None", label="Data")
+    dz = np.linspace(0, 300, 100)
+    dt = np.array([(i / (params.drift_velocity * 1000)) for i in dz])
     plt.plot(dz, exp_decay(dt, *popt), label="Exponential decay")
-    plt.legend(fontsize=14)
-    plt.title("Median dQ/dx Measured Across Drift Distance", fontsize=14)
-    plt.ylabel(r"Median dQ/dx [e mm$^{-1}$]", fontsize=14)
-    plt.xticks(np.arange(0, 35, 5))
-    plt.xlabel("Drift Distance [cm]", fontsize=14)
+    plt.legend(fontsize=12)
+    plt.title(r"d$Q$/d$x$ MPV Across Drift Distance", fontsize=14)
+    plt.ylabel(r"d$Q$/d$x$ MPV [e mm$^{-1}$]", fontsize=14)
+    plt.xticks(np.arange(0, 350, 50))
+    plt.xlabel("Drift Distance [mm]", fontsize=14)
     plt.tick_params(axis="both", which="major", direction="in", size=8, labelsize=12, right=True, top=True)
     plt.tick_params(axis="both", which="minor", direction="in", size=4, right=True, top=True)
     plt.grid(ls=":")
     plt.minorticks_on()
+    plt.ylim(plt.ylim()[0] * 0.99, plt.ylim()[1] * 1.01)
+    plt.xlim(0, 300)
     plt.savefig("dqdx_binnedInZ.pdf", bbox_inches="tight")
     plt.close()
 
