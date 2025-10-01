@@ -94,7 +94,7 @@ def get_lifetime(metrics):
                 perr = np.sqrt(np.diag(pcov))
                 std.append(perr[0])
                 print(f"fit {z} (μ={popt[0]:5.1f}, η={popt[1]:5.1f}, σ={popt[2]:5.1f}, A={popt[3]:5.1f})")
-                # print(np.median(data))
+                # print(perr[0])
             except Exception as e:
                 print("Error occurred while fitting:", e)
                 mediandQdx.append(np.median(data))
