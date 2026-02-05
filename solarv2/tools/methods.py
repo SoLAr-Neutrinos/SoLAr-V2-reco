@@ -784,6 +784,9 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
                 continue
 
             dQdx = (dQ / dx).rename("dQdx")
+            print(type(dQdx))
+            print(dQdx)
+
             dQdx = dQdx.iloc[non_zero_mask[0] : non_zero_mask[-1] + 1]
 
             position = [values["Fit_line"].to_point(t=-values["Fit_norm"] / 2 + t) for t in dQ.index]

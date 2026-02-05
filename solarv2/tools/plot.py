@@ -406,21 +406,22 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwa
         lw=1,
     )
 
-    ax.step(dQ_series.index, (dQ_series / dx_series).fillna(0), where="mid")
+    ax.step(dQ_series.index, (dQ_series / dx_series).fillna(0), where="mid", label="d$Q$/d$x$")
     # ax.scatter(dQ_series.index, (dQ_series / dx_series).fillna(0))
     ax.set_xlabel(rf"$x$ [{params.dh_unit}]")
     ax.set_ylabel(rf"d$Q$/d$x$ [{params.q_unit} {params.dh_unit}$^{{-1}}$]")
 
-    ax_twinx.step(dQ_series.index, np.cumsum(dQ_series), color="C1", where="mid")
-    ax_twinx.set_ylabel(f"Q [{params.q_unit}]")
+    ax_twinx.step(dQ_series.index, np.cumsum(dQ_series), color="C1", where="mid", label="Cumulative Q")
+    ax_twinx.set_ylabel(f"Cumulative Q [{params.q_unit}]")
 
-    for axes in [ax, ax_twinx]:
+    for i, axes in enumerate([ax, ax_twinx]):
         set_common_ax_options(axes)
 
     ax.tick_params(axis="y", which="both", right=False)
 
     h1, l1 = ax.get_legend_handles_labels()
-    ax_twinx.legend(h1, l1, loc="lower center", fontsize=params.legend_font_size)
+    # h2, l2 = ax_twinx.get_legend_handles_labels()
+    ax_twinx.legend(h1[:1], l1[:1], loc="lower center", fontsize=params.legend_font_size)
 
     fig.tight_layout()
     if params.save_figures:
@@ -449,7 +450,7 @@ def plot_track_angles(metrics, cuts=[16, 64, 160], **kwargs):
                                 cuts_dict[cut] = []
                             cuts_dict[cut].append(track["Fit_line"].direction.to_array())
 
-    fig, ax = plt.subplots(1, 3, figsize=(14, 4))
+    fig, ax = plt.subplots(1, 3, figsize=(14, 4), sharey=True)
     bins = np.arange(0, 1.05, 0.05)
     for cut, vectors in cuts_dict.items():
         vectors = np.array(vectors)
@@ -458,6 +459,7 @@ def plot_track_angles(metrics, cuts=[16, 64, 160], **kwargs):
         ax[1].hist(abs(vectors[:, 1]), bins=bins, label=f"> {cut} mm")
         ax[2].hist(abs(vectors[:, 2]), bins=bins)
 
+    ax[0].set_ylabel("Tracks")
     ax[0].set_xlabel("Cosine similarity", fontsize=params.label_font_size)
     ax[0].set_title(r"x-Axis", fontsize=params.label_font_size)
     ax[1].set_xlabel("Cosine similarity", fontsize=params.label_font_size)
@@ -472,7 +474,6 @@ def plot_track_angles(metrics, cuts=[16, 64, 160], **kwargs):
     )
 
     for axes in ax:
-        axes.set_ylabel("Tracks")
         set_common_ax_options(axes)
 
     fig.tight_layout()

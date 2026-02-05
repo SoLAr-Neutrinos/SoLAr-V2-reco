@@ -19,7 +19,7 @@ def exp_decay(x, tau, init):
 
 def get_lifetime(metrics):
     totaldQdx_slices = [[] for _ in range(6)]
-    dz, mediandQdx, std = [], [], []
+    dz, mediandQdx, std, fits = [], [], [], []
 
     for entry in tqdm(metrics.values()):
         for track, values in entry.items():
@@ -51,7 +51,7 @@ def get_lifetime(metrics):
             limit = np.percentile(data, 99)
             n, edges, patches = axes[j].hist(
                 data,
-                bins=np.linspace(0, 20000, 80),
+                bins=np.linspace(0, 20000, 100),
             )
             axes[j].set_title(f"Z = {z} mm")
             if j // 3 == 1:
@@ -63,13 +63,13 @@ def get_lifetime(metrics):
             try:
                 bounds = (
                     (
-                        bin_centers[n.argmax() - 2],
+                        bin_centers[n.argmax() - 5],
                         0,
                         1000,
                         n.max() * 0.9,
                     ),
                     (
-                        bin_centers[n.argmax() + 2],
+                        bin_centers[n.argmax() + 5],
                         150,
                         2000,
                         n.max() * 1.1,
@@ -77,10 +77,10 @@ def get_lifetime(metrics):
                 )
                 popt, pcov = curve_fit(
                     pylandau.langau,
-                    bin_centers[(bin_centers > 1500) & (bin_centers < limit)],
-                    n[(bin_centers > 1500) & (bin_centers < limit)],
+                    bin_centers[(bin_centers > 2000) & (bin_centers < limit)],
+                    n[(bin_centers > 2000) & (bin_centers < limit)],
                     absolute_sigma=True,
-                    p0=[bin_centers[n.argmax()], 130, 1200, n.max()],
+                    p0=[bin_centers[n.argmax()], 125 , 1400, n.max()],
                     bounds=bounds,
                 )
                 axes[j].plot(
@@ -94,6 +94,7 @@ def get_lifetime(metrics):
                 perr = np.sqrt(np.diag(pcov))
                 std.append(perr[0])
                 print(f"fit {z} (μ={popt[0]:5.1f}, η={popt[1]:5.1f}, σ={popt[2]:5.1f}, A={popt[3]:5.1f})")
+                fits.append((popt, perr))
                 # print(perr[0])
             except Exception as e:
                 print("Error occurred while fitting:", e)
@@ -104,7 +105,7 @@ def get_lifetime(metrics):
     plt.close()
 
     dt = np.array([(i / (params.drift_velocity * 1000)) for i in dz])
-    popt, pcov = curve_fit(exp_decay, dt, mediandQdx, p0=[2.3, 5000])
+    popt, pcov = curve_fit(exp_decay, dt, mediandQdx, p0=[2.0, 5000])
 
     plt.close()
     # plt.plot(dz, mediandQdx, "o")
@@ -126,15 +127,27 @@ def get_lifetime(metrics):
     plt.savefig("dqdx_binnedInZ.pdf", bbox_inches="tight")
     plt.close()
 
-    return popt, pcov
+    return popt, pcov, fits
 
 
 if __name__ == "__main__":
     metrics_file = sys.argv[1]
     with open(metrics_file, "rb") as input_file:
         metrics = pickle.load(input_file)
-    popt, pcov = get_lifetime(metrics)
+    popt, pcov, fits = get_lifetime(metrics)
     fit_tau, fit_init = popt
     uncertainties = np.sqrt(np.diag(pcov))
     print("Measured Lifetime:", fit_tau, "ms", fit_init)
     print("Uncertainties:", uncertainties)
+
+    with open("lifetime_result.txt", "w") as f:
+        for i, fit in enumerate(fits):
+            f.write(f"Fit {i} parameters: {fit[0]}\n")
+            f.write(f"Fit {i} errors: {fit[1]}\n")
+        f.write(f"Measured Lifetime: {fit_tau} ms ± {uncertainties[0]} ms\n")
+        f.write(f"Initial dQ/dx: {fit_init} e/mm ± {uncertainties[1]} e/mm\n")
+    # Save the lifetime result back into the metrics dictionary
+
+    # metrics["lifetime"] = fit_tau
+    # with open(metrics_file, "wb") as output_file:
+    #     pickle.dump(metrics, output_file)

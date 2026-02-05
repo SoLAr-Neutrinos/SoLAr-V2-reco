@@ -15,7 +15,7 @@ from .tools import (
 
 
 def display_events(
-    events, charge_df, light_df=None, match_dict=None, metrics=None, **kwargs
+    events, charge_df, light_df=None, match_dict=None, metrics=None, dq=False, **kwargs
 ):
     for event in tqdm(events, desc="Event display"):
         charge_event, light_event, _ = prepare_event(
@@ -33,13 +33,30 @@ def display_events(
             **kwargs,
         )
 
+        if dq:
+            for track_idx, values in metrics[event].items():
+                if not isinstance(track_idx, str) and track_idx > 0:
+                    dQ_series = values["dQ"]
+                    dx_series = values["dx"]
+                    plot_dQ(
+                        dQ_series=dQ_series,
+                        dx_series=dx_series,
+                        event_idx=event,
+                        track_idx=track_idx,
+                    )
+
+                    if params.show_figures:
+                        plt.show(block=False)
+                    else:
+                        plt.close("all")
+
         if params.show_figures:
-            plt.show()
+            plt.show(block=False)
         else:
             plt.close("all")
 
 
-def main(folder, events=None, save=False, no_display=True, parameters=None):
+def main(folder, events=None, save=False, no_display=True, dq=False, parameters=None):
     print("\nEvent display started...")
 
     params.show_figures = no_display
@@ -57,8 +74,11 @@ def main(folder, events=None, save=False, no_display=True, parameters=None):
         params.output_folder, return_metrics=True
     )
 
+    if params.lifetime>0:
+        metrics = apply_lifetime(metrics)
+
     display_events(
-        params.individual_plots, charge_df, light_df, match_dict, metrics, **kwargs
+        params.individual_plots, charge_df, light_df, match_dict, metrics, dq=dq, **kwargs
     )
 
     print("\nEvent display finished.\n")
@@ -79,6 +99,7 @@ if __name__ == "__main__":
         help="Key=value pairs for aditional parameters or json file containing parameters",
         required=False,
     )
+    parser.add_argument("-q", "--dq", help="Make dQ/dx plots", action="store_true")
 
     args = parser.parse_args()
 
