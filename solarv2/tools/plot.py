@@ -459,7 +459,7 @@ def plot_track_angles(metrics, cuts=[16, 64, 160], **kwargs):
         ax[1].hist(abs(vectors[:, 1]), bins=bins, label=f"> {cut} mm")
         ax[2].hist(abs(vectors[:, 2]), bins=bins)
 
-    ax[0].set_ylabel("Tracks")
+    ax[0].set_ylabel("Tracks", fontsize=params.label_font_size)
     ax[0].set_xlabel("Cosine similarity", fontsize=params.label_font_size)
     ax[0].set_title(r"x-Axis", fontsize=params.label_font_size)
     ax[1].set_xlabel("Cosine similarity", fontsize=params.label_font_size)
@@ -473,8 +473,13 @@ def plot_track_angles(metrics, cuts=[16, 64, 160], **kwargs):
         title="Track length cuts", fontsize=params.legend_font_size, loc="upper left", title_fontsize=params.legend_font_size
     )
 
+    # max_y = max([ax[0].get_ylim()[1], ax[1].get_ylim()[1], ax[2].get_ylim()[1]])
+    # min_y = min([ax[0].get_ylim()[0], ax[1].get_ylim()[0], ax[2].get_ylim()[0]])
+
     for axes in ax:
+        # axes.set_ylabel("Tracks")
         set_common_ax_options(axes)
+        # axes.set_ylim([min_y, max_y])
 
     fig.tight_layout()
     if params.save_figures:
