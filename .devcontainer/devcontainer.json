@@ -1,12 +1,14 @@
 {
-    "name": "SoLAr-V2-reco (CentOS 7 + ROOT)",
+    "name": "SoLAr-V2-reco (Ubuntu 24.04)",
     "build": {
         "dockerfile": "Dockerfile"
     },
     // Install the workspace Python package after the container is created
-    "postCreateCommand": "pip install .",
+    "postCreateCommand": "bash -lc 'source /opt/conda/etc/profile.d/conda.sh && conda activate solarv2 && pip install -e .'",
     // Forward Jupyter Notebook / JupyterLab port
-    "forwardPorts": [8888],
+    "forwardPorts": [
+        8888
+    ],
     "portsAttributes": {
         "8888": {
             "label": "Jupyter",
