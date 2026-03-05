@@ -1,54 +1,38 @@
 FROM centos:7
 
-# Install EPEL repository and required build tools.
-# openssl11-devel provides OpenSSL 1.1.x headers/libs needed by Python 3.11
-# (CentOS 7's default openssl is 1.0.2, which is too old for Python 3.11).
-RUN yum -y install epel-release && \
+# Install EPEL and Software Collections (SCL) repositories,
+# then install required build tools and Python 3.9.
+# Python 3.9 is the highest version available via SCL for CentOS 7
+# (rh-python39 is the latest SCL package; there is no rh-python311).
+RUN yum -y install epel-release centos-release-scl && \
     yum -y update && \
     yum -y install \
         gcc \
         gcc-c++ \
         make \
+        rh-python39 \
+        rh-python39-python-devel \
+        rh-python39-python-pip \
         wget \
         bzip2 \
-        bzip2-devel \
         tar \
         git \
         which \
-        zlib-devel \
-        libffi-devel \
-        xz-devel \
-        readline-devel \
-        sqlite-devel \
-        openssl11 \
-        openssl11-devel \
         libX11 \
         libXft \
         libXext \
         libXpm \
         libXtst \
         mesa-libGL \
-        mesa-libGLU && \
+        mesa-libGLU \
+        openssl-devel && \
     yum clean all
 
-# Build Python 3.11 from source.
-# SCL only provides up to rh-python39 for CentOS 7, so we compile from source.
-# CFLAGS/LDFLAGS direct the build to the openssl11 headers and libraries from EPEL.
-ARG PYTHON_VERSION=3.11.9
-RUN wget -q "https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz" && \
-    tar -xzf "Python-${PYTHON_VERSION}.tgz" && \
-    cd "Python-${PYTHON_VERSION}" && \
-    CFLAGS="-I/usr/include/openssl11" \
-    LDFLAGS="-L/usr/lib64/openssl11 -Wl,-rpath,/usr/lib64/openssl11" \
-    ./configure --enable-optimizations && \
-    make -j$(nproc) altinstall && \
-    cd .. && rm -rf "Python-${PYTHON_VERSION}" "Python-${PYTHON_VERSION}.tgz"
-
-# Create default python3 / python / pip3 / pip symlinks
-RUN ln -sf /usr/local/bin/python3.11 /usr/local/bin/python3 && \
-    ln -sf /usr/local/bin/python3.11 /usr/local/bin/python && \
-    ln -sf /usr/local/bin/pip3.11 /usr/local/bin/pip3 && \
-    ln -sf /usr/local/bin/pip3.11 /usr/local/bin/pip
+# Make Python 3.9 from SCL the default Python environment
+ENV PATH=/opt/rh/rh-python39/root/usr/bin:${PATH}
+ENV LD_LIBRARY_PATH=/opt/rh/rh-python39/root/usr/lib64:${LD_LIBRARY_PATH}
+ENV PKG_CONFIG_PATH=/opt/rh/rh-python39/root/usr/lib64/pkgconfig:${PKG_CONFIG_PATH}
+ENV X_SCLS=rh-python39
 
 # Upgrade pip and install Python scientific packages
 # Minimum versions are aligned with requirements.txt in this repository
