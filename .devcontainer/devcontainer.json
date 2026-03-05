@@ -1,0 +1,25 @@
+{
+    "name": "SoLAr-V2-reco (CentOS 7 + ROOT)",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    // Install the workspace Python package after the container is created
+    "postCreateCommand": "pip install .",
+    // Forward Jupyter Notebook / JupyterLab port
+    "forwardPorts": [8888],
+    "portsAttributes": {
+        "8888": {
+            "label": "Jupyter",
+            "onAutoForward": "notify"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-toolsai.jupyter"
+            ]
+        }
+    }
+}
