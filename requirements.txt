@@ -3,7 +3,7 @@ itables>=2.1.4
 matplotlib>=3.4.3
 numpy>=1.23.5
 pandas>=2.2.2
-git+https://github.com/SiLab-Bonn/pylandau.git
+pylandau @ git+https://github.com/SiLab-Bonn/pylandau.git
 scikit-learn>=1.5.1
 scipy>=1.11.3
 scikit-image>=0.21.0
@@ -13,4 +13,5 @@ uproot>=5.3.10
 ipykernel>=6.29.4
 nbstripout
 papermill
+ipywidgets
 
