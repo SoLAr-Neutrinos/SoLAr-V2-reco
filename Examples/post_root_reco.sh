@@ -18,7 +18,6 @@ do
   # Print the current file name
   echo Folder: "$folder"
   
-  # Run the reconstruction script again without simulating dead areas
   python -m solarv2 reco -f "$folder"
 
   python -m solarv2 display "$folder" -s -n

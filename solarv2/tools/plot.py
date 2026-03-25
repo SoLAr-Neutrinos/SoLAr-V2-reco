@@ -177,7 +177,7 @@ def event_display(
     **kwargs,
 ):
 
-    if len(charge_df) < 2:
+    if len(charge_df) < 1:  # Used to be < 2 for cosmics, but Co60 events can have single hits
         return None
     if light_df is None:
         light_df = pd.DataFrame(columns=["x", "y", params.light_variable])

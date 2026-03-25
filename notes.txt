@@ -1,0 +1,63 @@
+New file:
+
+*............................................................................*
+*Br   12 :hits.peak_tick : Int_t peak_tick[hits_]                            *
+*Entries :  7570944 : Total  Size=   39841922 bytes  File Size  =    6686938 *
+*Baskets :      833 : Basket Size=   25600000 bytes  Compression=   5.96     *
+*............................................................................*
+*Br   13 :hits.start : Int_t start[hits_]                                    *
+*Entries :  7570944 : Total  Size=   39838574 bytes  File Size  =    6701760 *
+*Baskets :      833 : Basket Size=   25600000 bytes  Compression=   5.94     *
+*............................................................................*
+*Br   14 :hits.stop : Int_t stop[hits_]                                      *
+*Entries :  7570944 : Total  Size=   39837737 bytes  File Size  =    6727842 *
+*Baskets :      833 : Basket Size=   25600000 bytes  Compression=   5.92     *
+*............................................................................*
+*Br   15 :hits.pulse_height : Float_t pulse_height[hits_]                    *
+*Entries :  7570944 : Total  Size=   39844433 bytes  File Size  =    9572064 *
+*Baskets :      833 : Basket Size=   25600000 bytes  Compression=   4.16     *
+*............................................................................*
+*Br   16 :hits.pulse_integral : Float_t pulse_integral[hits_]                *
+*Entries :  7570944 : Total  Size=   39846107 bytes  File Size  =   11268083 *
+*Baskets :      833 : Basket Size=   25600000 bytes  Compression=   3.53     *
+*............................................................................*
+
+Old file:
+
+******************************************************************************
+*Tree    :decowave  : filtered waveforms                                     *
+*Entries : 15643520 : Total =     31851755676 bytes  File  Size = 17269954952 *
+*        :          : Tree compression factor =   1.84                       *
+******************************************************************************
+*Br    0 :event     : event/i                                                *
+*Entries : 15643520 : Total  Size=   62744881 bytes  File Size  =    1060261 *
+*Baskets :     1776 : Basket Size=      51200 bytes  Compression=  59.14     *
+*............................................................................*
+*Br    1 :sn        : sn/i                                                   *
+*Entries : 15643520 : Total  Size=   62739541 bytes  File Size  =    3525546 *
+*Baskets :     1776 : Basket Size=      51200 bytes  Compression=  17.79     *
+*............................................................................*
+*Br    2 :ch        : ch/i                                                   *
+*Entries : 15643520 : Total  Size=   62739541 bytes  File Size  =   11079631 *
+*Baskets :     1776 : Basket Size=      51200 bytes  Compression=   5.66     *
+*............................................................................*
+*Br    3 :ntp_ms    : ntp_ms/l                                               *
+*Entries : 15643520 : Total  Size=  125321040 bytes  File Size  =    4909698 *
+*Baskets :     1779 : Basket Size=     100864 bytes  Compression=  25.52     *
+*............................................................................*
+*Br    4 :tai_ns    : tai_ns/l                                               *
+*Entries : 15643520 : Total  Size=  125321040 bytes  File Size  =    5909759 *
+*Baskets :     1779 : Basket Size=     100864 bytes  Compression=  21.20     *
+*............................................................................*
+*Br    5 :tslpps_ns : tslpps_ns/l                                            *
+*Entries : 15643520 : Total  Size=  125326389 bytes  File Size  =    5915160 *
+*Baskets :     1779 : Basket Size=     100864 bytes  Compression=  21.18     *
+*............................................................................*
+*Br    6 :decwfm    : decwfm[998]/S                                          *
+*Entries :15643520 : Total  Size=31224809033 bytes  File Size  = 17236916124 *
+*Baskets :     3534 : Basket Size=   25600000 bytes  Compression=   1.81     *
+*............................................................................*
+*Br    7 :rwf_status : rwf_status/i                                          *
+*Entries : 15643520 : Total  Size=   62753781 bytes  File Size  =     477553 *
+*Baskets :     1776 : Basket Size=      51200 bytes  Compression= 131.33     *
+*............................................................................*

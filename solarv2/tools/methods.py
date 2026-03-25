@@ -394,38 +394,44 @@ def ransacFit(
     # Suppress the UndefinedMetricWarning
     warnings.filterwarnings("ignore", category=Warning, module="sklearn")
 
-    if weightArray is not None:
-        estimator = RANSACRegressor(
-            min_samples=min_samples,
-            max_trials=params.ransac_max_trials,
-            residual_threshold=residual_threshold,
-        )
-        last_column = len(hitArray[0]) - 1
-        inliers = estimator.fit(
-            hitArray[:, 0:last_column],
-            hitArray[:, last_column],
-            sample_weight=weightArray,
-        ).inlier_mask_
+    try:
+        if weightArray is not None:
+            estimator = RANSACRegressor(
+                min_samples=min_samples,
+                max_trials=params.ransac_max_trials,
+                residual_threshold=residual_threshold,
+            )
+            last_column = len(hitArray[0]) - 1
 
-        # Check it enouth inliers
-        if sum(inliers) > params.ransac_min_samples:
-            score = estimator.score(hitArray[:, 0:last_column], hitArray[:, last_column])
-        else:
-            score = np.nan
-    else:
-        model_robust, inliers = ransac(
-            hitArray,
-            LineModelND,
-            min_samples=min_samples,
-            residual_threshold=residual_threshold,
-            max_trials=params.ransac_max_trials,
-        )
+            inliers = estimator.fit(
+                hitArray[:, 0:last_column],
+                hitArray[:, last_column],
+                sample_weight=weightArray,
+            ).inlier_mask_
 
-        # Check it enouth inliers
-        if sum(inliers) > params.ransac_min_samples:
-            score = model_robust.residuals(hitArray)
+            # Check it enouth inliers
+            if sum(inliers) > params.ransac_min_samples:
+                score = estimator.score(hitArray[:, 0:last_column], hitArray[:, last_column])
+            else:
+                score = np.nan
+
         else:
-            score = np.nan
+            model_robust, inliers = ransac(
+                hitArray,
+                LineModelND,
+                min_samples=min_samples,
+                residual_threshold=residual_threshold,
+                max_trials=params.ransac_max_trials,
+            )
+
+            # Check it enouth inliers
+            if sum(inliers) > params.ransac_min_samples:
+                score = model_robust.residuals(hitArray)
+            else:
+                score = np.nan
+    except:
+        inliers = np.array([False] * len(hitArray))
+        score = np.nan
 
     outliers = inliers == False
 
