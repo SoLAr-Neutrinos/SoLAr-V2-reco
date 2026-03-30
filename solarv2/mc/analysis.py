@@ -28,7 +28,7 @@ def analysis(metrics, **kwargs):
 
     # 1 - Track statistical plots
     print("\nPlotting track statistics\n")
-    plot_track_stats(metrics, **method_kwargs["plot_track_stats"])
+    plot_track_stats(metrics, **method_kwargs["plot_track_stats"]) # Lifetime corrected inside the function.
     if params.show_figures:
         plt.show()
     else:
@@ -36,7 +36,7 @@ def analysis(metrics, **kwargs):
 
     # 2 - Track angular distribution plots
     print("\nPlotting track angular distribution\n")
-    plot_track_angles(metrics, **method_kwargs["plot_track_angles"])
+    plot_track_angles(metrics, **method_kwargs["plot_track_angles"]) # No need for lifetime correction in angular distribution.
     if params.show_figures:
         plt.show()
     else:
@@ -50,6 +50,14 @@ def analysis(metrics, **kwargs):
                 if not isinstance(track_idx, str) and track_idx > 0:
                     dQ_series = values["dQ"]
                     dx_series = values["dx"]
+
+                    # Lifetime correction
+                    if params.lifetime > 0:
+                        fit_line = values["fit_line"]
+                        z_vals = np.array([fit_line.to_point(t)[2] for t in dQ_series.index])
+                        dQ_series.index = dQ_series.index * lifetime_correction(z_vals)
+                    # ----------------------
+
                     plot_dQ(
                         dQ_series,
                         dx_series,
@@ -93,7 +101,8 @@ def main(folder, filter=None, save=False, display=False, dead_areas=False, param
     if filter_tag is not None:
         filter_file = os.path.join(search_path, f"filter_parameters_{filter_tag}.json")
 
-    metrics_file = os.path.join(search_path, f"metrics_{params.output_folder}.pkl")
+    tag = os.path.split(params.output_folder.rstrip("/"))[-1]
+    metrics_file = os.path.join(search_path, f"metrics_{tag}.pkl")
 
     recal_params()
 
@@ -115,7 +124,9 @@ def main(folder, filter=None, save=False, display=False, dead_areas=False, param
     metrics = filter_metrics(metrics)
 
     if params.lifetime > 0:
-        metrics = apply_lifetime(metrics)
+        # Correct total charge per event
+        print(f"\nApplying lifetime correction with tau = {params.lifetime} ms\n")
+        metrics = lifetime_correct_totals(metrics)
 
     analysis(metrics, **kwargs)
 

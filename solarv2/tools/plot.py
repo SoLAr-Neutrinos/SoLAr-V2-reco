@@ -13,6 +13,8 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.optimize import curve_fit
 from sklearn.cluster import KMeans
 
+from .methods import lifetime_correction
+
 if __package__:
     from . import params
     from .methods import (
@@ -191,6 +193,12 @@ def event_display(
     ax2d = axes[0]
     ax3d = axes[1]
 
+    if params.lifetime>0:
+        # Ideally, the event display should show the me evolution of the charge. 
+        # Optionally the user can apply a lifetime correction to the charge values to get a better visual representation of the original charge distribution.
+        print(f"\nApplying lifetime correction with tau = {params.lifetime} ms\n")
+        charge_df["q"] = charge_df["q"] * lifetime_correction(charge_df["z"])
+
     # Group by x and y coordinates and sum the z values
     unique_points, indices = np.unique(charge_df[["x", "y"]], axis=0, return_inverse=True)
     q_sum = np.bincount(indices, weights=charge_df["q"])
@@ -367,6 +375,7 @@ def plot_dQ(dQ_series, dx_series, event_idx, track_idx, interpolate=False, **kwa
         fontsize=params.title_font_size,
     )
 
+    # Lifetime correction is handled outside the function.
     non_zero_indices = np.where(dQ_series > 0)[0]
     mean_dQ = np.mean(dQ_series.iloc[non_zero_indices])
     mean_dx = np.mean(dx_series.iloc[non_zero_indices])
@@ -484,10 +493,11 @@ def plot_track_angles(metrics, cuts=[16, 64, 160], **kwargs):
     fig.tight_layout()
     if params.save_figures:
         output_path = os.path.join(params.work_path, params.output_folder)
+        tag = os.path.split(params.output_folder.rstrip("/"))[-1]
         os.makedirs(output_path, exist_ok=True)
         label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(vectors[:,0])}"
         fig.savefig(
-            os.path.join(output_path, f"track_angles_{params.output_folder}{label}.pdf"),
+            os.path.join(output_path, f"track_angles_{tag}{label}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
@@ -506,7 +516,7 @@ def plot_track_stats(
     **kwargs,
 ):
     plt.style.use(params.style)
-    df = get_track_stats(metrics, empty_ratio_lims=empty_ratio_lims, min_entries=min_entries)
+    df = get_track_stats(metrics, empty_ratio_lims=empty_ratio_lims, min_entries=min_entries) # Lifetime correction handled in get_track_stats.
     if dropna:
         df = df.dropna(subset=["track_dQdx"])
 
@@ -958,17 +968,18 @@ def plot_track_stats(
     if params.save_figures:
         label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(track_length)}"
         output_path = os.path.join(params.work_path, params.output_folder)
+        tag = os.path.split(params.output_folder.rstrip("/"))[-1]
         os.makedirs(output_path, exist_ok=True)
 
         fig1.savefig(
-            os.path.join(output_path, f"track_stats_1D_hist_{params.output_folder}{label}.pdf"),
+            os.path.join(output_path, f"track_stats_1D_hist_{tag}{label}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
             os.path.join(
                 output_path,
-                f"track_stats_2D_hist_{params.output_folder}{label}{'_profile' if profile else ''}.pdf",
+                f"track_stats_2D_hist_{tag}{label}{'_profile' if profile else ''}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
@@ -976,7 +987,7 @@ def plot_track_stats(
         fig4.savefig(
             os.path.join(
                 output_path,
-                f"track_stats_score_{params.output_folder}{label}{'_profile' if profile else ''}.pdf",
+                f"track_stats_score_{tag}{label}{'_profile' if profile else ''}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
@@ -984,7 +995,7 @@ def plot_track_stats(
         fig5.savefig(
             os.path.join(
                 output_path,
-                f"track_stats_dQdx_{params.output_folder}{label}{'_profile' if profile else ''}.pdf",
+                f"track_stats_dQdx_{tag}{label}{'_profile' if profile else ''}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
@@ -992,13 +1003,13 @@ def plot_track_stats(
         fig6.savefig(
             os.path.join(
                 output_path,
-                f"track_stats_dQdx_z_{params.output_folder}{label}{'_profile' if profile else ''}.pdf",
+                f"track_stats_dQdx_z_{tag}{label}{'_profile' if profile else ''}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
         )
         # fig7.savefig(
-        #     os.path.join(output_path, f"track_stats_dQ_z_{params.output_folder}{label}{'_profile' if profile else ''}.pdf"),
+        #     os.path.join(output_path, f"track_stats_dQ_z_{tag}{label}{'_profile' if profile else ''}.pdf"),
         #     dpi=300,
         #     bbox_inches="tight",
         # )
@@ -1006,7 +1017,7 @@ def plot_track_stats(
             fig3.savefig(
                 os.path.join(
                     output_path,
-                    f"track_stats_2D_hist_cut_{params.output_folder}{label}{'_profile' if profile else ''}.pdf",
+                    f"track_stats_2D_hist_cut_{tag}{label}{'_profile' if profile else ''}.pdf",
                 ),
                 dpi=300,
                 bbox_inches="tight",
@@ -1180,23 +1191,24 @@ def plot_light_geo_stats(
 
     if params.save_figures:
         output_path = os.path.join(params.work_path, params.output_folder)
+        tag = os.path.split(params.output_folder.rstrip("/"))[-1]
         os.makedirs(output_path, exist_ok=True)
         label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(sipm_light)}"
         # fig1.savefig(
         #     os.path.join(
         #         output_path,
-        #         f"light_geo_optimization_{params.output_folder}{label}.pdf",
+        #         f"light_geo_optimization_{tag}{label}.pdf",
         #     ),
         #     dpi=300,
         #     bbox_inches="tight",
         # )
         fig2.savefig(
-            os.path.join(output_path, f"light_geo_2D_hist_{params.output_folder}{label}.pdf"),
+            os.path.join(output_path, f"light_geo_2D_hist_{tag}{label}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
         fig3.savefig(
-            os.path.join(output_path, f"light_geo_1D_hist_{params.output_folder}{label}.pdf"),
+            os.path.join(output_path, f"light_geo_1D_hist_{tag}{label}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
@@ -1245,9 +1257,10 @@ def plot_light_fit_stats(metrics, **kwargs):
     if params.save_figures:
         label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(cosine_df)}"
         output_path = os.path.join(params.work_path, params.output_folder)
+        tag = os.path.split(params.output_folder.rstrip("/"))[-1]
         os.makedirs(output_path, exist_ok=True)
         fig.savefig(
-            os.path.join(output_path, f"light_fit_{params.output_folder}{label}.pdf"),
+            os.path.join(output_path, f"light_fit_{tag}{label}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
@@ -1288,6 +1301,10 @@ def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False, 
     z = z[mask]
     q = q[mask]
     l = l[mask]
+
+    if params.lifetime > 0:
+        print(f"\nApplying lifetime correction with tau = {params.lifetime} ms\n")
+        q = q*lifetime_correction(z)
 
     if log[0]:
         bins_z = np.exp(np.linspace(0, np.log(max(z)), bins))
@@ -1387,15 +1404,16 @@ def plot_voxel_data(metrics, bins=50, log=(False, False, False), lognorm=False, 
         output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
         label = f"_{params.filter_label}" if params.filter_label is not None else f"_{sum(mask)}"
+        tag = os.path.split(params.output_folder.rstrip("/"))[-1]
         fig1.savefig(
-            os.path.join(output_path, f"voxel_light_vs_z_{params.output_folder}{label}.pdf"),
+            os.path.join(output_path, f"voxel_light_vs_z_{tag}{label}.pdf"),
             dpi=300,
             bbox_inches="tight",
         )
         fig2.savefig(
             os.path.join(
                 output_path,
-                f"voxel_charge_vs_z_hist_{params.output_folder}{label}.pdf",
+                f"voxel_charge_vs_z_hist_{tag}{label}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
@@ -1421,7 +1439,7 @@ def plot_light_vs_charge(
     light_array = []
     charge_array = []
     length_array = []
-    for event, metric in metrics.items():
+    for event, metric in metrics.items(): # Lifetime correction is handled in file loading instead to speed up the process.
         light_array.append(metric["Total_light"])
         charge_array.append(metric["Total_charge"])
         track_length = [0]
@@ -1758,10 +1776,11 @@ def plot_light_vs_charge(
         output_path = os.path.join(params.work_path, params.output_folder)
         os.makedirs(output_path, exist_ok=True)
         label = f"_{params.filter_label}" if params.filter_label is not None else f"_{len(ratio)}"
+        tag = os.path.split(params.output_folder.rstrip("/"))[-1]
         # fig1.savefig(
         #     os.path.join(
         #         output_path,
-        #         f"light_vs_charge_optmization_{params.output_folder}{label}.pdf",
+        #         f"light_vs_charge_optmization_{tag}{label}.pdf",
         #     ),
         #     dpi=300,
         #     bbox_inches="tight",
@@ -1769,7 +1788,7 @@ def plot_light_vs_charge(
         fig2.savefig(
             os.path.join(
                 output_path,
-                f"light_vs_charge_2D_hist_{params.output_folder}{label}.pdf",
+                f"light_vs_charge_2D_hist_{tag}{label}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
@@ -1777,7 +1796,7 @@ def plot_light_vs_charge(
         fig3.savefig(
             os.path.join(
                 output_path,
-                f"light_vs_charge_ratio_{params.output_folder}{label}.pdf",
+                f"light_vs_charge_ratio_{tag}{label}.pdf",
             ),
             dpi=300,
             bbox_inches="tight",
@@ -1785,7 +1804,7 @@ def plot_light_vs_charge(
         # fig4.savefig(
         #     os.path.join(
         #         output_path,
-        #         f"light_vs_charge_{params.output_folder}{label}.pdf",
+        #         f"light_vs_charge_{tag}{label}.pdf",
         #     ),
         #     dpi=300,
         #     bbox_inches="tight",

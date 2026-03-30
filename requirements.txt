@@ -13,4 +13,5 @@ uproot>=5.3.10
 ipykernel>=6.29.4
 nbstripout
 papermill
+awkward_pandas
 

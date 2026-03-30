@@ -32,7 +32,7 @@ def analysis(metrics, **kwargs):
 
     # 1 - Track statistical plots
     print("\nPlotting track statistics\n")
-    plot_track_stats(metrics, **method_kwargs["plot_track_stats"])
+    plot_track_stats(metrics, **method_kwargs["plot_track_stats"]) # Lifetime corrected inside the function.
     if params.show_figures:
         plt.show()
     else:
@@ -40,7 +40,7 @@ def analysis(metrics, **kwargs):
 
     # 2 - Track angular distribution plots
     print("\nPlotting track angular distribution\n")
-    plot_track_angles(metrics, **method_kwargs["plot_track_angles"])
+    plot_track_angles(metrics, **method_kwargs["plot_track_angles"]) # No need for lifetime correction in angular distribution.
     if params.show_figures:
         plt.show()
     else:
@@ -54,6 +54,14 @@ def analysis(metrics, **kwargs):
                 if not isinstance(track_idx, str) and track_idx > 0:
                     dQ_series = values["dQ"]
                     dx_series = values["dx"]
+
+                    # Lifetime correction
+                    if params.lifetime > 0:
+                        fit_line = values["fit_line"]
+                        z_vals = np.array([fit_line.to_point(t)[2] for t in dQ_series.index])
+                        dQ_series.index = dQ_series.index * lifetime_correction(z_vals)
+                    # ----------------------
+
                     plot_dQ(
                         dQ_series=dQ_series,
                         dx_series=dx_series,
@@ -69,7 +77,7 @@ def analysis(metrics, **kwargs):
 
     # 4 - Light geometrical properties to charge tracks statistics
     print("\nPlotting light geometrical properties to charge tracks statistics\n")
-    plot_light_geo_stats(metrics, **method_kwargs["plot_light_geo_stats"])
+    plot_light_geo_stats(metrics, **method_kwargs["plot_light_geo_stats"]) # No need for lifetime correction in light geometrical properties.
 
     if params.show_figures:
         plt.show()
@@ -78,8 +86,7 @@ def analysis(metrics, **kwargs):
 
     # 5 - Event level light vs charge statistics
     print("\nPlotting event level light vs charge statistics\n")
-    plot_light_vs_charge(metrics, **method_kwargs["plot_light_vs_charge"])
-
+    plot_light_vs_charge(metrics, **method_kwargs["plot_light_vs_charge"]) # Lifetime correction is handled in file loading instead to speed up the process.
     if params.show_figures:
         plt.show()
     else:
@@ -87,7 +94,7 @@ def analysis(metrics, **kwargs):
 
     # 6 - Voxelized charge and light data
     print("\nPlotting voxelized charge and light data\n")
-    plot_voxel_data(metrics, **method_kwargs["plot_voxel_data"])
+    plot_voxel_data(metrics, **method_kwargs["plot_voxel_data"]) # Lifetime corrected inside the function.
 
     if params.show_figures:
         plt.show()
@@ -96,7 +103,7 @@ def analysis(metrics, **kwargs):
 
     # 7 - Light fit statistics
     print("\nPlotting light fit statistics\n")
-    plot_light_fit_stats(metrics, **method_kwargs["plot_light_fit_stats"])
+    plot_light_fit_stats(metrics, **method_kwargs["plot_light_fit_stats"]) # No need for lifetime correction in light fit statistics.
 
     if params.show_figures:
         plt.show()
@@ -121,7 +128,9 @@ def main(folder, filter=None, display=False, save=True, parameters=None):
     if filter_tag is not None:
         filter_file = os.path.join(search_path, f"filter_parameters_{filter_tag}.json")
 
-    metrics_file = os.path.join(search_path, f"metrics_{params.output_folder}.pkl")
+    tag = os.path.split(params.output_folder.rstrip("/"))[-1]
+
+    metrics_file = os.path.join(search_path, f"metrics_{tag}.pkl")
 
     recal_params()
 
@@ -142,8 +151,10 @@ def main(folder, filter=None, display=False, save=True, parameters=None):
     print(len(metrics), "metrics loaded")
     metrics = filter_metrics(metrics)
 
-    if params.lifetime>0:
-        metrics = apply_lifetime(metrics)
+    if params.lifetime > 0:
+        # Correct total charge per event
+        print(f"\nApplying lifetime correction with tau = {params.lifetime} ms\n")
+        metrics = lifetime_correct_totals(metrics)
 
     analysis(metrics, **kwargs)
 

@@ -1,5 +1,6 @@
 ######### Imports #########
 
+import copy
 import glob
 import json
 import os
@@ -634,6 +635,15 @@ def fit_hit_clusters(
                     "dx": dh,
                     # "target_dx": target_dh,
                 }
+            else:
+                # Cluster exists but no valid track found
+                # TODO: test
+                metrics[label] = {
+                    "Q": q_c.sum(),
+                    "mean_x": xyz_c[:, 0].mean(),
+                    "mean_y": xyz_c[:, 1].mean(),
+                    "mean_z": xyz_c[:, 2].mean(),
+                }
 
         idx = np.unique(labels).tolist().index(label) + 1
 
@@ -658,8 +668,6 @@ def voxelize_hits(
         )
         voxel_charge = charge_df["q"][voxel_mask]
         voxel_z = charge_df["z"][voxel_mask]
-
-        voxel_charge = voxel_charge * lifetime_correction(voxel_z)
 
         xyzl = sipm[["x", "y", light_variable]].copy()
 
@@ -756,7 +764,8 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
     empty_count = 0
     short_count = 0
 
-    print(rf"Using lifetime correction with tau = {params.lifetime} ms")
+    if params.lifetime > 0:
+        print(rf"Track stats with lifetime correction tau = {params.lifetime} ms")
 
     for event, entry in metrics.items():
         for track, values in entry.items():
@@ -790,16 +799,15 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
                 continue
 
             dQdx = (dQ / dx).rename("dQdx")
-            print(type(dQdx))
-            print(dQdx)
 
             dQdx = dQdx.iloc[non_zero_mask[0] : non_zero_mask[-1] + 1]
 
             position = [values["Fit_line"].to_point(t=-values["Fit_norm"] / 2 + t) for t in dQ.index]
             position = position[non_zero_mask[0] : non_zero_mask[-1] + 1]
 
-            z = np.array([x[2] for x in position])
-            dQdx *= lifetime_correction(z)
+            if params.lifetime > 0:
+                z = np.array([x[2] for x in position])
+                dQdx *= lifetime_correction(z)
 
             track_dQdx.append(dQdx)
             track_points.append(pd.Series(position, index=dQdx.index, name="position"))
@@ -1070,7 +1078,7 @@ def filter_metrics(metrics, **kwargs):
 def combine_metrics():
     combined_metrics = {}
 
-    search_path = glob.glob(f"{params.work_path}/**/*metrics*.pkl")
+    search_path = glob.glob(os.path.join(os.path.dirname(os.path.join(params.work_path, params.output_folder.rstrip("/"))), "**/*metrics*.pkl"))
     for file in tqdm(search_path, leave=True, desc="Combining metrics"):
         folder = file.split("/")[-2]
         tqdm.write(folder)
@@ -1082,7 +1090,7 @@ def combine_metrics():
     output_path = os.path.join(params.work_path, params.output_folder)
     os.makedirs(output_path, exist_ok=True)
 
-    with open(os.path.join(output_path, f"metrics_{params.output_folder}.pkl"), "wb") as o:
+    with open(os.path.join(output_path, f"metrics_combined.pkl"), "wb") as o:
         pickle.dump(combined_metrics, o)
 
     print("Done\n")
@@ -1113,32 +1121,77 @@ def create_square(center, side_size):
     return square
 
 
-def apply_lifetime(metrics):
-    search_path = os.path.join(params.work_path, f"{params.output_folder}")
-    events = pd.Series(metrics.keys())
-    if events.str.contains("_").sum() > 0:
+def lifetime_correct_totals(metrics):
+    if params.lifetime <= 0:
+        return metrics
 
-        events = (
+    metrics_corr = copy.deepcopy(metrics)
+
+    # Prepare event key parsing for composite keys
+    events = pd.Series(list(metrics_corr.keys()), dtype="object").astype(str)
+    events_df = None
+    if events.str.contains("_").sum() > 0:
+        events_df = (
             events.str.split("_", expand=True)
             .astype(str)
             .apply(lambda x: pd.Series([f"{x[0]}_{x[1]}", x[2]]), axis=1)
             .rename(columns={0: "label", 1: "event"})
         )
 
-        for file in events["label"].unique():
-            temp_df = pd.read_pickle(f"{params.work_path}/{file}/charge_df_{file}.pkl")
-            for event_idx in events[events["label"] == file]["event"]:
-                selection, _, _ = prepare_event(int(event_idx), temp_df)
-                total_charge = sum(selection["q"].to_numpy() * lifetime_correction(selection["z"].to_numpy()))
-                # print(event_idx, total_charge, selection["q"].to_numpy().sum(), metrics[f"{file}_{event_idx}"]["Total_charge"])
-                metrics[f"{file}_{event_idx}"]["Total_charge"] = total_charge
+    file_cache = {}
+    def get_temp_df(event_key, events_df):
+        if events_df is not None:
+            tag = events_df.loc[events_df["event"] == str(event_key), "label"].values[0]
+            search_path = os.path.join(os.path.dirname(os.path.join(params.work_path, params.output_folder.rstrip("/"))), tag)
+        else:
+            tag = os.path.split(params.output_folder)[1]
+            search_path = os.path.join(params.work_path, f"{params.output_folder}")
 
-    else:
-        temp_df = pd.read_pickle(f"{params.work_path}/charge_df_{params.output_folder}.pkl")
-        for event_idx in events[events["label"] == file]["event"]:
-            selection, _, _ = prepare_event(int(event_idx), temp_df)
-            total_charge = sum(selection["q"].to_numpy() * lifetime_correction(selection["z"].to_numpy()))
-            # print(event_idx, total_charge, selection["q"].to_numpy().sum(), metrics[f"{file}_{event_idx}"]["Total_charge"])
-            metrics[f"{file}_{event_idx}"]["Total_charge"] = total_charge
+        file = os.path.join(search_path, f"charge_df_{tag}.pkl")
 
-    return metrics
+        if file in file_cache:
+            temp_df = file_cache[file]
+        else:
+            file_cache.clear() # Clear previous cache to save memory
+            temp_df = pd.read_pickle(file)
+            file_cache[file] = temp_df
+        return temp_df
+
+    
+
+    for event_key, event_metrics in tqdm(metrics_corr.items()):
+        if not isinstance(event_metrics, dict):
+            continue
+        for cluster_key, cluster in event_metrics.items():
+            if not isinstance(cluster, dict):
+                continue
+            # # 1. dQ (Series): needs per-segment z
+            # if "dQ" in cluster and "dx" in cluster and "Fit_line" in cluster and cluster["dQ"] is not None:
+            #     dQ = cluster["dQ"]
+            #     fit_line = cluster["Fit_line"]
+            #     t_vals = dQ.index
+            #     z_vals = np.array([fit_line.to_point(t)[2] for t in t_vals])
+            #     cluster["dQ"] = dQ * lifetime_correction(z_vals)
+
+            # # 2. Q (for clusters without a track)
+            # if "Q" in cluster and "mean_z" in cluster:
+            #     cluster["Q"] = cluster["Q"] * lifetime_correction(cluster["mean_z"])
+            # # 3. SiPM charge_q (per SiPM)
+            # if "SiPM" in cluster:
+            #     for sipm_key, sipm_entry in cluster["SiPM"].items():
+            #         if isinstance(sipm_entry, dict) and "charge_q" in sipm_entry and "charge_z" in sipm_entry:
+            #             sipm_entry["charge_q"] = sipm_entry["charge_q"] * lifetime_correction(sipm_entry["charge_z"])
+        # 4. Total_charge: recalculate from temp_df
+        if isinstance(event_metrics, dict) and "Total_charge" in event_metrics:
+            # Get temp_df for this event
+            if events_df is not None:
+                event_id = str(event_key).split("_")[-1]
+                temp_df = get_temp_df(event_id, events_df)
+            else:
+                temp_df = get_temp_df(event_key, None)
+
+            selection, _, _ = prepare_event(int(event_key) if isinstance(event_key, int) or str(event_key).isdigit() else int(str(event_key).split("_")[-1]), temp_df)
+            if selection is not None:
+                event_metrics["Total_charge"] = sum(selection["q"].to_numpy() * lifetime_correction(selection["z"].to_numpy()))
+
+    return metrics_corr
