@@ -1,0 +1,27 @@
+{
+    "name": "SoLAr-V2-reco (Ubuntu 24.04)",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    // Install the workspace Python package after the container is created
+    "postCreateCommand": "bash -lc 'source /opt/conda/etc/profile.d/conda.sh && conda activate solarv2 && pip install -e .'",
+    // Forward Jupyter Notebook / JupyterLab port
+    "forwardPorts": [
+        8888
+    ],
+    "portsAttributes": {
+        "8888": {
+            "label": "Jupyter",
+            "onAutoForward": "notify"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-toolsai.jupyter"
+            ]
+        }
+    }
+}
