@@ -1063,6 +1063,9 @@ def filter_metrics(metrics, **kwargs):
     min_track_length = kwargs.get("min_track_length", params.min_track_length)
     max_track_length = kwargs.get("max_track_length", params.max_track_length)
     max_tracks = kwargs.get("max_tracks", params.max_tracks)
+    min_tracks = kwargs.get("min_tracks", params.min_tracks)
+    min_clusters = kwargs.get("min_clusters", params.min_clusters)
+    max_clusters = kwargs.get("max_clusters", params.max_clusters)
     min_light = kwargs.get("min_light", params.min_light)
     max_light = kwargs.get("max_light", params.max_light)
     max_z = kwargs.get("max_z", params.max_z)
@@ -1072,7 +1075,10 @@ def filter_metrics(metrics, **kwargs):
         f"max_score = {max_score}\n",
         f"min_track_length = {min_track_length}\n",
         f"max_track_length = {max_track_length}\n",
+        f"min_tracks = {min_tracks}\n",
         f"max_tracks = {max_tracks}\n",
+        f"min_clusters = {min_clusters}\n",
+        f"max_clusters = {max_clusters}\n",
         f"min_light = {min_light}\n",
         f"max_light = {max_light}\n",
         f"max_z = {max_z}\n",
@@ -1081,29 +1087,39 @@ def filter_metrics(metrics, **kwargs):
     filtered_metrics = {}
 
     for event_idx, metric in metrics.items():
-        # Calculate non_track_keys programmatically
         non_track_keys = sum(1 for key in metric if isinstance(key, str))
-
-        # Filter based on the number of tracks and light metrics, if applicable
-        if len(metric) <= max_tracks + non_track_keys:
-            if ("Total_light" in metric and min_light <= metric["Total_light"] <= max_light) or "Total_light" not in metric:
-                candidate_metric = {
-                    track_idx: values
-                    for track_idx, values in metric.items()
-                    if isinstance(track_idx, str)
-                    or (
-                        track_idx > 0
-                        and values["RANSAC_score"] >= min_score
+        candidate_metric = {}
+        n_tracks = 0
+        n_clusters = 0
+        for track_idx, values in metric.items():
+            if isinstance(track_idx, str):
+                candidate_metric[track_idx] = values
+            elif track_idx > 0 and isinstance(values, dict):
+                # Track: has all track keys
+                if all(k in values for k in ["RANSAC_score", "Fit_norm", "Fit_line"]):
+                    if (
+                        values["RANSAC_score"] >= min_score
                         and values["RANSAC_score"] <= max_score
                         and values["Fit_norm"] >= min_track_length
                         and values["Fit_norm"] <= max_track_length
                         and values["Fit_line"].point[2] < max_z
-                    )
-                }
-
-                # Check if the filtered candidate metrics meet the criteria
-                if non_track_keys < len(candidate_metric) <= max_tracks + non_track_keys:
-                    filtered_metrics[event_idx] = candidate_metric
+                    ):
+                        candidate_metric[track_idx] = values
+                        n_tracks += 1
+                # Cluster: has all cluster keys
+                elif all(k in values for k in ["Q", "mean_z", "mean_x", "mean_y"]):
+                    candidate_metric[track_idx] = values
+                    n_clusters += 1
+        # Event-level filtering
+        if (
+            ("Total_light" in metric and min_light <= metric["Total_light"] <= max_light) or "Total_light" not in metric
+        ):
+            if (
+                min_tracks <= n_tracks <= max_tracks
+                and min_clusters <= n_clusters <= max_clusters
+                and non_track_keys < len(candidate_metric) <= (max_tracks + max_clusters + non_track_keys)
+            ):
+                filtered_metrics[event_idx] = candidate_metric
 
     print(f"{len(filtered_metrics)} metrics remaining")
     params.filter_label = len(filtered_metrics)
@@ -1121,7 +1137,10 @@ def filter_metrics(metrics, **kwargs):
                 "max_score": max_score,
                 "min_track_length": min_track_length,
                 "max_track_length": max_track_length,
+                "min_tracks": min_tracks,
                 "max_tracks": max_tracks,
+                "min_clusters": min_clusters,
+                "max_clusters": max_clusters,
                 "min_light": min_light,
                 "max_light": max_light,
                 "max_z": max_z,
