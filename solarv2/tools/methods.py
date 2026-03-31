@@ -771,6 +771,8 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
         for track, values in entry.items():
             if isinstance(track, str) or track <= 0:
                 continue
+            if not all(key in values for key in ["Fit_norm", "RANSAC_score", "Fit_line", "dQ", "dx"]):
+                continue
 
             track_length.append(values["Fit_norm"])
             track_score.append(values["RANSAC_score"])
@@ -858,6 +860,61 @@ def get_track_stats(metrics, empty_ratio_lims=(0, 1), min_entries=1):
 
     return df
 
+
+def get_cluster_stats(metrics):
+    cluster_q = []
+    cluster_z = []
+    cluster_x = []
+    cluster_y = []
+    events = []
+    clusters = []
+
+    for event, entry in metrics.items():
+        for cluster, values in entry.items():
+            if isinstance(cluster, str) or cluster <= 0:
+                continue
+            if not all(key in values for key in ["Q", "mean_z"]) or values["Q"] <= 0:
+                continue
+
+            q = values["Q"]
+            z = values["mean_z"]
+            x = values["mean_x"]
+            y = values["mean_y"]
+
+            if params.lifetime > 0:
+                print(rf"Cluster stats with lifetime correction tau = {params.lifetime} ms")
+                q = q * lifetime_correction(z)
+
+            cluster_q.append(q)
+            cluster_z.append(z)
+            cluster_x.append(x)
+            cluster_y.append(y)
+            events.append(event)
+            clusters.append(cluster)
+
+
+
+    df = pd.DataFrame(
+        [
+            events,
+            clusters,
+            cluster_q,
+            cluster_x,
+            cluster_y,
+            cluster_z,
+
+        ],
+        index=[
+            "event",
+            "cluster",
+            "Q",
+            "mean_x",
+            "mean_y",
+            "mean_z",
+        ],
+    ).T
+
+    return df
 
 # ### Helpers
 
@@ -1165,6 +1222,8 @@ def lifetime_correct_totals(metrics):
         for cluster_key, cluster in event_metrics.items():
             if not isinstance(cluster, dict):
                 continue
+
+            # THIS BLOCK WOULD TAKE TOO LONG. INSTEAD EACH ANALYSIS FUNCTION APPLIED LIFETIME CORRECTIO ON THE FLY.
             # # 1. dQ (Series): needs per-segment z
             # if "dQ" in cluster and "dx" in cluster and "Fit_line" in cluster and cluster["dQ"] is not None:
             #     dQ = cluster["dQ"]
@@ -1181,6 +1240,8 @@ def lifetime_correct_totals(metrics):
             #     for sipm_key, sipm_entry in cluster["SiPM"].items():
             #         if isinstance(sipm_entry, dict) and "charge_q" in sipm_entry and "charge_z" in sipm_entry:
             #             sipm_entry["charge_q"] = sipm_entry["charge_q"] * lifetime_correction(sipm_entry["charge_z"])
+            # ---------------------------------------------------------------------------------------------------------
+
         # 4. Total_charge: recalculate from temp_df
         if isinstance(event_metrics, dict) and "Total_charge" in event_metrics:
             # Get temp_df for this event
