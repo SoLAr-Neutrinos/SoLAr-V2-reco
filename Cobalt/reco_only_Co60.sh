@@ -13,7 +13,7 @@
 # fi
 
 # Full analysis
-for light_file in /eos/experiment/dune/solar/data/SoLAr_v2/Light/root/46v_12db_th950_deco_cobalt/deco_v6*
+for light_file in /eos/experiment/dune/solar/data/SoLAr_v2/Light/root/46v_12db_th950_deco_cobalt/lightevent_v12_calib_*_20230706_*
 do
   # Print the current file name
   echo Light file: "$light_file"
@@ -23,6 +23,12 @@ do
   
   # Transform the label to the charge file timestamp format
   formatted_date=$(echo $label | sed 's/\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)_\([0-9]\{2\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)/\1_\2_\3_\4_\5/')
+  case "$formatted_date" in
+    2023_07_06_22_32) formatted_date="2023_07_06_22_22" ;;
+    2023_07_06_22_04) formatted_date="2023_07_06_22_02" ;;
+  esac
+
+  
 
   charge_file="/eos/experiment/dune/solar/data/SoLAr_v2/Charge/cobalt/root/evd_self_trigger_cobalt-packets-${formatted_date}_CEST_validated.root"
   echo Charge file: "$charge_file"
@@ -34,10 +40,10 @@ do
 
   # Run the reconstruction script
   if [ -d "/eos/experiment/dune/solar/scripts/SoLAr-V2-reco/Cobalt/$label" ]; then
-    if [ -f "/eos/experiment/dune/solar/scripts/SoLAr-V2-reco/Cobalt/$label/metrics_$label.pkl" ]; then
-      echo "Reconstruction output already exists, skipping: $label"
-      continue
-    fi
+    # if [ -f "/eos/experiment/dune/solar/scripts/SoLAr-V2-reco/Cobalt/$label/metrics_$label.pkl" ]; then
+    #   echo "Reconstruction output already exists, skipping: $label"
+    #   continue
+    # fi
     python -m solarv2 reco -f "$label"
   else
     python -m solarv2 reco -c "$charge_file" -l "$light_file" 

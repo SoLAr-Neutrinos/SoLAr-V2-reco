@@ -27,7 +27,7 @@ def fit_events(charge_df, light_df, match_dict):
         # Light to track geometry metrics
         track_lines = []
         for track_idx, values in metrics[event].items():
-            if isinstance(track_idx, str) or track_idx <= 0:
+            if isinstance(track_idx, str) or track_idx <= 0 or "Fit_line" not in values or "Fit_norm" not in values:
                 continue
             values["SiPM"] = light_geometry(
                 track_line=values["Fit_line"],
