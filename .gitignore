@@ -161,6 +161,12 @@ cython_debug/
 
 # Misc
 .DS_Store
+
+# Figures
 *.png
 *.pdf
+
+# Data Files
 *.root
+*.pkl
+
