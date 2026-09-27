@@ -39,15 +39,15 @@ do
   fi
 
   # Run the reconstruction script
-  if [ -d "/eos/experiment/dune/solar/scripts/SoLAr-V2-reco/Cobalt/$label" ]; then
-    # if [ -f "/eos/experiment/dune/solar/scripts/SoLAr-V2-reco/Cobalt/$label/metrics_$label.pkl" ]; then
-    #   echo "Reconstruction output already exists, skipping: $label"
-    #   continue
-    # fi
-    python -m solarv2 reco -f "$label"
-  else
+  # if [ -d "/eos/experiment/dune/solar/scripts/SoLAr-V2-reco/Cobalt/$label" ]; then
+  #   # if [ -f "/eos/experiment/dune/solar/scripts/SoLAr-V2-reco/Cobalt/$label/metrics_$label.pkl" ]; then
+  #   #   echo "Reconstruction output already exists, skipping: $label"
+  #   #   continue
+  #   # fi
+  #   python -m solarv2 reco -f "$label"
+  # else
     python -m solarv2 reco -c "$charge_file" -l "$light_file" 
-  fi
+  # fi
 
  if [ ! -d "/eos/experiment/dune/solar/scripts/SoLAr-V2-reco/Cobalt/$label" ]; then
    continue
